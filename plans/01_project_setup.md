@@ -5,14 +5,19 @@ Initialize Flask project structure with dependencies and configuration.
 
 ## Tasks
 
-### 1.1 Install Dependencies
+### 1.1 Virtual Environment
+Create Python virtual environment:
+- `python3 -m venv venv`
+- `source venv/bin/activate`
+
+### 1.2 Install Dependencies
 Create `requirements.txt` with:
 - Flask
 - Flask-Login
 - Flask-SQLAlchemy
 - Flask-Migrate
 - Werkzeug
-- openai (for Qwen API)
+- requests (for local LLM API)
 - Flask-CORS
 
 ### 1.2 Project Structure
@@ -51,7 +56,7 @@ Create `requirements.txt` with:
 Create `config.py` with:
 - SQLite database URI
 - Secret key
-- Qwen API base_url and API key
+- Local LLM API base_url (e.g., http://localhost:8080/v1)
 - Upload folder path
 - Max file size for uploads
 
