@@ -1,0 +1,15 @@
+[Unit]
+Description=FitnessFriend Fitness Tracking App
+After=network.target
+
+[Service]
+Type=simple
+User=angrygiant
+WorkingDirectory=/home/angrygiant/github_projects/FitnessFriend
+Environment="PATH=/home/angrygiant/github_projects/FitnessFriend/venv/bin"
+ExecStart=/home/angrygiant/github_projects/FitnessFriend/start.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

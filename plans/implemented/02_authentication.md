@@ -1,5 +1,7 @@
 # Plan 2: Authentication & User Models
 
+**Status: ✅ COMPLETED** - 2026-04-01
+
 ## Objective
 Implement user authentication and core user model with profile management.
 
@@ -53,9 +55,23 @@ Endpoints:
 - `PUT /api/user/goal` - Update daily calorie goal
 
 ## Acceptance Criteria
-- Users can register with email/password
-- Users can login/logout
-- Passwords are securely hashed
-- Protected routes require authentication
-- User profile can be viewed and updated
-- BMR calculation integrated into registration
+- ✅ Users can register with email/password
+- ✅ Users can login/logout
+- ✅ Passwords are securely hashed
+- ✅ Protected routes require authentication
+- ✅ User profile can be viewed and updated
+- ✅ BMR calculation integrated into registration
+- ✅ `@require_auth` decorator implemented
+- ✅ Daily calorie goal field added to User model
+- ✅ Database migrations created and applied
+
+## Summary
+All authentication features have been implemented:
+- User model with profile fields and daily_calorie_goal
+- Registration with BMR/TDEE calculation
+- Login/logout with Flask-Login sessions
+- Profile CRUD operations
+- Calorie goal management endpoint
+- User statistics endpoint
+- Custom @require_auth decorator
+- Database properly initialized with all tables
