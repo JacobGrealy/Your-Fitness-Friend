@@ -45,3 +45,6 @@ coverage/
 
 # Migrations (optional - uncomment if you want to track them)
 # migrations/
+
+# Playwright CLI
+.playwright-cli/
