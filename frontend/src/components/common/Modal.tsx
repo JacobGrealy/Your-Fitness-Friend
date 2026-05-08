@@ -50,7 +50,7 @@ export default function Modal({
         aria-hidden="true"
       />
       <div
-        className="modal-box relative w-full max-w-lg sm:max-w-xl"
+        className="modal-box relative w-full max-w-lg sm:max-w-xl max-h-[90vh] overflow-y-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
