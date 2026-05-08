@@ -1,0 +1,17 @@
+# FitnessFriend Development Guidelines
+
+## Environment Setup
+
+### Python (Backend)
+- **ALWAYS use the project venv** at `./venv/bin/python` and `./venv/bin/pip`
+- Do NOT install packages system-wide or use the system Python
+- Example: `./venv/bin/python -m pytest tests/`
+
+### Node.js (Frontend)
+- Use full path: `/home/angrygiant/.nvm/versions/node/v22.22.2/bin/node`
+- Use `npm` commands from within the `frontend/` directory
+- Example: `cd frontend && npm test`
+
+## Testing
+- Backend: `./venv/bin/python -m pytest tests/`
+- Frontend: `cd frontend && npm test`

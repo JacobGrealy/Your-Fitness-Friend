@@ -1,0 +1,14 @@
+[Unit]
+Description=FitnessFriend Flask Backend
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/angrygiant/github_projects/FitnessFriend/venv/bin/python main.py --port 5001
+Restart=on-failure
+RestartSec=5
+User=angrygiant
+WorkingDirectory=/home/angrygiant/github_projects/FitnessFriend
+
+[Install]
+WantedBy=multi-user.target

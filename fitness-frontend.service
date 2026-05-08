@@ -1,0 +1,15 @@
+[Unit]
+Description=FitnessFriend Vite Frontend
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/angrygiant/.nvm/versions/node/v22.22.2/bin/npm run dev
+Restart=on-failure
+RestartSec=5
+User=angrygiant
+WorkingDirectory=/home/angrygiant/github_projects/FitnessFriend/frontend
+Environment=PATH=/home/angrygiant/.nvm/versions/node/v22.22.2/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+[Install]
+WantedBy=multi-user.target
