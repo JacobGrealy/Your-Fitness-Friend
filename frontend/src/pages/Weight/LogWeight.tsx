@@ -99,7 +99,8 @@ export default function LogWeight() {
       notes: data.notes,
       photo_url: uploadedPhotoUrl || null,
     })
-    if (duplicateEntry) {
+    const currentDuplicate = useWeightStore.getState().duplicateEntry
+    if (currentDuplicate) {
       setShowDuplicateWarning(true)
     } else {
       reset({ weight: undefined, date: getTodayDate(), notes: '' })
@@ -164,7 +165,7 @@ export default function LogWeight() {
               <h3 className="font-bold">Duplicate entry found</h3>
               <p className="text-xs">You already have a weight logged for {new Date(duplicateEntry.recorded_at).toLocaleDateString()} ({duplicateEntry.weight} lbs).</p>
               <div className="flex gap-2 mt-2">
-                <Button size="sm" onClick={handleReplace}>Replace</Button>
+                <Button size="sm" onClick={handleReplace} loading={isLoading} disabled={isLoading}>Replace</Button>
                 <Button size="sm" variant="outline" onClick={handleKeepExisting}>Keep existing</Button>
               </div>
             </div>
