@@ -35,6 +35,13 @@ export const weightApi = {
     }).then(res => res.data),
   deleteLog: (id: string) =>
     api.delete(`/weight/logs/${id}`).then(res => res.data),
+  updateLog: (id: string, data: Omit<WeightLogCreate, 'photo'>) =>
+    api.put<WeightLog>(`/weight/logs/${id}`, {
+      weight_lbs: data.weight,
+      date: data.date,
+      notes: data.notes,
+      photo_url: data.photo_url,
+    }).then(res => res.data),
   getStatistics: () =>
     api.get<WeightStatistics>('/weight/statistics').then(res => res.data),
   getTrend: () =>
