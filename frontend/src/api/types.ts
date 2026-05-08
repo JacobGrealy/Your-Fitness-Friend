@@ -10,10 +10,16 @@ export interface RegisterData {
 }
 
 export interface UserProfile {
-  id: string
+  id: number
+  username: string
   email: string
-  name: string
-  created_at: string
+  age?: number
+  gender?: string
+  height?: number
+  weight?: number
+  activity_level?: string
+  daily_calorie_goal?: number
+  created_at?: string
 }
 
 export interface ApiResponse<T> {

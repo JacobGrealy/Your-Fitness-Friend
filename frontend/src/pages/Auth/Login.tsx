@@ -29,7 +29,8 @@ function LoginForm() {
     setLocalError(null)
     try {
       await login(data.email, data.password)
-      navigate('/dashboard')
+      setLocalError(null)
+      navigate('/dashboard', { replace: true })
     } catch (err) {
       setLocalError(error || 'Login failed')
     }
@@ -93,9 +94,9 @@ function LoginForm() {
           </button>
 
           <div className="text-center">
-            <a href="/auth/register" className="link link-primary">
+            <button type="button" onClick={() => navigate('/auth/register')} className="link link-primary">
               Don't have an account? Sign up
-            </a>
+            </button>
           </div>
         </form>
       </div>

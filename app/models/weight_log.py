@@ -9,10 +9,10 @@ class WeightLog(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    weight = db.Column(db.Float, nullable=False)  # in kg
+    weight = db.Column(db.Float, nullable=False)  # in lbs
     recorded_at = db.Column(db.DateTime, default=datetime.utcnow)
     notes = db.Column(db.Text)
     photo_url = db.Column(db.String(256))
     
     def __repr__(self):
-        return f'<WeightLog {self.weight}kg on {self.recorded_at}>'
+        return f'<WeightLog {self.weight}lbs on {self.recorded_at}>'

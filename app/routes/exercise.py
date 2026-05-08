@@ -6,7 +6,7 @@ from app.utils.qwen_client import qwen_client
 from app import db
 from datetime import datetime
 
-bp = Blueprint('exercise', __name__, url_prefix='/api/exercise')
+bp = Blueprint('exercise', __name__)
 
 
 @bp.route('/log', methods=['POST'])
@@ -18,8 +18,14 @@ def log_exercise():
     if not data:
         return jsonify({'error': 'No data provided'}), 400
     
-    exercise_description = data.get('exercise_description')
-    duration_min = data.get('duration_min')
+    # Accept both old and new field names for compatibility
+    exercise_description = data.get('exercise_description') or data.get('exercise_name')
+    duration_min = data.get('duration_min') or data.get('duration_minutes')
+    intensity = data.get('intensity')
+    sets = data.get('sets')
+    reps = data.get('reps')
+    weight_lbs = data.get('weight_lbs')
+    notes = data.get('notes')
     
     if not exercise_description or not duration_min:
         return jsonify({'error': 'exercise_description and duration_min required'}), 400
@@ -40,11 +46,8 @@ def log_exercise():
             'message': 'Please set your weight in your profile first'
         }), 400
     
-    # Convert weight to kg if in lbs
-    if current_user.unit == 'imperial':
-        weight_kg = user_weight * 0.453592
-    else:
-        weight_kg = user_weight
+    # Weight is stored in lbs, convert to kg for calorie calculation
+    weight_kg = user_weight * 0.453592
     
     # Estimate calories via Qwen AI
     try:
@@ -54,7 +57,7 @@ def log_exercise():
             weight_kg=weight_kg
         )
         calories_burned = estimation['calories']
-    except Exception as e:
+    except Exception:
         # Fallback: use simple calculation if AI fails
         # Basic estimate: MET * weight_kg * duration_hours
         # Using average MET of 5 for moderate exercise
@@ -65,7 +68,9 @@ def log_exercise():
         user_id=current_user.id,
         exercise_name=exercise_description,
         duration=duration_min,
-        calories_burned=calories_burned
+        calories_burned=calories_burned,
+        intensity=intensity,
+        notes=notes
     )
     
     db.session.add(exercise_log)
@@ -76,6 +81,8 @@ def log_exercise():
         'exercise_name': exercise_log.exercise_name,
         'duration_min': exercise_log.duration,
         'calories_burned': exercise_log.calories_burned,
+        'intensity': exercise_log.intensity,
+        'notes': exercise_log.notes,
         'estimated_by': 'ai' if 'estimation' in locals() else 'fallback'
     }), 201
 
@@ -169,11 +176,8 @@ def estimate_calories():
             'message': 'Please set your weight in your profile first'
         }), 400
     
-    # Convert weight to kg if in lbs
-    if current_user.unit == 'imperial':
-        weight_kg = user_weight * 0.453592
-    else:
-        weight_kg = user_weight
+    # Weight is stored in lbs, convert to kg for calorie calculation
+    weight_kg = user_weight * 0.453592
     
     # Estimate calories via Qwen AI
     try:
@@ -214,6 +218,24 @@ def get_exercise_logs():
         'notes': log.notes,
         'logged_at': log.logged_at.isoformat()
     } for log in logs]), 200
+
+
+@bp.route('/saved/<int:saved_id>', methods=['DELETE'])
+@login_required
+def delete_saved_exercise(saved_id):
+    """Delete a saved exercise."""
+    saved = SavedExercise.query.filter_by(
+        id=saved_id,
+        user_id=current_user.id
+    ).first()
+    
+    if not saved:
+        return jsonify({'error': 'Saved exercise not found'}), 404
+    
+    db.session.delete(saved)
+    db.session.commit()
+    
+    return jsonify({'message': 'Saved exercise deleted'}), 200
 
 
 @bp.route('/<int:log_id>', methods=['DELETE'])

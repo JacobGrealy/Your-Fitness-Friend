@@ -4,62 +4,57 @@ import { UserProfile } from '@/api/types'
 
 interface AuthState {
   user: UserProfile | null
-  token: string | null
   isAuthenticated: boolean
   isLoading: boolean
+  hasChecked: boolean
   error: string | null
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, name: string) => Promise<void>
   logout: () => Promise<void>
+  checkAuth: () => Promise<void>
   clearError: () => void
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: null,
   isAuthenticated: false,
   isLoading: false,
+  hasChecked: false,
   error: null,
+
+  checkAuth: async () => {
+    set({ isLoading: true })
+    try {
+      const user = await authApi.getProfile()
+      set({ user, isAuthenticated: true, isLoading: false, hasChecked: true })
+    } catch {
+      set({ user: null, isAuthenticated: false, isLoading: false, hasChecked: true })
+    }
+  },
 
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null })
     try {
       const response = await authApi.login({ email, password })
-      const { token, user } = response.data
-      localStorage.setItem('token', token)
-      set({ 
-        token, 
-        user,
-        isAuthenticated: true,
-        isLoading: false 
-      })
+      set({ user: response.user, isAuthenticated: true, isLoading: false, hasChecked: true })
     } catch (error: any) {
       set({ 
-        error: error.response?.data?.message || 'Login failed',
+        error: error.response?.data?.error || 'Login failed',
         isLoading: false 
       })
-      throw error
     }
   },
 
   register: async (email: string, password: string, name: string) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await authApi.register({ email, password, name })
-      const { token, user } = response.data
-      localStorage.setItem('token', token)
-      set({ 
-        token, 
-        user,
-        isAuthenticated: true,
-        isLoading: false 
-      })
+      await authApi.register({ email, password, name })
+      set({ isLoading: false })
     } catch (error: any) {
       set({ 
-        error: error.response?.data?.message || 'Registration failed',
+        error: error.response?.data?.error || 'Registration failed',
         isLoading: false 
       })
-      throw error
     }
   },
 
@@ -69,12 +64,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
-      localStorage.removeItem('token')
       set({ 
         user: null, 
-        token: null, 
         isAuthenticated: false,
-        error: null 
+        error: null,
+        hasChecked: false
       })
     }
   },

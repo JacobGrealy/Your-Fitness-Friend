@@ -5,52 +5,39 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'icons/*.svg'],
-      manifest: {
-        name: 'Fitness Friend',
-        short_name: 'FitnessFriend',
-        description: 'Track your fitness journey',
-        theme_color: '#1a1a1a',
-        background_color: '#1a1a1a',
-        display: 'standalone',
-        icons: [
-          {
-            src: '/icons/icon-192x192.svg',
-            sizes: '192x192',
-            type: 'image/svg+xml'
-          },
-          {
-            src: '/icons/icon-512x512.svg',
-            sizes: '512x512',
-            type: 'image/svg+xml'
-          }
-        ]
-      }
-    })
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
     }
   },
   server: {
+    host: '0.0.0.0',
     port: 5173,
+    strictPort: true,
+    cors: true,
+ 
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true
-      },
-      '/auth': {
-        target: 'http://localhost:5000',
-        changeOrigin: true
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            // Preserve the original Host header so Flask sets the cookie for the correct domain
+            proxyReq.removeHeader('host')
+            proxyReq.setHeader('host', req.headers.host)
+          })
+        }
       },
       '/uploads': {
-        target: 'http://localhost:5000',
-        changeOrigin: true
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            proxyReq.removeHeader('host')
+            proxyReq.setHeader('host', req.headers.host)
+          })
+        }
       }
     }
   },

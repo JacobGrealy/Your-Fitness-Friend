@@ -135,7 +135,11 @@ class QwenClient:
             response.raise_for_status()
             
             data = response.json()
-            content = data['choices'][0]['message']['content']
+            content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
+            
+            # Check if response contains an error message from the model
+            if isinstance(content, str) and ('model does not support' in content or 'Cannot read' in content):
+                raise requests.exceptions.RequestException(f"LLM server error: {content}")
             
             # Parse JSON response
             try:

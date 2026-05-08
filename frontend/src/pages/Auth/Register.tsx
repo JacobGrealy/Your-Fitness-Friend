@@ -34,7 +34,8 @@ function RegisterForm() {
     setLocalError(null)
     try {
       await registerUser(data.email, data.password, data.name)
-      navigate('/dashboard')
+      setLocalError(null)
+      navigate('/auth/login')
     } catch (err) {
       setLocalError(error || 'Registration failed')
     }
@@ -132,9 +133,9 @@ function RegisterForm() {
           </button>
 
           <div className="text-center">
-            <a href="/auth/login" className="link link-primary">
+            <button type="button" onClick={() => navigate('/auth/login')} className="link link-primary">
               Already have an account? Sign in
-            </a>
+            </button>
           </div>
         </form>
       </div>

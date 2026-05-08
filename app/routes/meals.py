@@ -9,7 +9,7 @@ import base64
 import uuid
 
 
-bp = Blueprint('meals', __name__, url_prefix='/api/meals')
+bp = Blueprint('meals', __name__)
 
 
 def allowed_file(filename):
@@ -96,39 +96,45 @@ def upload_photo():
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     
-    # Analyze with AI
+    # Analyze with AI (optional - save photo even if AI fails)
+    analysis = None
     try:
         analysis = qwen_client.analyze_meal_photo(image_base64)
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 422
-    except Exception as e:
-        return jsonify({'error': f"AI analysis failed: {str(e)}"}), 422
+    except Exception:
+        # AI analysis unavailable or failed - save photo without analysis
+        analysis = None
     
     # Create database record
     meal_photo = MealPhoto(
         user_id=current_user.id,
         photo_path=photo_path,
-        estimated_calories=int(analysis['calories']),
-        estimated_protein=analysis['protein'],
-        estimated_carbs=analysis['carbs'],
-        estimated_fat=analysis['fat'],
+        estimated_calories=int(analysis['calories']) if analysis else None,
+        estimated_protein=analysis['protein'] if analysis else None,
+        estimated_carbs=analysis['carbs'] if analysis else None,
+        estimated_fat=analysis['fat'] if analysis else None,
         date=None
     )
     db.session.add(meal_photo)
     db.session.commit()
     
-    return jsonify({
+    result = {
         'success': True,
         'photo_id': meal_photo.id,
         'photo_path': photo_path,
-        'analysis': {
+    }
+    
+    if analysis:
+        result['analysis'] = {
             'calories': analysis['calories'],
             'protein': analysis['protein'],
             'carbs': analysis['carbs'],
             'fat': analysis['fat'],
             'items': analysis['items']
         }
-    }), 200
+    else:
+        result['message'] = 'Photo saved. AI nutrition analysis is not available.'
+    
+    return jsonify(result), 200
 
 
 @bp.route('/', methods=['GET'])

@@ -7,7 +7,7 @@ from app.models.user import User
 from app.utils.bmr_calculator import calculate_bmr_and_macros
 from werkzeug.security import generate_password_hash, check_password_hash
 
-bp = Blueprint('auth', __name__, url_prefix='/auth')
+bp = Blueprint('auth', __name__)
 
 
 def require_auth(f):
@@ -29,20 +29,20 @@ def register():
     if request.method == 'POST':
         data = request.get_json() or request.form
         
-        username = data.get('username', '').strip()
         email = data.get('email', '').strip()
         password = data.get('password', '')
+        name = data.get('name', '').strip()
         
         # Validation
-        if not username or not email or not password:
+        if not email or not password:
             return jsonify({'error': 'All fields are required'}), 400
         
         if len(password) < 6:
             return jsonify({'error': 'Password must be at least 6 characters'}), 400
         
         # Check if user exists
-        if User.query.filter_by(username=username).first():
-            return jsonify({'error': 'Username already taken'}), 400
+        if User.query.filter_by(email=email).first():
+            return jsonify({'error': 'Email already registered'}), 400
         
         if User.query.filter_by(email=email).first():
             return jsonify({'error': 'Email already registered'}), 400
@@ -62,7 +62,7 @@ def register():
         
         # Create user
         user = User(
-            username=username,
+            username=email,
             email=email,
             age=data.get('age'),
             gender=data.get('gender'),
@@ -95,16 +95,23 @@ def register():
 def login():
     """Handle user login."""
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard.index'))
+        return jsonify({
+            'message': 'Login successful',
+            'user': {
+                'id': current_user.id,
+                'username': current_user.username,
+                'email': current_user.email
+            }
+        })
     
     if request.method == 'POST':
         data = request.get_json() or request.form
         
-        username = data.get('username', '').strip()
+        email = data.get('email', '').strip()
         password = data.get('password', '')
         remember = data.get('remember', False)
         
-        user = User.query.filter_by(username=username).first()
+        user = User.query.filter_by(email=email).first()
         
         if user and user.check_password(password):
             login_user(user, remember=remember)
@@ -118,7 +125,7 @@ def login():
                 }
             })
         
-        return jsonify({'error': 'Invalid username or password'}), 401
+        return jsonify({'error': 'Invalid email or password'}), 401
     
     return jsonify({'message': 'Login form'})
 

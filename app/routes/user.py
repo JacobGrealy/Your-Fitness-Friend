@@ -3,7 +3,7 @@ from flask_login import current_user, login_required
 from app import db
 from app.models.user import User
 
-bp = Blueprint('user', __name__, url_prefix='/user')
+bp = Blueprint('user', __name__)
 
 
 @bp.route('/profile', methods=['GET', 'PUT'])

@@ -6,7 +6,7 @@ from app import db
 from datetime import datetime, date
 
 
-bp = Blueprint('food', __name__, url_prefix='/api/food')
+bp = Blueprint('food', __name__)
 
 
 @bp.route('', methods=['GET'])
@@ -215,3 +215,78 @@ def delete_food_log(log_id):
     db.session.commit()
     
     return jsonify({'message': 'Food log deleted'}), 200
+
+
+@bp.route('/daily', methods=['GET'])
+@login_required
+def get_daily_totals():
+    """Get daily nutritional totals."""
+    date_param = request.args.get('date')
+    
+    if date_param:
+        try:
+            target_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+    else:
+        target_date = date.today()
+    
+    logs = FoodLog.query.filter_by(
+        user_id=current_user.id,
+        date=target_date
+    ).all()
+    
+    total_calories = sum(log.calories for log in logs)
+    total_protein = sum(log.protein_g for log in logs)
+    total_carbs = sum(log.carbs_g for log in logs)
+    total_fat = sum(log.fat_g for log in logs)
+    
+    calorie_goal = current_user.daily_calorie_goal or 2000
+    calories_remaining = calorie_goal - total_calories
+    
+    return jsonify({
+        'total_calories': total_calories,
+        'total_protein': round(total_protein, 1),
+        'total_carbs': round(total_carbs, 1),
+        'total_fat': round(total_fat, 1),
+        'calorie_goal': calorie_goal,
+        'calories_remaining': calories_remaining,
+    }), 200
+
+
+@bp.route('/macro-goals', methods=['GET'])
+@login_required
+def get_macro_goals():
+    """Get macro goals computed from calorie goal."""
+    calorie_goal = current_user.daily_calorie_goal or 2000
+    protein = round(calorie_goal * 0.30 / 4)
+    carbs = round(calorie_goal * 0.40 / 4)
+    fat = round(calorie_goal * 0.30 / 9)
+    return jsonify({
+        'protein': protein,
+        'carbs': carbs,
+        'fat': fat,
+    }), 200
+
+
+@bp.route('/macro-goals', methods=['PUT'])
+@login_required
+def set_macro_goals():
+    """Update calorie goal (macro goals are computed from it)."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    if 'calorie_goal' in data:
+        current_user.daily_calorie_goal = int(data['calorie_goal'])
+        db.session.commit()
+    
+    calorie_goal = current_user.daily_calorie_goal or 2000
+    protein = round(calorie_goal * 0.30 / 4)
+    carbs = round(calorie_goal * 0.40 / 4)
+    fat = round(calorie_goal * 0.30 / 9)
+    return jsonify({
+        'protein': protein,
+        'carbs': carbs,
+        'fat': fat,
+    }), 200

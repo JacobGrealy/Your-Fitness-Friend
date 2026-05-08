@@ -82,7 +82,7 @@ def get_weight_trend(user_id: int, days: int = 7) -> List[Dict[str, Any]]:
     return [
         {
             'date': w.recorded_at.strftime('%Y-%m-%d'),
-            'weight_kg': round(w.weight, 2)
+            'weight_lbs': round(w.weight, 2)
         }
         for w in weights
     ]

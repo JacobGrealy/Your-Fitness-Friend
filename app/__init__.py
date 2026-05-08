@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 import os
-from flask import Flask
+from flask import Flask, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
@@ -25,11 +25,18 @@ def create_app(config_name='default'):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    
+
+    def unauthorized():
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'Authentication required'}), 401
+        return redirect(url_for('auth.login', next=request.url))
+
+    login_manager.unauthorized = unauthorized
+
     # CORS configuration
-    cors_origins = app.config.get('CORS_ORIGINS', '*')
-    cors_supports_credentials = app.config.get('CORS_SUPPORTS_CREDENTIALS', False)
-    CORS(app, origins=cors_origins, supports_credentials=cors_supports_credentials)
+    cors_origins = app.config.get('CORS_ORIGINS', ['http://192.168.0.50:5173', 'http://localhost:5173'])
+    cors_supports_credentials = app.config.get('CORS_SUPPORTS_CREDENTIALS', True)
+    CORS(app, origins=cors_origins, supports_credentials=cors_supports_credentials, methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allow_headers=['Content-Type', 'Authorization'], max_age=3600)
     
     # Logging configuration
     if not app.debug and not app.testing:
@@ -45,7 +52,7 @@ def create_app(config_name='default'):
     
     # Register blueprints
     from app.routes import auth_bp, weight_bp, exercise_bp, food_bp, meals_bp, user_bp, dashboard_bp
-    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(weight_bp, url_prefix='/api/weight')
     app.register_blueprint(exercise_bp, url_prefix='/api/exercise')
     app.register_blueprint(food_bp, url_prefix='/api/food')
@@ -57,5 +64,9 @@ def create_app(config_name='default'):
     def load_user(user_id):
         from app.models.user import User
         return User.query.get(int(user_id))
-    
+
+    # Don't set cookie domain - let browser use request host by default
+    app.config['SESSION_COOKIE_DOMAIN'] = None
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
     return app
