@@ -57,27 +57,27 @@ export default function WeightChart({ data, height = 200, title, className }: We
       <div className={title ? '' : 'card-body'}>
         <ResponsiveContainer width="100%" height={height}>
           <LineChart data={slicedData}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-base-300" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#3b3b52" />
             <XAxis
               dataKey="date"
               tickFormatter={(value) => format(new Date(value), 'MMM dd')}
               className="text-xs"
-              tick={{ fill: 'var(--bc)', fontSize: 11 }}
+              tick={{ fill: '#cdd6f4', fontSize: 11 }}
             />
             <YAxis
               tickFormatter={formatYAxis}
               className="text-xs"
-              tick={{ fill: 'var(--bc)', fontSize: 11 }}
+              tick={{ fill: '#cdd6f4', fontSize: 11 }}
               domain={['auto', 'auto']}
             />
             <Tooltip content={<CustomTooltip />} />
             <Line
               type="monotone"
               dataKey="weight"
-              stroke="var(--ac)"
+              stroke="#85baf8"
               strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 5, stroke: 'var(--ac)', strokeWidth: 2 }}
+              dot={{ fill: '#85baf8', r: 4 }}
+              activeDot={{ r: 5, stroke: '#85baf8', strokeWidth: 2 }}
               aria-label="Weight trend"
             />
           </LineChart>
