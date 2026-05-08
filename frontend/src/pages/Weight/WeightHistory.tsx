@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useWeightStore } from '@/store/weightStore'
 import { formatDate, formatWeight } from '@/utils/formatters'
 import Button from '@/components/common/Button'
@@ -10,6 +11,7 @@ import { WeightChart } from '@/components/charts'
 
 export default function WeightHistory() {
   const { logs, isLoading, fetchLogs } = useWeightStore()
+  const navigate = useNavigate()
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const sortedLogs = [...logs].sort((a, b) =>
@@ -60,29 +62,38 @@ export default function WeightHistory() {
       ) : (
         <div className="space-y-3">
           {sortedLogs.map(log => (
-            <Card key={log.id} shadow className="flex items-center justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-lg font-bold">{formatWeight(log.weight)}</span>
-                  <span className="text-sm text-base-content/60">{formatDate(log.recorded_at)}</span>
+            <div
+              key={log.id}
+              onClick={() => navigate(`/weight/history/${log.id}/edit`)}
+              className="cursor-pointer"
+            >
+              <Card shadow className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg font-bold">{formatWeight(log.weight)}</span>
+                    <span className="text-sm text-base-content/70">{formatDate(log.recorded_at)}</span>
+                  </div>
+                  {log.notes && (
+                    <p className="text-sm text-base-content/80 mt-1 truncate">
+                      {log.notes}
+                    </p>
+                  )}
                 </div>
-                {log.notes && (
-                  <p className="text-sm text-base-content/70 mt-1 truncate">
-                    {log.notes}
-                  </p>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDeleteId(log.id)}
-                className="text-error hover:text-error shrink-0"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </Button>
-            </Card>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setDeleteId(log.id)
+                  }}
+                  className="text-error hover:text-error shrink-0"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </Button>
+              </Card>
+            </div>
           ))}
         </div>
       )}

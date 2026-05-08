@@ -3,7 +3,7 @@ import Layout from './components/layout/Layout'
 import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
 import Dashboard from './pages/Dashboard'
-import { Weight, LogWeight, WeightHistory } from './pages/Weight'
+import { Weight, LogWeight, WeightHistory, EditWeight } from './pages/Weight'
 import { Exercise, ExerciseLibrary, LogExercise, ExerciseHistory } from './pages/Exercise'
 import { Food, DailyFood, LogFood, CustomFoods } from './pages/Food'
 import { Meals, UploadPhoto, PhotoGallery } from './pages/Meals'
@@ -52,6 +52,14 @@ export const router = createBrowserRouter([
         element: (
           <AuthGuard>
             <WeightHistory />
+          </AuthGuard>
+        ),
+      },
+      {
+        path: 'weight/history/:id/edit',
+        element: (
+          <AuthGuard>
+            <EditWeight />
           </AuthGuard>
         ),
       },
