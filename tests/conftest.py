@@ -23,7 +23,7 @@ def app():
         'SECRET_KEY': 'test-secret-key-for-testing-only',
         'WTF_CSRF_ENABLED': False
     })
-    
+
     with app.app_context():
         db.create_all()
         yield app
@@ -32,7 +32,9 @@ def app():
 
 @pytest.fixture
 def client(app):
-    return app.test_client()
+    """Test client with fresh session for each test."""
+    with app.test_client() as c:
+        yield c
 
 
 @pytest.fixture
@@ -52,10 +54,10 @@ def auth(client):
             'height': 175,
             'weight': 70
         })
-    
+
     def logout_user():
         return client.post('/api/auth/logout')
-    
+
     return {'login': login_user, 'logout': logout_user}
 
 
@@ -110,7 +112,7 @@ def sample_exercise(app, test_user):
         )
         db.session.add(exercise)
         db.session.commit()
-        
+
         log = ExerciseLog(
             user_id=test_user.id,
             saved_exercise_id=exercise.id,

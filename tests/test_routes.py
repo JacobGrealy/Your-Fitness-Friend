@@ -3,7 +3,7 @@ import pytest
 
 class TestAuthRoutes:
     def test_register_validation(self, client):
-        response = client.post('/auth/register', json={
+        response = client.post('/api/auth/register', json={
             'username': 'validuser',
             'password': 'validpass123',
             'email': 'valid@test.com',
@@ -15,13 +15,13 @@ class TestAuthRoutes:
         assert response.status_code == 201
 
     def test_register_missing_fields(self, client):
-        response = client.post('/auth/register', json={
+        response = client.post('/api/auth/register', json={
             'username': 'incomplete'
         })
         assert response.status_code == 400
 
     def test_login_success(self, client):
-        client.post('/auth/register', json={
+        client.post('/api/auth/register', json={
             'username': 'testuser',
             'password': 'testpass123',
             'email': 'test@test.com',
@@ -30,14 +30,14 @@ class TestAuthRoutes:
             'height': 175,
             'weight': 70
         })
-        response = client.post('/auth/login', json={
+        response = client.post('/api/auth/login', json={
             'username': 'testuser',
             'password': 'testpass123'
         })
         assert response.status_code == 200
 
     def test_login_wrong_password(self, client):
-        client.post('/auth/register', json={
+        client.post('/api/auth/register', json={
             'username': 'testuser2',
             'password': 'testpass123',
             'email': 'test2@test.com',
@@ -46,14 +46,15 @@ class TestAuthRoutes:
             'height': 175,
             'weight': 70
         })
-        response = client.post('/auth/login', json={
+        client.post('/api/auth/logout')
+        response = client.post('/api/auth/login', json={
             'username': 'testuser2',
             'password': 'wrongpassword'
         })
         assert response.status_code == 401
 
     def test_login_nonexistent_user(self, client):
-        response = client.post('/auth/login', json={
+        response = client.post('/api/auth/login', json={
             'username': 'nonexistent',
             'password': 'password'
         })
