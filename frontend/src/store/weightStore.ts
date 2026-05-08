@@ -12,6 +12,8 @@ interface WeightState {
   uploadedPhotoUrl: string | null
   duplicateEntry: WeightLog | null
   fetchLogs: (filters?: WeightFilter) => Promise<void>
+  fetchLog: (id: string) => Promise<WeightLog | null>
+  updateLog: (id: string, data: WeightLogCreate) => Promise<void>
   fetchStatistics: () => Promise<void>
   fetchTrend: () => Promise<void>
   logWeight: (data: WeightLogCreate) => Promise<void>
@@ -48,6 +50,15 @@ export const useWeightStore = create<WeightState>((set, get) => ({
         error: error.response?.data?.message || 'Failed to fetch weight logs',
         isLoading: false,
       })
+    }
+  },
+
+  fetchLog: async (id: string) => {
+    try {
+      const log = await weightApi.getLog(id)
+      return log
+    } catch {
+      return null
     }
   },
 
@@ -134,6 +145,28 @@ export const useWeightStore = create<WeightState>((set, get) => ({
         isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to delete weight log', 'error')
+    }
+  },
+
+  updateLog: async (id: string, data: WeightLogCreate) => {
+    set({ isLoading: true, error: null })
+    try {
+      await weightApi.updateLog(id, {
+        weight: data.weight,
+        date: data.date,
+        notes: data.notes,
+        photo_url: data.photo_url,
+      })
+      get().fetchLogs()
+      get().fetchStatistics()
+      set({ isLoading: false })
+      useUIStore.getState().showToast('Weight log updated', 'success')
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to update weight log',
+        isLoading: false,
+      })
+      useUIStore.getState().showToast(error.response?.data?.message || 'Failed to update weight log', 'error')
     }
   },
 
