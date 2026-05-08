@@ -48,3 +48,21 @@ coverage/
 
 # Playwright CLI
 .playwright-cli/
+
+# Opencode
+.opencode/
+
+# Superpowers / brainstorming
+.superpowers/
+
+# Vite cache
+.vite/
+
+# Database
+app.db
+
+# User uploads
+app/uploads/
+
+# Backup files
+*.bak
