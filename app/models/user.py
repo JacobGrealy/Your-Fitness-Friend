@@ -24,6 +24,7 @@ class User(UserMixin, db.Model):
     weight = db.Column(db.Float)  # current weight in kg
     activity_level = db.Column(db.String(20))  # sedentary, light, moderate, active, very active
     daily_calorie_goal = db.Column(db.Integer, default=2000)
+    weight_goal_lbs = db.Column(db.Float, nullable=True)
     
     # Relationships
     weight_logs = db.relationship('WeightLog', backref='user', lazy='dynamic', cascade='all, delete-orphan')
