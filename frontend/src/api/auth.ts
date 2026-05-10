@@ -20,4 +20,9 @@ export const authApi = {
     const response = await api.get('/auth/profile')
     return response.data
   },
+
+  updateProfile: async (data: Partial<UserProfile>): Promise<UserProfile> => {
+    const response = await api.put('/auth/profile', data)
+    return response.data
+  },
 }
