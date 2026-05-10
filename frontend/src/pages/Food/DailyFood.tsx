@@ -112,11 +112,14 @@ export default function DailyFood() {
             const isCollapsed = collapsedMeals.has(meal)
 
             return (
-              <div key={meal} className="bg-white rounded-lg">
-                <div
-                  className="flex items-center justify-between px-4 py-3 cursor-pointer bg-[#185ADB] rounded-t-lg"
-                  onClick={() => toggleMeal(meal)}
-                >
+               <div key={meal} className="bg-white rounded-lg">
+                 <button
+                   type="button"
+                   className="flex items-center justify-between w-full px-4 py-3 cursor-pointer bg-[#185ADB] rounded-t-lg text-left"
+                   onClick={() => toggleMeal(meal)}
+                   aria-expanded={!isCollapsed}
+                   aria-label={`${MEAL_LABELS[meal]} section`}
+                 >
                   <div className="flex items-center gap-2">
                     <span>{MEAL_ICONS[meal]}</span>
                     <span className="font-bold text-white">{MEAL_LABELS[meal]}</span>
@@ -135,7 +138,7 @@ export default function DailyFood() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
-                </div>
+                 </button>
 
                 {!isCollapsed && (
                   <div className="divide-y divide-[#e0e0e0]">
