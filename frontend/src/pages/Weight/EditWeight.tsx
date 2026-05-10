@@ -6,9 +6,9 @@ import { logWeightSchema } from '@/utils/schemas'
 import type { WeightLogCreate } from '@/types'
 import { useWeightStore } from '@/store/weightStore'
 import Button from '@/components/common/Button'
-import Input from '@/components/common/Input'
 import Card from '@/components/common/Card'
 import { MAX_WEIGHT_LOG_NOTES } from '@/utils/constants'
+import Spinner from '@/components/common/Spinner'
 
 export default function EditWeight() {
   const navigate = useNavigate()
@@ -21,7 +21,7 @@ export default function EditWeight() {
   const [photoUploading, setPhotoUploading] = useState(false)
   const [initialPhotoUrl, setInitialPhotoUrl] = useState<string | null>(null)
   const [formDataLoaded, setFormDataLoaded] = useState(false)
-  const [notesKey, setNotesKey] = useState(0)
+  const [notesValue, setNotesValue] = useState('')
 
   useEffect(() => {
     return () => {
@@ -65,14 +65,8 @@ export default function EditWeight() {
         setValue('weight', log.weight)
         setFormDataLoaded(true)
         if (log.notes) {
-          setTimeout(() => {
-            const ta = document.querySelector('textarea')
-            if (ta && log.notes) {
-              ta.value = log.notes
-            }
-          }, 1000)
+          setNotesValue(log.notes)
         }
-        setNotesKey(prev => prev + 1)
       }
     })
   }, [id, setValue])
@@ -105,7 +99,6 @@ export default function EditWeight() {
     if (selectedFile && !uploadedPhotoUrl) {
       await handleUploadPhoto()
     }
-    const notesValue = document.querySelector('textarea')?.value || ''
     await updateLog(id, {
       weight: data.weight,
       date: data.date,
@@ -118,7 +111,7 @@ export default function EditWeight() {
   if (!formDataLoaded) {
     return (
       <div className="p-4 flex justify-center">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
+        <Spinner />
       </div>
     )
   }
@@ -126,40 +119,51 @@ export default function EditWeight() {
   return (
     <div className="p-4">
       <div className="flex items-center gap-3 mb-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+        <button
+          onClick={() => navigate(-1)}
+          className="text-mfp-textSecondary hover:text-mfp-text font-medium text-sm px-3 py-1.5 rounded-lg hover:bg-mfp-text/5 transition-colors"
+        >
           ← Back
-        </Button>
+        </button>
         <h1 className="text-2xl font-bold">Edit Weight Log</h1>
       </div>
 
       {error && (
-        <div className="alert alert-error mb-4">
-          <span>{error}</span>
+        <div className="mb-4 bg-mfp-error/10 border border-mfp-error/20 text-mfp-error rounded-lg p-3">
+          <p className="text-sm">{error}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Date Picker */}
-        <div>
-          <label className="label-text text-base-content/80 mb-2 block">Date</label>
+        <div className="bg-white rounded-lg p-4">
+          <label className="block text-sm font-medium text-mfp-text mb-2">Date</label>
           <input
             type="date"
             {...register('date')}
-            className="w-full p-3 border border-base-300 rounded-lg bg-base-100 text-base-content focus:border-primary outline-none"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white"
           />
+          {errors.date && (
+            <p className="mt-1 text-xs text-mfp-error">{errors.date.message}</p>
+          )}
         </div>
 
-        <Input
-          label="Weight (lbs)"
-          type="number"
-          step="0.1"
-          placeholder="e.g. 180.5"
-          error={errors.weight?.message}
-          {...register('weight')}
-        />
+        <div className="bg-white rounded-lg p-4">
+          <label className="block text-sm font-medium text-mfp-text mb-2">Weight (lbs)</label>
+          <input
+            type="number"
+            step="0.1"
+            placeholder="e.g. 180.5"
+            {...register('weight')}
+            className="w-full px-3 py-3 text-2xl border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white"
+          />
+          {errors.weight && (
+            <p className="mt-1 text-xs text-mfp-error">{errors.weight.message}</p>
+          )}
+        </div>
 
-        <div>
-          <label className="label-text text-base-content/80 mb-2 block">Photo (optional)</label>
+        <div className="bg-white rounded-lg p-4">
+          <label className="block text-sm font-medium text-mfp-text mb-2">Photo (optional)</label>
           <input
             ref={fileInputRef}
             type="file"
@@ -175,7 +179,7 @@ export default function EditWeight() {
           {!selectedFile ? (
             <Card shadow>
               <div
-                className="card-body items-center justify-center min-h-[160px] border-2 border-dashed border-base-300 rounded-lg cursor-pointer"
+                className="items-center justify-center min-h-[160px] border-2 border-dashed border-gray-300 rounded-lg cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
                 role="button"
                 tabIndex={0}
@@ -200,7 +204,7 @@ export default function EditWeight() {
                   <>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-10 w-10 text-base-content/30"
+                      className="h-10 w-10 text-mfp-textSecondary mx-auto"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -218,7 +222,7 @@ export default function EditWeight() {
                         d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
                       />
                     </svg>
-                    <p className="text-sm text-base-content/50">
+                    <p className="text-sm text-mfp-textSecondary mt-2">
                       Tap to take a photo
                     </p>
                   </>
@@ -227,7 +231,7 @@ export default function EditWeight() {
             </Card>
           ) : (
             <Card shadow>
-              <div className="card-body items-center p-2">
+              <div className="items-center p-2">
                 <div className="relative w-full">
                   <img
                     src={previewUrl!}
@@ -237,7 +241,7 @@ export default function EditWeight() {
                   <button
                     type="button"
                     onClick={handleRemovePhoto}
-                    className="absolute top-2 right-2 btn btn-circle btn-sm btn-ghost bg-base-100/80"
+                    className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/80 rounded-full text-mfp-textSecondary hover:text-mfp-text shadow-sm"
                   >
                     ✕
                   </button>
@@ -254,21 +258,27 @@ export default function EditWeight() {
                   </Button>
                 )}
                 {uploadedPhotoUrl && (
-                  <p className="text-sm text-success mt-2">Photo uploaded</p>
+                  <p className="text-sm text-mfp-success mt-2">Photo uploaded</p>
                 )}
               </div>
             </Card>
           )}
         </div>
 
-        <div>
-          <label className="label-text text-base-content/80 mb-2 block">Notes (optional)</label>
+        <div className="bg-white rounded-lg p-4">
+          <label className="block text-sm font-medium text-mfp-text mb-2">
+            Notes (optional)
+            <span className="font-normal text-mfp-textSecondary ml-1">
+              ({MAX_WEIGHT_LOG_NOTES - notesValue.length} left)
+            </span>
+          </label>
           <textarea
-            key={notesKey}
-            defaultValue=""
+            value={notesValue}
+            onChange={(e) => setNotesValue(e.target.value)}
             placeholder="How are you feeling today?"
             maxLength={MAX_WEIGHT_LOG_NOTES}
-            className="textarea textarea-bordered w-full"
+            rows={3}
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white resize-none"
           />
         </div>
 

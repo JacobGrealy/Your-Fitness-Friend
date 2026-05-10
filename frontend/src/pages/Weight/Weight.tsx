@@ -37,8 +37,8 @@ export default function Weight() {
       <div className="grid grid-cols-2 gap-3">
         {statistics?.current_weight !== null && statistics?.current_weight !== undefined && (
           <Card shadow className="text-center">
-            <div className="card-body items-center py-4">
-              <p className="text-sm text-base-content/60">Current</p>
+            <div className="items-center py-4">
+              <p className="text-sm text-mfp-textSecondary">Current</p>
               <p className="text-2xl font-bold">{formatWeight(statistics.current_weight)}</p>
             </div>
           </Card>
@@ -46,8 +46,8 @@ export default function Weight() {
 
         {statistics?.average_weight !== null && statistics?.average_weight !== undefined && (
           <Card shadow className="text-center">
-            <div className="card-body items-center py-4">
-              <p className="text-sm text-base-content/60">Average</p>
+            <div className="items-center py-4">
+              <p className="text-sm text-mfp-textSecondary">Average</p>
               <p className="text-2xl font-bold">{formatWeight(statistics.average_weight)}</p>
             </div>
           </Card>
@@ -55,8 +55,8 @@ export default function Weight() {
 
         {statistics?.min_weight !== null && statistics?.min_weight !== undefined && (
           <Card shadow className="text-center">
-            <div className="card-body items-center py-4">
-              <p className="text-sm text-base-content/60">Min</p>
+            <div className="items-center py-4">
+              <p className="text-sm text-mfp-textSecondary">Min</p>
               <p className="text-2xl font-bold">{formatWeight(statistics.min_weight)}</p>
             </div>
           </Card>
@@ -64,8 +64,8 @@ export default function Weight() {
 
         {statistics?.max_weight !== null && statistics?.max_weight !== undefined && (
           <Card shadow className="text-center">
-            <div className="card-body items-center py-4">
-              <p className="text-sm text-base-content/60">Max</p>
+            <div className="items-center py-4">
+              <p className="text-sm text-mfp-textSecondary">Max</p>
               <p className="text-2xl font-bold">{formatWeight(statistics.max_weight)}</p>
             </div>
           </Card>
@@ -74,16 +74,16 @@ export default function Weight() {
 
       {trend && trend.change_7d !== null && trend.change_7d !== undefined && (
         <Card shadow>
-          <div className="card-body py-3">
+          <div className="py-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-base-content/60">7 Day Change</p>
-                <p className={`text-lg font-bold ${trend.change_7d > 0 ? 'text-warning' : trend.change_7d < 0 ? 'text-success' : ''}`}>
+                <p className="text-sm text-mfp-textSecondary">7 Day Change</p>
+                <p className={`text-lg font-bold ${trend.change_7d > 0 ? 'text-yellow-600' : trend.change_7d < 0 ? 'text-mfp-success' : ''}`}>
                   {trend.change_7d > 0 ? '+' : ''}{trend.change_7d.toFixed(1)} lbs
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-base-content/60">Trend</p>
+                <p className="text-sm text-mfp-textSecondary">Trend</p>
                 <p className="text-lg font-bold capitalize">{trend.trend || 'N/A'}</p>
               </div>
             </div>

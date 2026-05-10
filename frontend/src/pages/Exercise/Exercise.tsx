@@ -50,22 +50,22 @@ export default function Exercise() {
 
       <div className="grid grid-cols-3 gap-3">
         <Card shadow className="text-center">
-          <div className="card-body items-center py-4">
-            <p className="text-sm text-base-content/60">This Week</p>
+          <div className="items-center py-4">
+            <p className="text-sm text-mfp-textSecondary">This Week</p>
             <p className="text-2xl font-bold">{totalExercises}</p>
           </div>
         </Card>
 
         <Card shadow className="text-center">
-          <div className="card-body items-center py-4">
-            <p className="text-sm text-base-content/60">Calories</p>
+          <div className="items-center py-4">
+            <p className="text-sm text-mfp-textSecondary">Calories</p>
             <p className="text-2xl font-bold">{formatCalories(totalCalories)}</p>
           </div>
         </Card>
 
         <Card shadow className="text-center">
-          <div className="card-body items-center py-4">
-            <p className="text-sm text-base-content/60">Duration</p>
+          <div className="items-center py-4">
+            <p className="text-sm text-mfp-textSecondary">Duration</p>
             <p className="text-2xl font-bold">{formatDuration(totalDuration)}</p>
           </div>
         </Card>
@@ -110,18 +110,18 @@ export default function Exercise() {
         <div className="space-y-3">
           {recentLogs.map(log => (
             <Card key={log.id} shadow>
-              <div className="card-body py-3">
+              <div className="py-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="font-bold">{log.exercise_name}</span>
-                    <p className="text-sm text-base-content/60">{formatDate(log.logged_at)}</p>
+                    <p className="text-sm text-mfp-textSecondary">{formatDate(log.logged_at)}</p>
                   </div>
                   <div className="text-right">
                     {log.duration !== null && log.duration !== undefined && (
                       <p className="text-sm">{formatDuration(log.duration)}</p>
                     )}
                     {log.calories_burned !== null && log.calories_burned !== undefined && (
-                      <p className="text-sm text-base-content/60">{formatCalories(log.calories_burned)} cal</p>
+                      <p className="text-sm text-mfp-textSecondary">{formatCalories(log.calories_burned)} cal</p>
                     )}
                   </div>
                 </div>

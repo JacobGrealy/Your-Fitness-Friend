@@ -48,24 +48,24 @@ export default function Food() {
 
       {dailyTotals && (
         <Card shadow>
-          <div className="card-body py-4">
+          <div className="py-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-base-content/70">Today</span>
+              <span className="text-mfp-textSecondary">Today</span>
               <span className="font-bold text-lg">
                 {formatCalories(dailyTotals.total_calories)} / {formatCalories(dailyTotals.calorie_goal)} cal
               </span>
             </div>
-            <div className="w-full bg-base-200 rounded-full h-3">
+            <div className="w-full bg-gray-200 rounded-full h-3">
               <div
-                className={`h-3 rounded-full transition-all ${dailyTotals.total_calories > dailyTotals.calorie_goal ? 'bg-error' : 'bg-primary'}`}
+                className={`h-3 rounded-full transition-all ${dailyTotals.total_calories > dailyTotals.calorie_goal ? 'bg-mfp-error' : 'bg-mfp-blue'}`}
                 style={{ width: `${Math.min((dailyTotals.total_calories / dailyTotals.calorie_goal) * 100, 100)}%` }}
               />
             </div>
             <div className="flex justify-between mt-2 text-sm">
-              <span className="text-base-content/60">
+              <span className="text-mfp-textSecondary">
                 {formatMacros(dailyTotals.total_protein, dailyTotals.total_carbs, dailyTotals.total_fat)}
               </span>
-              <span className={dailyTotals.calories_remaining >= 0 ? 'text-success' : 'text-error'}>
+              <span className={dailyTotals.calories_remaining >= 0 ? 'text-mfp-success' : 'text-mfp-error'}>
                 {dailyTotals.calories_remaining >= 0
                   ? `${formatCalories(dailyTotals.calories_remaining)} remaining`
                   : `${formatCalories(Math.abs(dailyTotals.calories_remaining))} over`}
@@ -132,15 +132,15 @@ export default function Food() {
 
             return (
               <Card key={meal} shadow>
-                <div className="card-body py-3">
+                <div className="py-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="font-bold">{MEAL_LABELS[meal]}</span>
-                      <span className="text-sm text-base-content/60 ml-2">({logs.length} item{logs.length > 1 ? 's' : ''})</span>
+                      <span className="text-sm text-mfp-textSecondary ml-2">({logs.length} item{logs.length > 1 ? 's' : ''})</span>
                     </div>
                     <div className="text-right text-sm">
                       <span className="font-medium">{formatCalories(mealCalories)} cal</span>
-                      <span className="text-base-content/60 ml-2">
+                      <span className="text-mfp-textSecondary ml-2">
                         P:{mealProtein}g C:{mealCarbs}g F:{mealFat}g
                       </span>
                     </div>

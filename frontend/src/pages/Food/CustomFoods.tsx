@@ -5,7 +5,6 @@ import { useFoodStore } from '@/store/foodStore'
 import type { FoodCreate } from '@/types'
 import { customFoodSchema } from '@/utils/schemas'
 import Button from '@/components/common/Button'
-import Input from '@/components/common/Input'
 import Card from '@/components/common/Card'
 import Modal from '@/components/common/Modal'
 import Loading from '@/components/common/Loading'
@@ -81,21 +80,21 @@ export default function CustomFoods() {
         <div className="space-y-3">
           {foods.map(food => (
             <Card key={food.id} shadow>
-              <div className="card-body py-3">
+              <div className="py-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold">{food.name}</h3>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm">
-                      <span className="text-base-content/70">
+                      <span className="text-mfp-textSecondary">
                         <span className="font-medium">{food.calories}</span> cal
                       </span>
-                      <span className="text-base-content/70">
+                      <span className="text-mfp-textSecondary">
                         <span className="font-medium">{food.protein_g}g</span> protein
                       </span>
-                      <span className="text-base-content/70">
+                      <span className="text-mfp-textSecondary">
                         <span className="font-medium">{food.carbs_g}g</span> carbs
                       </span>
-                      <span className="text-base-content/70">
+                      <span className="text-mfp-textSecondary">
                         <span className="font-medium">{food.fat_g}g</span> fat
                       </span>
                     </div>
@@ -104,7 +103,7 @@ export default function CustomFoods() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setDeleteId(food.id)}
-                    className="text-error hover:text-error shrink-0"
+                    className="text-mfp-error hover:text-mfp-error shrink-0"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -125,58 +124,88 @@ export default function CustomFoods() {
         onSubmit={handleSubmit(onAddSubmit)}
       >
         <form className="space-y-4" onSubmit={handleSubmit(onAddSubmit)}>
-          <Input
-            label="Name"
-            placeholder="e.g. Grilled Chicken Breast"
-            error={errors.name?.message}
-            {...register('name')}
-          />
+          <div>
+            <label className="block text-sm font-medium text-mfp-text mb-2">Name</label>
+            <input
+              {...register('name')}
+              placeholder="e.g. Grilled Chicken Breast"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white"
+            />
+            {errors.name?.message && (
+              <p className="mt-1 text-xs text-mfp-error">{errors.name.message}</p>
+            )}
+          </div>
 
-          <Input
-            label="Calories"
-            type="number"
-            min="1"
-            placeholder="e.g. 165"
-            error={errors.calories?.message}
-            {...register('calories')}
-          />
+          <div>
+            <label className="block text-sm font-medium text-mfp-text mb-2">Calories</label>
+            <input
+              type="number"
+              min="1"
+              placeholder="e.g. 165"
+              {...register('calories')}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white"
+            />
+            {errors.calories?.message && (
+              <p className="mt-1 text-xs text-mfp-error">{errors.calories.message}</p>
+            )}
+          </div>
 
-          <Input
-            label="Protein (g)"
-            type="number"
-            min="0"
-            step="0.1"
-            placeholder="e.g. 31"
-            error={errors.protein_g?.message}
-            {...register('protein_g')}
-          />
+          <div>
+            <label className="block text-sm font-medium text-mfp-text mb-2">Protein (g)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              placeholder="e.g. 31"
+              {...register('protein_g')}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white"
+            />
+            {errors.protein_g?.message && (
+              <p className="mt-1 text-xs text-mfp-error">{errors.protein_g.message}</p>
+            )}
+          </div>
 
-          <Input
-            label="Carbs (g)"
-            type="number"
-            min="0"
-            step="0.1"
-            placeholder="e.g. 0"
-            error={errors.carbs_g?.message}
-            {...register('carbs_g')}
-          />
+          <div>
+            <label className="block text-sm font-medium text-mfp-text mb-2">Carbs (g)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              placeholder="e.g. 0"
+              {...register('carbs_g')}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white"
+            />
+            {errors.carbs_g?.message && (
+              <p className="mt-1 text-xs text-mfp-error">{errors.carbs_g.message}</p>
+            )}
+          </div>
 
-          <Input
-            label="Fat (g)"
-            type="number"
-            min="0"
-            step="0.1"
-            placeholder="e.g. 3.6"
-            error={errors.fat_g?.message}
-            {...register('fat_g')}
-          />
+          <div>
+            <label className="block text-sm font-medium text-mfp-text mb-2">Fat (g)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              placeholder="e.g. 3.6"
+              {...register('fat_g')}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white"
+            />
+            {errors.fat_g?.message && (
+              <p className="mt-1 text-xs text-mfp-error">{errors.fat_g.message}</p>
+            )}
+          </div>
 
-          <Input
-            label="Serving Size (optional)"
-            placeholder="e.g. 100g"
-            error={errors.serving_size?.message}
-            {...register('serving_size')}
-          />
+          <div>
+            <label className="block text-sm font-medium text-mfp-text mb-2">Serving Size (optional)</label>
+            <input
+              placeholder="e.g. 100g"
+              {...register('serving_size')}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white"
+            />
+            {errors.serving_size?.message && (
+              <p className="mt-1 text-xs text-mfp-error">{errors.serving_size.message}</p>
+            )}
+          </div>
         </form>
       </Modal>
 
@@ -189,7 +218,7 @@ export default function CustomFoods() {
         submitDisabled={isLoading}
         submitLoading={isLoading}
       >
-        <p className="text-base-content/70">
+        <p className="text-mfp-textSecondary">
           Are you sure you want to delete this food? This action cannot be undone.
         </p>
       </Modal>
