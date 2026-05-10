@@ -35,7 +35,10 @@ export default function Header({
   }
 
   const handleNextDay = () => {
-    setCurrentDate((prev) => addDays(prev, 1))
+    setCurrentDate((prev) => {
+      if (isToday(prev)) return prev
+      return addDays(prev, 1)
+    })
   }
 
   const handleToday = () => {
@@ -77,7 +80,7 @@ export default function Header({
           )}
         </div>
 
-        <h1 className="text-lg font-bold text-white">{title}</h1>
+        <h1 className="text-lg font-bold text-white absolute left-1/2 -translate-x-1/2">{title}</h1>
 
         <div className="flex items-center gap-1">
           {rightContent || (
