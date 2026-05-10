@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFoodStore } from '@/store/foodStore'
 import type { MealType, FoodLog } from '@/types'
-import { formatCalories, formatMacros } from '@/utils/formatters'
+import { formatCalories } from '@/utils/formatters'
 import { MEAL_TYPES } from '@/utils/constants'
-import Button from '@/components/common/Button'
-import Card from '@/components/common/Card'
+import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
+import Header from '@/components/layout/Header'
 import Loading from '@/components/common/Loading'
-import EmptyState from '@/components/common/EmptyState'
 import Modal from '@/components/common/Modal'
 
 const MEAL_ICONS: Record<MealType, string> = {
@@ -73,8 +72,8 @@ export default function DailyFood() {
 
   if (isLoading && foodLogs.length === 0 && !dailyTotals) {
     return (
-      <div className="p-4">
-        <h1 className="text-2xl font-bold mb-4">Today's Food</h1>
+      <div className="min-h-screen bg-[#f2f2f2]">
+        <Header title="Diary" showDateNav />
         <div className="flex justify-center py-12">
           <Loading text="Loading food data..." />
         </div>
@@ -83,123 +82,107 @@ export default function DailyFood() {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Today's Food</h1>
-        <Button size="sm" variant="primary" onClick={() => navigate('/food/log')}>
-          Log Food
-        </Button>
-      </div>
+    <div className="min-h-screen bg-[#f2f2f2] pb-4">
+      <Header title="Diary" showDateNav />
 
       {error && (
-        <div className="alert alert-error">
-          <span>{error}</span>
+        <div className="px-4 pt-20">
+          <div className="bg-white rounded-lg p-3 text-red-600 text-sm">
+            {error}
+          </div>
         </div>
       )}
 
-      {dailyTotals && (
-        <Card shadow>
-          <div className="card-body py-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-base-content/70">Calories</span>
-              <span className="font-bold text-lg">
-                {formatCalories(dailyTotals.total_calories)} / {formatCalories(dailyTotals.calorie_goal)}
-              </span>
-            </div>
-            <div className="w-full bg-base-200 rounded-full h-2.5">
-              <div
-                className={`h-2.5 rounded-full ${dailyTotals.total_calories > dailyTotals.calorie_goal ? 'bg-error' : 'bg-primary'}`}
-                style={{ width: `${Math.min((dailyTotals.total_calories / dailyTotals.calorie_goal) * 100, 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between mt-2 text-sm">
-              <span className="text-base-content/60">
-                {formatMacros(dailyTotals.total_protein, dailyTotals.total_carbs, dailyTotals.total_fat)}
-              </span>
-              <span className={dailyTotals.calories_remaining >= 0 ? 'text-success' : 'text-error'}>
-                {dailyTotals.calories_remaining >= 0 ? `${formatCalories(dailyTotals.calories_remaining)} remaining` : `${formatCalories(Math.abs(dailyTotals.calories_remaining))} over`}
-              </span>
-            </div>
-          </div>
-        </Card>
-      )}
+      <div className="px-4 pt-2">
+        {dailyTotals && (
+          <CalorieSummaryBar
+            calories={{
+              consumed: dailyTotals.total_calories,
+              goal: dailyTotals.calorie_goal,
+              remaining: dailyTotals.calories_remaining,
+              burned_exercise: 0,
+            }}
+          />
+        )}
 
-      {foodLogs.length === 0 ? (
-        <EmptyState
-          title="No food logged today"
-          description="Start tracking your meals to see them here."
-          actionLabel="Log Food"
-          onAction={() => navigate('/food/log')}
-        />
-      ) : (
-        <div className="space-y-3">
+        <div className="mt-2 space-y-1">
           {MEAL_TYPES.map(meal => {
             const logs = groupedLogs[meal]
-            if (logs.length === 0) return null
-
             const totals = getMealTotals(logs)
             const isCollapsed = collapsedMeals.has(meal)
 
             return (
-              <Card key={meal} shadow>
-                <div className="card-body py-3">
-                  <div
-                    className="flex items-center justify-between cursor-pointer"
-                    onClick={() => toggleMeal(meal)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span>{MEAL_ICONS[meal]}</span>
-                      <span className="font-bold">{MEAL_LABELS[meal]}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-base-content/60">
-                        {formatCalories(totals.calories)} cal
-                      </span>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
+              <div key={meal} className="bg-white rounded-lg">
+                <div
+                  className="flex items-center justify-between px-4 py-3 cursor-pointer bg-[#185ADB] rounded-t-lg"
+                  onClick={() => toggleMeal(meal)}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>{MEAL_ICONS[meal]}</span>
+                    <span className="font-bold text-white">{MEAL_LABELS[meal]}</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white text-sm">
+                      {totals.calories > 0 ? `${totals.calories} cal` : '0 cal'}
+                    </span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`w-4 h-4 text-white transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
 
-                  {!isCollapsed && (
-                    <div className="space-y-2 mt-3">
-                      {logs.map(log => (
-                        <div
-                          key={log.id}
-                          className="flex items-center justify-between bg-base-200 rounded-lg px-3 py-2"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <span className="font-medium text-sm">{log.food_name}</span>
-                            <div className="text-xs text-base-content/60">
+                {!isCollapsed && (
+                  <div className="divide-y divide-[#e0e0e0]">
+                    {logs.length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-[#757575]">
+                        0 calories
+                      </div>
+                    ) : (
+                      logs.map(log => (
+                        <div key={log.id} className="flex items-center justify-between px-4 py-3">
+                          <div className="flex-1 min-w-0 mr-3">
+                            <span className="font-medium text-sm" style={{ color: '#212121' }}>{log.food_name}</span>
+                            <div className="text-xs text-[#757575] mt-0.5">
                               {formatCalories(log.calories)} cal · P:{log.protein_g}g C:{log.carbs_g}g F:{log.fat_g}g
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="xs"
-                            onClick={() => setDeleteLogId(log.id)}
-                            className="text-error hover:text-error shrink-0"
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteLogId(log.id)
+                            }}
+                            className="text-[#757575] hover:text-red-600 transition-colors shrink-0 p-1"
+                            aria-label={`Delete ${log.food_name}`}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
-                          </Button>
+                          </button>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </Card>
+                      ))
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/food/log?meal=${meal}`)
+                      }}
+                      className="w-full py-3 mt-1 text-sm font-medium text-[#185ADB] border-t border-[#e0e0e0] hover:bg-[#f2f2f2] transition-colors rounded-b-lg"
+                    >
+                      + Add Food
+                    </button>
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
-      )}
+      </div>
 
       <Modal
         isOpen={deleteLogId !== null}
@@ -210,7 +193,7 @@ export default function DailyFood() {
         submitDisabled={isLoading}
         submitLoading={isLoading}
       >
-        <p className="text-base-content/70">
+        <p className="text-sm" style={{ color: '#757575' }}>
           Are you sure you want to delete this food log? This action cannot be undone.
         </p>
       </Modal>
