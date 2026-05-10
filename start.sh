@@ -3,13 +3,16 @@
 # FitnessFriend Start Script
 # Used by systemd to start the application
 
+# Restore PATH (systemd runs with minimal PATH)
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 # Set environment variables
 export FLASK_ENV=production
 export SECRET_KEY="${SECRET_KEY:-your-production-secret-key}"
 export DATABASE_URL="sqlite:///fitness_friend.db"
 
 # Create logs directory if it doesn't exist
-[ -d logs ] || mkdir logs
+[ -d logs ] || /bin/mkdir logs
 
 # Start Gunicorn with production settings using venv python directly
 exec /home/angrygiant/github_projects/FitnessFriend/venv/bin/gunicorn \

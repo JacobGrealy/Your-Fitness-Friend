@@ -18,28 +18,27 @@ export default defineConfig({
     cors: true,
  
     proxy: {
-      '/api': {
-        target: 'http://localhost:5001',
-        changeOrigin: true,
-        configure: (proxy, _options) => {
-          proxy.on('proxyReq', (proxyReq, req) => {
-            // Preserve the original Host header so Flask sets the cookie for the correct domain
-            proxyReq.removeHeader('host')
-            proxyReq.setHeader('host', req.headers.host)
-          })
-        }
-      },
-      '/uploads': {
-        target: 'http://localhost:5001',
-        changeOrigin: true,
-        configure: (proxy, _options) => {
-          proxy.on('proxyReq', (proxyReq, req) => {
-            proxyReq.removeHeader('host')
-            proxyReq.setHeader('host', req.headers.host)
-          })
-        }
-      }
-    }
+       '/api': {
+         target: 'http://localhost:5001',
+         changeOrigin: true,
+         configure: (proxy, _options) => {
+           proxy.on('proxyReq', (proxyReq, req) => {
+             proxyReq.removeHeader('host')
+             proxyReq.setHeader('host', req.headers.host)
+           })
+         }
+       },
+       '/uploads': {
+         target: 'http://localhost:5001',
+         changeOrigin: true,
+         configure: (proxy, _options) => {
+           proxy.on('proxyReq', (proxyReq, req) => {
+             proxyReq.removeHeader('host')
+             proxyReq.setHeader('host', req.headers.host)
+           })
+         }
+       }
+     }
   },
   build: {
     outDir: '../app/static',

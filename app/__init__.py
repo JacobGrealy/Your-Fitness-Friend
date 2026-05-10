@@ -65,9 +65,26 @@ def create_app(config_name='default'):
         from app.models.user import User
         return User.query.get(int(user_id))
 
-    # Set cookie domain to .localhost so Vite proxy (5173) can access backend cookies from (5001)
-    app.config['SESSION_COOKIE_DOMAIN'] = '.localhost'
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_SECURE'] = False
+
+    @app.after_request
+    def set_session_cookie_domain(response):
+        host = request.headers.get('X-Forwarded-Host', request.host).split(':')[0]
+        if host == 'localhost' or host.endswith('.localhost'):
+            cookie_domain = '.localhost'
+        elif host.count('.') == 3:
+            cookie_domain = host
+        elif host.count('.') >= 2:
+            parts = host.rsplit('.', 2)
+            cookie_domain = '.' + parts[-1]
+        else:
+            cookie_domain = None
+        if cookie_domain:
+            for cookie_header in response.headers.getlist('Set-Cookie'):
+                if 'session=' in cookie_header and 'domain=' not in cookie_header:
+                    response.headers.remove('Set-Cookie', cookie_header)
+                    response.headers.add('Set-Cookie', cookie_header.rstrip(';') + '; domain=' + cookie_domain)
+        return response
 
     return app
