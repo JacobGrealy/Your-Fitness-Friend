@@ -10,7 +10,7 @@ const MEAL_LABELS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks']
 
 export default function LogFood() {
   const navigate = useNavigate()
-  const { foods, isLoading, logFood, error, fetchFoods } = useFoodStore()
+  const { foods, isLoading, logFood, error, fetchFoods, clearError } = useFoodStore()
   const [mealType, setMealType] = useState('breakfast')
   const [foodId, setFoodId] = useState('')
   const [quantity, setQuantity] = useState(1)
@@ -18,6 +18,10 @@ export default function LogFood() {
   useEffect(() => {
     fetchFoods()
   }, [fetchFoods])
+
+  useEffect(() => {
+    clearError()
+  }, [])
 
   const selectedFood = foods.find(f => String(f.id) === foodId) || null
 
@@ -125,7 +129,7 @@ export default function LogFood() {
               min="0.1"
               step="0.1"
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
+              onChange={(e) => setQuantity(Math.max(0.1, Number(e.target.value) || 1))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[#212121] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
             />
           </div>
