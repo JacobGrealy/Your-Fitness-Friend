@@ -169,7 +169,8 @@ def profile():
             'gender': current_user.gender,
             'height': current_user.height,
             'weight': current_user.weight,
-            'activity_level': current_user.activity_level
+            'activity_level': current_user.activity_level,
+            'weight_goal_lbs': current_user.weight_goal_lbs
         }
         return jsonify(user)
     
@@ -187,6 +188,8 @@ def profile():
             current_user.weight = data['weight']
         if 'activity_level' in data:
             current_user.activity_level = data['activity_level']
+        if 'weight_goal_lbs' in data:
+            current_user.weight_goal_lbs = data['weight_goal_lbs']
         
         db.session.commit()
         
@@ -199,6 +202,7 @@ def profile():
                 'gender': current_user.gender,
                 'height': current_user.height,
                 'weight': current_user.weight,
-                'activity_level': current_user.activity_level
+                'activity_level': current_user.activity_level,
+                'weight_goal_lbs': current_user.weight_goal_lbs
             }
         })

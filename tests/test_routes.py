@@ -60,6 +60,29 @@ class TestAuthRoutes:
         })
         assert response.status_code == 401
 
+    def test_profile_update_weight_goal(self, client):
+        client.post('/api/auth/register', json={
+            'username': 'profileuser',
+            'password': 'testpass123',
+            'email': 'profile@test.com',
+            'age': 25,
+            'gender': 'female',
+            'height': 165,
+            'weight': 60
+        })
+        client.post('/api/auth/login', json={
+            'email': 'profile@test.com',
+            'password': 'testpass123'
+        })
+        response = client.put('/api/auth/profile', json={
+            'weight_goal_lbs': 180.0
+        })
+        assert response.status_code == 200
+        assert response.get_json()['user']['weight_goal_lbs'] == 180.0
+        get_response = client.get('/api/auth/profile')
+        assert get_response.status_code == 200
+        assert get_response.get_json()['weight_goal_lbs'] == 180.0
+
 
 class TestWeightRoutes:
     @pytest.mark.skip(reason="Requires session handling fix")
