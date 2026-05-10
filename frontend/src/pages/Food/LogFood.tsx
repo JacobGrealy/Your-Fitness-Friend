@@ -1,112 +1,158 @@
-import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFoodStore } from '@/store/foodStore'
 import type { FoodLogCreate } from '@/types'
-import { logFoodSchema } from '@/utils/schemas'
 import { MEAL_TYPES } from '@/utils/constants'
 import { formatMacros } from '@/utils/formatters'
-import Button from '@/components/common/Button'
-import Input from '@/components/common/Input'
-import Select from '@/components/common/Select'
+import Header from '@/components/layout/Header'
+
+const MEAL_LABELS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks']
 
 export default function LogFood() {
   const navigate = useNavigate()
-  const { foods, isLoading, fetchFoods, logFood, error } = useFoodStore()
+  const { foods, isLoading, logFood, error, fetchFoods } = useFoodStore()
+  const [mealType, setMealType] = useState('breakfast')
+  const [foodId, setFoodId] = useState('')
+  const [notes, setNotes] = useState('')
 
   useEffect(() => {
     fetchFoods()
   }, [fetchFoods])
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm<FoodLogCreate>({
-    resolver: zodResolver(logFoodSchema),
-    defaultValues: {
-      food_id: '',
+  const selectedFood = foods.find(f => String(f.id) === foodId) || null
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!foodId) return
+
+    const data: FoodLogCreate = {
+      food_id: foodId,
       quantity: 1,
-      meal_type: 'breakfast',
-    },
-  })
-
-  const selectedFoodId = watch('food_id')
-  const selectedFood = foods.find(f => f.id === selectedFoodId)
-
-  const onSubmit = async (data: FoodLogCreate) => {
+      meal_type: mealType as FoodLogCreate['meal_type'],
+    }
     await logFood(data)
     navigate(-1)
   }
+
+  const handleFoodChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFoodId(e.target.value)
+  }, [])
+
+  const mealOptions = MEAL_TYPES.map((meal, index) => ({
+    value: meal,
+    label: MEAL_LABELS[index],
+  }))
 
   const foodOptions = foods.map(food => ({
     value: food.id,
     label: food.name,
   }))
 
-  const mealOptions = MEAL_TYPES.map(meal => ({
-    value: meal,
-    label: meal.charAt(0).toUpperCase() + meal.slice(1),
-  }))
-
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Log Food</h1>
-
-      {error && (
-        <div className="alert alert-error">
-          <span>{error}</span>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <Select
-          label="Food"
-          options={foodOptions}
-          error={errors.food_id?.message}
-          {...register('food_id')}
-        />
-
-        {selectedFood && (
-          <div className="bg-base-200 rounded-lg p-3">
-            <p className="font-medium text-sm">{selectedFood.name}</p>
-            <p className="text-sm text-base-content/60 mt-1">
-              {formatMacros(selectedFood.protein_g, selectedFood.carbs_g, selectedFood.fat_g)}
-            </p>
-            <p className="text-sm text-base-content/60">
-              {selectedFood.calories} cal per serving
-            </p>
+    <>
+      <Header title="Add Food" showBack />
+      <main className="bg-white min-h-screen pb-20 sm:pb-0 pt-14 sm:pt-0">
+        {error && (
+          <div className="px-4 pt-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-[#E53935]">{error}</p>
+            </div>
           </div>
         )}
 
-        <Input
-          label="Quantity"
-          type="number"
-          min="0.1"
-          step="0.1"
-          placeholder="e.g. 1"
-          error={errors.quantity?.message}
-          {...register('quantity')}
-        />
+        <form onSubmit={handleSubmit} className="px-4 pt-4 space-y-4">
+          {/* Meal Type Tabs */}
+          <div className="flex gap-1 bg-gray-200 rounded-lg p-1">
+            {mealOptions.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setMealType(option.value)}
+                className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
+                  mealType === option.value
+                    ? 'bg-[#185ADB] text-white'
+                    : 'bg-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
 
-        <Select
-          label="Meal Type"
-          options={mealOptions}
-          error={errors.meal_type?.message}
-          {...register('meal_type')}
-        />
+          {/* Food Select */}
+          <div>
+            <label className="block text-sm font-medium text-[#212121] mb-1">
+              Food
+            </label>
+            <select
+              value={foodId}
+              onChange={handleFoodChange}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[#212121] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
+            >
+              <option value="">Select a food</option>
+              {foodOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <Button
-          type="submit"
-          variant="primary"
-          fullWidth
-          loading={isLoading}
-        >
-          Log Food
-        </Button>
-      </form>
-    </div>
+          {/* Food Info Card */}
+          {selectedFood && (
+            <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+              <h3 className="font-semibold text-[#212121] text-sm">{selectedFood.name}</h3>
+              <p className="text-[#757575] text-xs mt-1">
+                {formatMacros(
+                  selectedFood.protein_g,
+                  selectedFood.carbs_g,
+                  selectedFood.fat_g
+                )}
+              </p>
+              <p className="text-[#757575] text-xs mt-0.5">
+                {selectedFood.calories} cal per serving
+              </p>
+            </div>
+          )}
+
+          {/* Quantity */}
+          <div>
+            <label className="block text-sm font-medium text-[#212121] mb-1">
+              Quantity
+            </label>
+            <input
+              type="number"
+              min="0.1"
+              step="0.1"
+              defaultValue={1}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[#212121] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-[#212121] mb-1">
+              Notes
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              placeholder="Optional notes"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[#212121] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent resize-none"
+            />
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-[#185ADB] text-white font-medium py-3 rounded-lg hover:bg-[#1552B6] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+          >
+            {isLoading ? 'Adding...' : 'Add Food'}
+          </button>
+        </form>
+      </main>
+    </>
   )
 }
