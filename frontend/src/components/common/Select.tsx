@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useCallback } from 'react'
 import { cn } from './cn'
 
 export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'label'> {
@@ -17,6 +17,29 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(({
 }: SelectProps, ref) => {
   const selectId = id || label?.toLowerCase().replace(/\s+/g, '-')
 
+  const mergedRef = useCallback(
+    (node: HTMLSelectElement | null) => {
+      if (node) {
+        if (ref) {
+          if (typeof ref === 'function') {
+            ref(node)
+          } else {
+            ref.current = node
+          }
+        }
+      } else {
+        if (ref) {
+          if (typeof ref === 'function') {
+            ref(null)
+          } else {
+            ref.current = null
+          }
+        }
+      }
+    },
+    [ref]
+  )
+
   return (
     <div className="form-control">
       {label && (
@@ -25,7 +48,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(({
         </label>
       )}
       <select
-        ref={ref}
+        ref={mergedRef}
         id={selectId}
         className={cn(
           'select select-bordered w-full',

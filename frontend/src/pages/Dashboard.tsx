@@ -116,9 +116,12 @@ function Dashboard() {
     )
   }
 
-  const weightChangePercent = dailySummary.weight.change_from_yesterday != null && dailySummary.weight.current != null
-    ? ((dailySummary.weight.change_from_yesterday / (dailySummary.weight.current - dailySummary.weight.change_from_yesterday)) * 100).toFixed(1)
-    : null
+  const weightChangePercent = useMemo(() => {
+    if (dailySummary.weight.change_from_yesterday == null || dailySummary.weight.current == null) return null
+    const yesterdayWeight = dailySummary.weight.current - dailySummary.weight.change_from_yesterday
+    if (yesterdayWeight === 0) return null
+    return ((dailySummary.weight.change_from_yesterday / yesterdayWeight) * 100).toFixed(1)
+  }, [dailySummary.weight.change_from_yesterday, dailySummary.weight.current])
 
   return (
     <div className="min-h-screen pt-14" style={{ backgroundColor: '#f2f2f2' }}>
@@ -130,14 +133,15 @@ function Dashboard() {
 
         {/* Today's Meals */}
         <div className="bg-white rounded-lg overflow-hidden">
-          <div
-            className="px-4 py-2 cursor-pointer flex items-center justify-between"
+          <button
+            className="px-4 py-2 cursor-pointer flex items-center justify-between w-full"
             style={{ backgroundColor: '#185ADB', color: '#fff' }}
             onClick={handleNavigateDiary}
+            aria-label="View full diary"
           >
             <span className="text-sm font-semibold">Today's Meals</span>
             <span className="text-sm">{totalMealsCalories} kcal</span>
-          </div>
+          </button>
 
           {mealGroups.map(group => (
             <div key={group.type}>

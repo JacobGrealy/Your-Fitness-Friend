@@ -7,7 +7,6 @@ import type { WeightLogCreate } from '@/types'
 import { useWeightStore } from '@/store/weightStore'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
-import TextArea from '@/components/common/TextArea'
 import Card from '@/components/common/Card'
 import { MAX_WEIGHT_LOG_NOTES } from '@/utils/constants'
 
@@ -22,6 +21,7 @@ export default function EditWeight() {
   const [photoUploading, setPhotoUploading] = useState(false)
   const [initialPhotoUrl, setInitialPhotoUrl] = useState<string | null>(null)
   const [formDataLoaded, setFormDataLoaded] = useState(false)
+  const [notesKey, setNotesKey] = useState(0)
 
   useEffect(() => {
     return () => {
@@ -39,6 +39,7 @@ export default function EditWeight() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<WeightLogCreate>({
     resolver: zodResolver(logWeightSchema),
@@ -54,16 +55,27 @@ export default function EditWeight() {
     useWeightStore.getState().fetchLog(id).then((log) => {
       if (log) {
         const dateStr = new Date(log.recorded_at).toISOString().split('T')[0]
-        setInitialPhotoUrl(log.photo_url)
-        setTimeout(() => {
-          register('date').onChange?.({ target: { value: dateStr } })
-          register('weight').onChange?.({ target: { value: log.weight } })
-          register('notes').onChange?.({ target: { value: log.notes || '' } })
-          setFormDataLoaded(true)
-        }, 0)
+        let photoUrl: string | null = log.photo_url
+        if (photoUrl) {
+          const backendUrl = `${window.location.origin}/api`
+          photoUrl = `${backendUrl}/weight/uploads/${photoUrl}`
+        }
+        setInitialPhotoUrl(photoUrl)
+        setValue('date', dateStr)
+        setValue('weight', log.weight)
+        setFormDataLoaded(true)
+        if (log.notes) {
+          setTimeout(() => {
+            const ta = document.querySelector('textarea')
+            if (ta && log.notes) {
+              ta.value = log.notes
+            }
+          }, 1000)
+        }
+        setNotesKey(prev => prev + 1)
       }
     })
-  }, [id, register])
+  }, [id, setValue])
 
   const handleFileSelect = useCallback((file: File) => {
     setSelectedFile(file)
@@ -93,10 +105,11 @@ export default function EditWeight() {
     if (selectedFile && !uploadedPhotoUrl) {
       await handleUploadPhoto()
     }
+    const notesValue = document.querySelector('textarea')?.value || ''
     await updateLog(id, {
       weight: data.weight,
       date: data.date,
-      notes: data.notes || '',
+      notes: notesValue,
       photo_url: uploadedPhotoUrl || null,
     })
     navigate(-1)
@@ -248,13 +261,16 @@ export default function EditWeight() {
           )}
         </div>
 
-        <TextArea
-          label="Notes (optional)"
-          placeholder="How are you feeling today?"
-          maxLength={MAX_WEIGHT_LOG_NOTES}
-          error={errors.notes?.message}
-          {...register('notes')}
-        />
+        <div>
+          <label className="label-text text-base-content/80 mb-2 block">Notes (optional)</label>
+          <textarea
+            key={notesKey}
+            defaultValue=""
+            placeholder="How are you feeling today?"
+            maxLength={MAX_WEIGHT_LOG_NOTES}
+            className="textarea textarea-bordered w-full"
+          />
+        </div>
 
         <div className="flex gap-3 pt-2">
           <Button

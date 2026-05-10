@@ -1,5 +1,5 @@
 from datetime import datetime, date, timedelta
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_login import login_required, current_user
 from app import db
 from app.models.weight_log import WeightLog
@@ -218,6 +218,17 @@ def upload_photo():
 
     photo_url = f"weight_photos/{unique_filename}"
     return jsonify({'photo_url': photo_url}), 201
+
+
+@bp.route('/uploads/<path:filename>')
+@login_required
+def serve_upload(filename):
+    """Serve an uploaded weight photo."""
+    upload_folder = os.path.join(current_app.root_path, 'uploads', 'weight_photos')
+    filepath = os.path.join(upload_folder, filename)
+    if os.path.exists(filepath):
+        return send_file(filepath)
+    return jsonify({'error': 'File not found'}), 404
 
 
 @bp.route('/stats', methods=['GET'])

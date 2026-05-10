@@ -1,10 +1,11 @@
-import { forwardRef } from 'react'
+import { forwardRef, useCallback } from 'react'
 import { cn } from './cn'
 
-export interface TextAreaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'label'> {
+export interface TextAreaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'label' | 'value'> {
   label?: string
   error?: string
   helperText?: string
+  value?: string | number | readonly string[] | null | undefined
 }
 
 const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(({
@@ -14,9 +15,33 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(({
   className,
   id,
   rows = 3,
+  value,
   ...props
 }: TextAreaProps, ref) => {
   const textareaId = id || label?.toLowerCase().replace(/\s+/g, '-')
+
+  const mergedRef = useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      if (node) {
+        if (ref) {
+          if (typeof ref === 'function') {
+            ref(node)
+          } else {
+            ref.current = node
+          }
+        }
+      } else {
+        if (ref) {
+          if (typeof ref === 'function') {
+            ref(null)
+          } else {
+            ref.current = null
+          }
+        }
+      }
+    },
+    [ref]
+  )
 
   return (
     <div className="form-control">
@@ -26,9 +51,10 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(({
         </label>
       )}
       <textarea
-        ref={ref}
+        ref={mergedRef}
         id={textareaId}
         rows={rows}
+        value={value ?? ''}
         className={cn(
           'textarea textarea-bordered w-full',
           error && 'input-error',

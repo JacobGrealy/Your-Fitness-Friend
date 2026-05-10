@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useCallback } from 'react'
 import { cn } from './cn'
 
 export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'label'> {
@@ -17,6 +17,29 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
 }: InputProps, ref) => {
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-')
 
+  const mergedRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      if (node) {
+        if (ref) {
+          if (typeof ref === 'function') {
+            ref(node)
+          } else {
+            ref.current = node
+          }
+        }
+      } else {
+        if (ref) {
+          if (typeof ref === 'function') {
+            ref(null)
+          } else {
+            ref.current = null
+          }
+        }
+      }
+    },
+    [ref]
+  )
+
   return (
     <div className="form-control">
       {label && (
@@ -25,7 +48,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
         </label>
       )}
       <input
-        ref={ref}
+        ref={mergedRef}
         id={inputId}
         className={cn(
           'input input-bordered w-full',

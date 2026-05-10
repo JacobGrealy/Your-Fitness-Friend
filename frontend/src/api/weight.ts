@@ -14,7 +14,17 @@ export const weightApi = {
       }))
     ),
   getLog: (id: string) =>
-    api.get<WeightLog>(`/weight/logs/${id}`).then(res => res.data),
+    api.get(`/weight/logs/${id}`).then(res => {
+      const log = res.data
+      return {
+        id: String(log.id),
+        user_id: '',
+        weight: log.weight_lbs,
+        recorded_at: log.recorded_at,
+        notes: log.notes,
+        photo_url: log.photo_url,
+      }
+    }),
   getLogsByDate: (date: string) =>
     api.get<any[]>('/weight/logs', { params: { start_date: date, end_date: date } }).then(res =>
       res.data.map((log: any) => ({

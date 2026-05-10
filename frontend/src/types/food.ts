@@ -65,9 +65,15 @@ export interface FoodCreate {
  * Data required to create a new food log entry.
  */
 export interface FoodLogCreate {
-  food_id: string
-  quantity: number
+  food_id?: string
+  quantity?: number
+  food_name?: string
+  calories?: number
+  protein_g?: number
+  carbs_g?: number
+  fat_g?: number
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+  date?: string
 }
 
 /**
