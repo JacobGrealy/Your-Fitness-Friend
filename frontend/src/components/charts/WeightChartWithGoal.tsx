@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
+  Label,
 } from 'recharts'
 import { format } from 'date-fns'
 
@@ -21,12 +22,13 @@ const formatYAxis = (value: number): string => value.toFixed(1)
 const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { date: string } }> }) => {
   if (active && payload && payload.length) {
     const date = new Date(payload[0].payload.date)
+    if (isNaN(date.getTime())) return null
     const formattedDate = format(date, 'MMM dd, yyyy')
     return (
-      <div className="rounded-lg bg-white px-3 py-2 shadow-md border border-[#e0e0e0]">
+      <div className="rounded-lg bg-white px-3 py-2 border border-[#e0e0e0]">
         <p className="text-sm font-medium" style={{ color: '#212121' }}>{formattedDate}</p>
         <p className="text-sm font-bold" style={{ color: '#185ADB' }}>
-          {payload[0].value.toFixed(1)} lbs
+          {payload[0].value?.toFixed(1) ?? 'N/A'} lbs
         </p>
       </div>
     )
@@ -62,7 +64,9 @@ export default function WeightChartWithGoal({ data, height = 180, goal }: Weight
           />
           <Tooltip content={<CustomTooltip />} />
           {goal && (
-            <ReferenceLine y={goal} stroke="#185ADB" strokeDasharray="5 5" label={{ position: 'right', value: 'Goal', fill: '#185ADB', fontSize: 11 }} />
+            <ReferenceLine y={goal} stroke="#185ADB" strokeDasharray="5 5">
+              <Label value="Goal" position="right" fill="#185ADB" fontSize={11} />
+            </ReferenceLine>
           )}
           <Area
             type="monotone"
