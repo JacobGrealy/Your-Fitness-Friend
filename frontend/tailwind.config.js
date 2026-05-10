@@ -7,13 +7,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#185ADB',
-        bg: '#f2f2f2',
-        text: '#212121',
-        textSecondary: '#757575',
-        border: '#e0e0e0',
-        success: '#4CAF50',
-        error: '#E53935',
+        mfp: {
+          blue: '#185ADB',
+          bg: '#f2f2f2',
+          text: '#212121',
+          textSecondary: '#757575',
+          border: '#e0e0e0',
+          success: '#4CAF50',
+          error: '#E53935',
+        },
       },
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', "'Segoe UI'", 'Roboto', 'sans-serif'],
