@@ -26,7 +26,7 @@ function Profile() {
         setGoalValue('')
       }
     } catch (err) {
-      console.error('Failed to save weight goal:', err)
+      alert('Failed to save weight goal. Please try again.')
     } finally {
       setSaving(false)
     }
