@@ -21,7 +21,6 @@ export default function EditWeight() {
   const [photoUploading, setPhotoUploading] = useState(false)
   const [initialPhotoUrl, setInitialPhotoUrl] = useState<string | null>(null)
   const [formDataLoaded, setFormDataLoaded] = useState(false)
-  const [notesValue, setNotesValue] = useState('')
 
   useEffect(() => {
     return () => {
@@ -40,6 +39,7 @@ export default function EditWeight() {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<WeightLogCreate>({
     resolver: zodResolver(logWeightSchema),
@@ -64,9 +64,6 @@ export default function EditWeight() {
         setValue('date', dateStr)
         setValue('weight', log.weight)
         setFormDataLoaded(true)
-        if (log.notes) {
-          setNotesValue(log.notes)
-        }
       }
     })
   }, [id, setValue])
@@ -102,7 +99,7 @@ export default function EditWeight() {
     await updateLog(id, {
       weight: data.weight,
       date: data.date,
-      notes: notesValue,
+      notes: data.notes,
       photo_url: uploadedPhotoUrl || null,
     })
     navigate(-1)
@@ -119,12 +116,9 @@ export default function EditWeight() {
   return (
     <div className="p-4">
       <div className="flex items-center gap-3 mb-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-mfp-textSecondary hover:text-mfp-text font-medium text-sm px-3 py-1.5 rounded-lg hover:bg-mfp-text/5 transition-colors"
-        >
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           ← Back
-        </button>
+        </Button>
         <h1 className="text-2xl font-bold">Edit Weight Log</h1>
       </div>
 
@@ -177,7 +171,7 @@ export default function EditWeight() {
           />
 
           {!selectedFile ? (
-            <Card shadow>
+            <Card>
               <div
                 className="items-center justify-center min-h-[160px] border-2 border-dashed border-gray-300 rounded-lg cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
@@ -230,7 +224,7 @@ export default function EditWeight() {
               </div>
             </Card>
           ) : (
-            <Card shadow>
+            <Card>
               <div className="items-center p-2">
                 <div className="relative w-full">
                   <img
@@ -269,12 +263,11 @@ export default function EditWeight() {
           <label className="block text-sm font-medium text-mfp-text mb-2">
             Notes (optional)
             <span className="font-normal text-mfp-textSecondary ml-1">
-              ({MAX_WEIGHT_LOG_NOTES - notesValue.length} left)
+              ({MAX_WEIGHT_LOG_NOTES - (watch('notes') || '').length} left)
             </span>
           </label>
           <textarea
-            value={notesValue}
-            onChange={(e) => setNotesValue(e.target.value)}
+            {...register('notes')}
             placeholder="How are you feeling today?"
             maxLength={MAX_WEIGHT_LOG_NOTES}
             rows={3}

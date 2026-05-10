@@ -49,21 +49,21 @@ export default function Exercise() {
       <h1 className="text-2xl font-bold">Exercise Tracking</h1>
 
       <div className="grid grid-cols-3 gap-3">
-        <Card shadow className="text-center">
+        <Card className="text-center">
           <div className="items-center py-4">
             <p className="text-sm text-mfp-textSecondary">This Week</p>
             <p className="text-2xl font-bold">{totalExercises}</p>
           </div>
         </Card>
 
-        <Card shadow className="text-center">
+        <Card className="text-center">
           <div className="items-center py-4">
             <p className="text-sm text-mfp-textSecondary">Calories</p>
             <p className="text-2xl font-bold">{formatCalories(totalCalories)}</p>
           </div>
         </Card>
 
-        <Card shadow className="text-center">
+        <Card className="text-center">
           <div className="items-center py-4">
             <p className="text-sm text-mfp-textSecondary">Duration</p>
             <p className="text-2xl font-bold">{formatDuration(totalDuration)}</p>
@@ -109,7 +109,7 @@ export default function Exercise() {
       ) : (
         <div className="space-y-3">
           {recentLogs.map(log => (
-            <Card key={log.id} shadow>
+            <Card key={log.id}>
               <div className="py-3">
                 <div className="flex items-center justify-between">
                   <div>

@@ -88,7 +88,7 @@ export default function ExerciseLibrary() {
       ) : (
         <div className="space-y-3">
           {savedExercises.map(exercise => (
-            <Card key={exercise.id} shadow className="flex items-center justify-between gap-3">
+            <Card key={exercise.id} className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold">{exercise.name}</span>
@@ -144,7 +144,7 @@ export default function ExerciseLibrary() {
             <label className="block text-sm font-medium text-mfp-text mb-2">Muscle Group</label>
             <select
               {...register('muscle_group')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white"
+              className={`w-full px-3 py-2.5 border border-${errors.muscle_group ? 'mfp-error' : 'gray-300'} rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white`}
             >
               <option value="">Select muscle group</option>
               {muscleGroupOptions.map(opt => (
@@ -160,7 +160,7 @@ export default function ExerciseLibrary() {
             <label className="block text-sm font-medium text-mfp-text mb-2">Type</label>
             <select
               {...register('type')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white"
+              className={`w-full px-3 py-2.5 border border-${errors.type ? 'mfp-error' : 'gray-300'} rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white`}
             >
               <option value="">Select type</option>
               {exerciseTypeOptions.map(opt => (

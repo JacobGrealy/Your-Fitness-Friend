@@ -79,7 +79,7 @@ export default function CustomFoods() {
       ) : (
         <div className="space-y-3">
           {foods.map(food => (
-            <Card key={food.id} shadow>
+            <Card key={food.id}>
               <div className="py-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">

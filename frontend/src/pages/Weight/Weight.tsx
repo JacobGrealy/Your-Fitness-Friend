@@ -36,7 +36,7 @@ export default function Weight() {
 
       <div className="grid grid-cols-2 gap-3">
         {statistics?.current_weight !== null && statistics?.current_weight !== undefined && (
-          <Card shadow className="text-center">
+          <Card className="text-center">
             <div className="items-center py-4">
               <p className="text-sm text-mfp-textSecondary">Current</p>
               <p className="text-2xl font-bold">{formatWeight(statistics.current_weight)}</p>
@@ -45,7 +45,7 @@ export default function Weight() {
         )}
 
         {statistics?.average_weight !== null && statistics?.average_weight !== undefined && (
-          <Card shadow className="text-center">
+          <Card className="text-center">
             <div className="items-center py-4">
               <p className="text-sm text-mfp-textSecondary">Average</p>
               <p className="text-2xl font-bold">{formatWeight(statistics.average_weight)}</p>
@@ -54,7 +54,7 @@ export default function Weight() {
         )}
 
         {statistics?.min_weight !== null && statistics?.min_weight !== undefined && (
-          <Card shadow className="text-center">
+          <Card className="text-center">
             <div className="items-center py-4">
               <p className="text-sm text-mfp-textSecondary">Min</p>
               <p className="text-2xl font-bold">{formatWeight(statistics.min_weight)}</p>
@@ -63,7 +63,7 @@ export default function Weight() {
         )}
 
         {statistics?.max_weight !== null && statistics?.max_weight !== undefined && (
-          <Card shadow className="text-center">
+          <Card className="text-center">
             <div className="items-center py-4">
               <p className="text-sm text-mfp-textSecondary">Max</p>
               <p className="text-2xl font-bold">{formatWeight(statistics.max_weight)}</p>
@@ -73,7 +73,7 @@ export default function Weight() {
       </div>
 
       {trend && trend.change_7d !== null && trend.change_7d !== undefined && (
-        <Card shadow>
+        <Card>
           <div className="py-3">
             <div className="flex items-center justify-between">
               <div>
