@@ -17,6 +17,7 @@ export interface UserProfile {
   gender?: string
   height?: number
   weight?: number
+  weight_goal_lbs?: number
   activity_level?: string
   daily_calorie_goal?: number
   created_at?: string
