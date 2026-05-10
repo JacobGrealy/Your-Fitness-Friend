@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import FABModal from './FABModal'
 
 export default function BottomNav() {
@@ -46,10 +46,10 @@ export default function BottomNav() {
     },
   ]
 
-  const isActive = (path: string) => {
+  const isActive = useCallback((path: string) => {
     if (path === '/dashboard') return location.pathname === '/dashboard' || location.pathname === '/'
     return location.pathname.startsWith(path)
-  }
+  }, [location.pathname])
 
   return (
     <>
@@ -76,6 +76,7 @@ export default function BottomNav() {
         onClick={() => setFabOpen(true)}
         className="fixed z-50 bottom-16 left-1/2 -translate-x-1/2 sm:bottom-8 sm:left-1/2 sm:-translate-x-1/2 w-14 h-14 rounded-full bg-[#185ADB] text-white shadow-lg flex items-center justify-center hover:bg-[#1047b0] transition-colors"
         aria-label="Add log"
+        aria-expanded={fabOpen}
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

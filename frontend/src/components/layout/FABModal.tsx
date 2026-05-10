@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 
 interface FABModalProps {
   isOpen: boolean
@@ -7,6 +8,15 @@ interface FABModalProps {
 
 export default function FABModal({ isOpen, onClose }: FABModalProps) {
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isOpen, onClose])
 
   const options = [
     {
@@ -46,7 +56,7 @@ export default function FABModal({ isOpen, onClose }: FABModalProps) {
         className="fixed inset-0 z-50 bg-black/40 sm:bg-black/30"
         onClick={onClose}
       />
-      <div className="fixed z-50 bottom-20 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 bg-white rounded-2xl shadow-xl p-4 w-72 sm:w-80">
+      <div className="fixed z-50 bottom-20 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 bg-white rounded-2xl shadow-xl p-4 w-72 sm:w-80" role="dialog" aria-modal="true">
         <div className="flex flex-col gap-2">
           {options.map((option) => (
             <button
