@@ -6,6 +6,7 @@ export interface CardProps {
   children: React.ReactNode
   className?: string
   shadow?: boolean
+  border?: boolean
 }
 
 export default function Card({
@@ -14,22 +15,24 @@ export default function Card({
   children,
   className,
   shadow = false,
+  border = false,
 }: CardProps) {
   return (
     <div
       className={cn(
-        'card bg-base-100',
-        shadow && (shadow === true ? 'shadow-md' : shadow),
+        'bg-white rounded-lg',
+        shadow && 'shadow-sm',
+        border && 'border border-mfp-border',
         className
       )}
     >
       {(title || subtitle) && (
-        <div className="card-body">
+        <div className="p-4">
           {title && (
-            <h2 className="card-title">{title}</h2>
+            <h2 className="text-lg font-semibold text-mfp-text">{title}</h2>
           )}
           {subtitle && (
-            <p className="text-sm text-base-content/70">{subtitle}</p>
+            <p className="text-sm text-mfp-textSecondary mt-1">{subtitle}</p>
           )}
           {children}
         </div>

@@ -17,7 +17,7 @@ export default function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4">
-      <div className="text-base-content/30 mb-4">
+      <div className="text-mfp-textSecondary mb-4">
         {icon || (
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -35,9 +35,9 @@ export default function EmptyState({
           </svg>
         )}
       </div>
-      <h3 className="text-lg font-semibold text-base-content/80">{title}</h3>
+      <h3 className="text-lg font-semibold text-mfp-text">{title}</h3>
       {description && (
-        <p className="text-sm text-base-content/60 mt-1 text-center">
+        <p className="text-sm text-mfp-textSecondary mt-1 text-center">
           {description}
         </p>
       )}
