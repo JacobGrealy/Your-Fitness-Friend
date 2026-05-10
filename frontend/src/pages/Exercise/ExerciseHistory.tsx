@@ -71,8 +71,18 @@ export default function ExerciseHistory() {
                   <div className="flex items-center gap-2 mt-0.5 text-sm text-mfp-textSecondary">
                     <span>{formatDate(log.logged_at)}</span>
                     <span>·</span>
-                    <span>{log.intensity}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${
+                        log.intensity === 'low' ? 'bg-green-500' :
+                        log.intensity === 'medium' ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      }`} />
+                      {log.intensity}
+                    </span>
                   </div>
+                  {log.notes && (
+                    <span className="text-mfp-textSecondary text-sm truncate">{log.notes}</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right">
