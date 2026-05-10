@@ -75,6 +75,13 @@ function Dashboard() {
 
   const totalMealsCalories = mealGroups.reduce((sum, g) => sum + g.calories, 0)
 
+  const weightChangePercent = useMemo(() => {
+    if (!dailySummary?.weight?.change_from_yesterday || dailySummary?.weight?.current == null) return null
+    const yesterdayWeight = dailySummary.weight.current - dailySummary.weight.change_from_yesterday
+    if (yesterdayWeight === 0) return null
+    return ((dailySummary.weight.change_from_yesterday / yesterdayWeight) * 100).toFixed(1)
+  }, [dailySummary?.weight?.change_from_yesterday, dailySummary?.weight?.current])
+
   const toggleMeals = (type: string) => {
     setExpandedMeals(prev => ({ ...prev, [type]: !prev[type] }))
   }
@@ -115,13 +122,6 @@ function Dashboard() {
       </div>
     )
   }
-
-  const weightChangePercent = useMemo(() => {
-    if (dailySummary.weight.change_from_yesterday == null || dailySummary.weight.current == null) return null
-    const yesterdayWeight = dailySummary.weight.current - dailySummary.weight.change_from_yesterday
-    if (yesterdayWeight === 0) return null
-    return ((dailySummary.weight.change_from_yesterday / yesterdayWeight) * 100).toFixed(1)
-  }, [dailySummary.weight.change_from_yesterday, dailySummary.weight.current])
 
   return (
     <div className="min-h-screen pt-14" style={{ backgroundColor: '#f2f2f2' }}>
