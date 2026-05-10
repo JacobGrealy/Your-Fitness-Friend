@@ -65,8 +65,9 @@ def create_app(config_name='default'):
         from app.models.user import User
         return User.query.get(int(user_id))
 
-    # Don't set cookie domain - let browser use request host by default
-    app.config['SESSION_COOKIE_DOMAIN'] = None
+    # Set cookie domain to .localhost so Vite proxy (5173) can access backend cookies from (5001)
+    app.config['SESSION_COOKIE_DOMAIN'] = '.localhost'
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_SECURE'] = False
 
     return app
