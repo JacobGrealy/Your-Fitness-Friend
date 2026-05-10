@@ -5,7 +5,7 @@ export interface CardProps {
   subtitle?: string
   children: React.ReactNode
   className?: string
-  shadow?: boolean
+  shadow?: boolean | string
   border?: boolean
 }
 
@@ -21,7 +21,7 @@ export default function Card({
     <div
       className={cn(
         'bg-white rounded-lg',
-        shadow && 'shadow-sm',
+        typeof shadow === 'string' ? shadow : shadow && 'shadow-sm',
         border && 'border border-mfp-border',
         className
       )}
