@@ -100,7 +100,9 @@ Tabs replace the current 5-tab layout:
 **Weight section:**
 - Current weight prominently displayed
 - "Since [date]" with change amount
-- Weight trend chart (recharts line chart, blue line)
+- Weight trend chart (recharts AreaChart, blue line)
+- Weight goal shown as a dashed horizontal line across the chart
+- Dashed line labeled "Goal" on the right side
 - Time range selector: 1W, 1M, 3M, 1Y
 
 **Exercise section:**
@@ -164,6 +166,13 @@ Tabs replace the current 5-tab layout:
 - White text, centered title
 - Date navigation on Diary
 - Remove top header on Home and More (show only bottom nav)
+
+### WeightChart / WeightTrendChart
+- Accept optional `goal` prop (number)
+- When goal is set, render a dashed horizontal line at the goal value
+- Line color: `#185ADB` (blue), dashed pattern, labeled "Goal" on right
+- Y-axis domain auto-adjusts to accommodate goal line
+- Tooltip still shows actual weight values
 
 ### Card (`Card.tsx`)
 - Remove shadow on most cards (MFP uses flat design)
