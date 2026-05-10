@@ -65,6 +65,18 @@ def create_app(config_name='default'):
         from app.models.user import User
         return User.query.get(int(user_id))
 
+    # Serve frontend static files
+    import os
+    static_path = os.path.join(os.path.dirname(__file__), 'static')
+    if os.path.exists(static_path):
+        from flask import send_from_directory
+        @app.route('/')
+        def index():
+            return send_from_directory(static_path, 'index.html')
+        @app.route('/<path:path>')
+        def static_files(path):
+            return send_from_directory(static_path, path)
+
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_SECURE'] = False
 
