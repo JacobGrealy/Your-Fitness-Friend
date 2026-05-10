@@ -185,7 +185,13 @@ Tabs replace the current 5-tab layout:
 
 ## 6. Data Flow
 
-No backend changes required. All existing API endpoints and data shapes remain the same:
+### Backend Changes
+- Add `weight_goal_lbs` column to `users` table (float, nullable)
+- `GET /api/user/profile` returns `weight_goal_lbs` in user object
+- `PUT /api/user/profile` accepts `weight_goal_lbs` to update
+- Dashboard summary includes weight goal for progress calculation
+
+### Existing Endpoints (unchanged)
 - `GET /api/dashboard/summary` → Home calorie summary
 - `GET /api/food/logs` → Diary food items
 - `GET /api/weight/logs` → Progress weight data
@@ -193,7 +199,7 @@ No backend changes required. All existing API endpoints and data shapes remain t
 - `POST /api/weight` → Log weight
 - `POST /api/exercise/log` → Log exercise
 
-The only change is how data is displayed — reorganized into MFP-style sections.
+The frontend reorganizes data into MFP-style sections. The only new data is the weight goal field.
 
 ---
 
@@ -237,17 +243,41 @@ The only change is how data is displayed — reorganized into MFP-style sections
 | `frontend/src/components/common/Card.tsx` | Flat design, no shadow |
 | `frontend/src/components/common/Modal.tsx` | FAB modal + standard modal updates |
 | `frontend/src/router.tsx` | Route structure stays same, nav refs updated |
+| `app/models/user.py` | Add `weight_goal_lbs` column |
+| `app/routes/user.py` | Return `weight_goal_lbs` in profile, accept update |
+| `app/schemas.py` | Add `weight_goal_lbs` to user schemas |
 
 ---
 
-## 10. YAGNI — Out of Scope
+## 10. Weight Goal Tracking
+
+### Backend
+- Add `weight_goal_lbs` field to user model (nullable float)
+- `GET /api/user/profile` returns `weight_goal_lbs`
+- `PUT /api/user/profile` accepts `weight_goal_lbs` to update
+
+### More Page (`/profile`)
+- "Goals" section in settings list
+- Weight Goal row: shows current goal (e.g., "180 lbs") or "Not set"
+- Tapping opens a modal with:
+  - Current weight display (read-only)
+  - Goal weight input field
+  - "Set Goal" button (blue)
+  - "Clear Goal" button (gray)
+- Shows progress: "195 lbs → 180 lbs (15 lbs to go)" with arrow indicator
+
+### Home/Progress Pages
+- Weight snapshot shows current weight, goal weight, and distance to goal
+- Example: "195 lbs" with subtitle "15 lbs from goal"
+- Green arrow if under goal, orange arrow if over
+
+### YAGNI — Out of Scope
 
 - Dark mode toggle (light theme only)
 - Swipe gestures for meal sections
-- Weight goal tracking (UI only, no backend)
 - Macro breakdown pie charts
 - Water intake tracking
 - Recipe management
 - Social features
 - Export data
-- Settings pages (Goals, Preferences, Account) — UI only, no functionality
+- Settings pages (Preferences, Account) — UI only, no functionality
