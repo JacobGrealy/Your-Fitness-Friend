@@ -13,7 +13,7 @@ export default function LogFood() {
   const { foods, isLoading, logFood, error, fetchFoods } = useFoodStore()
   const [mealType, setMealType] = useState('breakfast')
   const [foodId, setFoodId] = useState('')
-  const [notes, setNotes] = useState('')
+  const [quantity, setQuantity] = useState(1)
 
   useEffect(() => {
     fetchFoods()
@@ -27,7 +27,7 @@ export default function LogFood() {
 
     const data: FoodLogCreate = {
       food_id: foodId,
-      quantity: 1,
+      quantity: quantity,
       meal_type: mealType as FoodLogCreate['meal_type'],
     }
     await logFood(data)
@@ -124,22 +124,9 @@ export default function LogFood() {
               type="number"
               min="0.1"
               step="0.1"
-              defaultValue={1}
+              value={quantity}
+              onChange={(e) => setQuantity(Number(e.target.value))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[#212121] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
-            />
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-[#212121] mb-1">
-              Notes
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              placeholder="Optional notes"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[#212121] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent resize-none"
             />
           </div>
 
