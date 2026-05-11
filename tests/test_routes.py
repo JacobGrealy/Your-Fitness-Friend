@@ -1,3 +1,5 @@
+import io
+
 import pytest
 
 
@@ -212,8 +214,7 @@ class TestProfilePhotoRoutes:
         jpeg_header = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
         response = client.post(
             '/api/auth/profile-photo',
-            data={'photo': (jpeg_header + b'\x00' * 100, 'test.jpg')},
-            content_type='multipart/form-data'
+            data={'photo': (io.BytesIO(jpeg_header + b'\x00' * 100), 'test.jpg')}
         )
         assert response.status_code == 200
         data = response.get_json()
@@ -233,8 +234,7 @@ class TestProfilePhotoRoutes:
         self._register_and_login(client)
         response = client.post(
             '/api/auth/profile-photo',
-            data={'photo': (b'test content', 'test.txt')},
-            content_type='multipart/form-data'
+            data={'photo': (io.BytesIO(b'test content'), 'test.txt')}
         )
         assert response.status_code == 400
 
@@ -243,8 +243,7 @@ class TestProfilePhotoRoutes:
         jpeg_header = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
         response = client.post(
             '/api/auth/profile-photo',
-            data={'photo': (jpeg_header + b'\x00' * 100, 'test.jpg')},
-            content_type='multipart/form-data'
+            data={'photo': (io.BytesIO(jpeg_header + b'\x00' * 100), 'test.jpg')}
         )
         assert response.status_code == 200
         response = client.delete('/api/auth/profile-photo')
@@ -257,8 +256,7 @@ class TestProfilePhotoRoutes:
         jpeg_header = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
         response = client.post(
             '/api/auth/profile-photo',
-            data={'photo': (jpeg_header + b'\x00' * 100, 'test.jpg')},
-            content_type='multipart/form-data'
+            data={'photo': (io.BytesIO(jpeg_header + b'\x00' * 100), 'test.jpg')}
         )
         data = response.get_json()
         photo_filename = data['profile_photo_url']
