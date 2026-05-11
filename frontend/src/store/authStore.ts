@@ -15,7 +15,7 @@ interface AuthState {
   clearError: () => void
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
@@ -23,6 +23,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   error: null,
 
   checkAuth: async () => {
+    if (get().hasChecked || get().isLoading) return
     set({ isLoading: true })
     try {
       const user = await authApi.getProfile()

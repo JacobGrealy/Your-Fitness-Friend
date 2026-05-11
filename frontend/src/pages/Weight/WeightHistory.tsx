@@ -10,14 +10,13 @@ import WeightChartWithGoal from '@/components/charts/WeightChartWithGoal'
 
 export default function WeightHistory() {
   const { logs, isLoading, fetchLogs, deleteLog } = useWeightStore()
-  const { user, checkAuth } = useAuthStore()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
-    checkAuth()
     fetchLogs()
-  }, [checkAuth, fetchLogs])
+  }, [])
 
   const sortedLogs = [...logs].sort((a, b) =>
     new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()

@@ -75,28 +75,18 @@ def create_app(config_name='default'):
             return send_from_directory(static_path, 'index.html')
         @app.route('/<path:path>')
         def static_files(path):
-            return send_from_directory(static_path, path)
+            # Serve index.html for all non-file routes (SPA fallback)
+            static_files_to_check = ['index.html', 'favicon.ico', 'manifest.json']
+            if path in static_files_to_check:
+                return send_from_directory(static_path, path)
+            # Check if the path corresponds to an actual static asset
+            full_path = os.path.join(static_path, path)
+            if os.path.isfile(full_path):
+                return send_from_directory(static_path, path)
+            # Otherwise serve index.html for React Router to handle
+            return send_from_directory(static_path, 'index.html')
 
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_SECURE'] = False
-
-    @app.after_request
-    def set_session_cookie_domain(response):
-        host = request.headers.get('X-Forwarded-Host', request.host).split(':')[0]
-        if host == 'localhost' or host.endswith('.localhost'):
-            cookie_domain = '.localhost'
-        elif host.count('.') == 3:
-            cookie_domain = host
-        elif host.count('.') >= 2:
-            parts = host.rsplit('.', 2)
-            cookie_domain = '.' + parts[-1]
-        else:
-            cookie_domain = None
-        if cookie_domain:
-            for cookie_header in response.headers.getlist('Set-Cookie'):
-                if 'session=' in cookie_header and 'domain=' not in cookie_header:
-                    response.headers.remove('Set-Cookie', cookie_header)
-                    response.headers.add('Set-Cookie', cookie_header.rstrip(';') + '; domain=' + cookie_domain)
-        return response
 
     return app

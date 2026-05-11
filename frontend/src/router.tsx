@@ -16,14 +16,6 @@ export const router = createBrowserRouter([
     element: <Layout />,
     children: [
       {
-        path: 'auth/login',
-        element: <Login />,
-      },
-      {
-        path: 'auth/register',
-        element: <Register />,
-      },
-      {
         path: 'dashboard',
         element: (
           <AuthGuard>
@@ -161,8 +153,16 @@ export const router = createBrowserRouter([
       },
       {
         path: '/',
-        element: <Navigate to="/auth/login" replace />,
+        element: <Navigate to="/dashboard" replace />,
       },
     ],
+  },
+  {
+    path: 'auth/login',
+    element: <Login />,
+  },
+  {
+    path: 'auth/register',
+    element: <Register />,
   },
 ])

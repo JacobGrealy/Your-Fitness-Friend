@@ -32,7 +32,7 @@ export default function DailyFood() {
   useEffect(() => {
     fetchDailyTotals()
     fetchFoodLogs()
-  }, [fetchDailyTotals, fetchFoodLogs])
+  }, [])
 
   const groupedLogs = MEAL_TYPES.reduce((acc, meal) => {
     acc[meal] = foodLogs.filter(log => log.meal_type === meal)

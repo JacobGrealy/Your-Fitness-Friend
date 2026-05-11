@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { authApi } from '@/api/auth'
 import Loading from '@/components/common/Loading'
@@ -9,10 +9,6 @@ function Profile() {
   const [goalModalOpen, setGoalModalOpen] = useState(false)
   const [goalValue, setGoalValue] = useState('')
   const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    checkAuth()
-  }, [checkAuth])
 
   const handleSaveGoal = async () => {
     const goal = parseFloat(goalValue)

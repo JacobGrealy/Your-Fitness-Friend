@@ -50,7 +50,7 @@ function Dashboard() {
   useEffect(() => {
     fetchDailySummary()
     fetchWeightTrend(7)
-  }, [fetchDailySummary, fetchWeightTrend])
+  }, [])
 
   const trendData = useMemo(() => {
     if (!Array.isArray(weightTrend)) return []
