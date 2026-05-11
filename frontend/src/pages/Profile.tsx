@@ -74,10 +74,6 @@ function Profile() {
 
   return (
     <div className="min-h-screen bg-[#f2f2f2]">
-      {/* Blue header bar */}
-      <div className="bg-[#185ADB] px-4 pt-4 pb-3">
-        <span className="text-white text-lg font-medium">More</span>
-      </div>
       {/* White user info section */}
       <div className="bg-white px-4 py-4 mx-4 mt-4 rounded-lg">
         <div className="flex items-center justify-center gap-4">
