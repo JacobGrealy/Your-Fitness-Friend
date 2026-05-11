@@ -38,6 +38,22 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<
 export default function WeightChart({ data, height = 200, title, className, goal }: WeightChartProps) {
   const slicedData = data.slice(-30)
 
+  const yAxisDomain = (() => {
+    if (slicedData.length === 0) return ['auto', 'auto']
+    const weights = slicedData.map(d => d.weight)
+    const dataMin = Math.min(...weights)
+    const dataMax = Math.max(...weights)
+    if (goal !== undefined && goal !== null) {
+      const allValues = [...weights, goal]
+      const globalMin = Math.min(...allValues)
+      const globalMax = Math.max(...allValues)
+      const padding = Math.max((globalMax - globalMin) * 0.15, 1)
+      return [globalMin - padding, globalMax + padding]
+    }
+    const padding = (dataMax - dataMin) * 0.15 || 2
+    return [dataMin - padding, dataMax + padding]
+  })()
+
   if (slicedData.length === 0) {
     return (
       <div className={cn('card bg-base-100', className)}>
@@ -70,7 +86,7 @@ export default function WeightChart({ data, height = 200, title, className, goal
               tickFormatter={formatYAxis}
               className="text-xs"
               tick={{ fill: '#cdd6f4', fontSize: 11 }}
-              domain={['auto', 'auto']}
+              domain={yAxisDomain}
             />
             <Tooltip content={<CustomTooltip />} />
             {goal && (

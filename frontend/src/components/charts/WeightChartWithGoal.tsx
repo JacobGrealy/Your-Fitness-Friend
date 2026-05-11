@@ -39,6 +39,22 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<
 export default function WeightChartWithGoal({ data, height = 180, goal }: WeightChartWithGoalProps) {
   const chartData = data.slice(-30)
 
+  const yAxisDomain = (() => {
+    if (chartData.length === 0) return ['auto', 'auto']
+    const weights = chartData.map(d => d.weight)
+    const dataMin = Math.min(...weights)
+    const dataMax = Math.max(...weights)
+    if (goal !== undefined && goal !== null) {
+      const allValues = [...weights, goal]
+      const globalMin = Math.min(...allValues)
+      const globalMax = Math.max(...allValues)
+      const padding = Math.max((globalMax - globalMin) * 0.15, 1)
+      return [globalMin - padding, globalMax + padding]
+    }
+    const padding = (dataMax - dataMin) * 0.15 || 2
+    return [dataMin - padding, dataMax + padding]
+  })()
+
   if (chartData.length === 0) {
     return (
       <div className="bg-white rounded-lg p-4 border border-[#e0e0e0]">
@@ -60,7 +76,7 @@ export default function WeightChartWithGoal({ data, height = 180, goal }: Weight
           <YAxis
             tickFormatter={formatYAxis}
             tick={{ fill: '#757575', fontSize: 11 }}
-            domain={['auto', 'auto']}
+            domain={yAxisDomain}
           />
           <Tooltip content={<CustomTooltip />} />
           {goal && (
