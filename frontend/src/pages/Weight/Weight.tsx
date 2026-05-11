@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWeightStore } from '@/store/weightStore'
+import { useAuthStore } from '@/store/authStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { formatWeight } from '@/utils/formatters'
 import Button from '@/components/common/Button'
@@ -12,6 +13,7 @@ export default function Weight() {
   const { setTitle } = usePageTitle()
   const navigate = useNavigate()
   const { logs, statistics, trend, isLoading } = useWeightStore()
+  const user = useAuthStore((s) => s.user)
 
   useEffect(() => { setTitle('Progress') }, [setTitle])
 
@@ -97,7 +99,7 @@ export default function Weight() {
       )}
 
       {chartData.length > 0 && (
-        <WeightChart data={chartData} height={200} title="Weight Trend" />
+        <WeightChart data={chartData} height={200} title="Weight Trend" goal={user?.weight_goal_lbs} />
       )}
 
       <div className="grid grid-cols-2 gap-3">

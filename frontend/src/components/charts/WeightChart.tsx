@@ -6,6 +6,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
 } from 'recharts'
 import { format } from 'date-fns'
 import { cn } from '@/components/common/cn'
@@ -15,6 +16,7 @@ export interface WeightChartProps {
   height?: number
   title?: string
   className?: string
+  goal?: number
 }
 
 const formatYAxis = (value: number): string => value.toFixed(1)
@@ -33,7 +35,7 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<
   return null
 }
 
-export default function WeightChart({ data, height = 200, title, className }: WeightChartProps) {
+export default function WeightChart({ data, height = 200, title, className, goal }: WeightChartProps) {
   const slicedData = data.slice(-30)
 
   if (slicedData.length === 0) {
@@ -71,6 +73,9 @@ export default function WeightChart({ data, height = 200, title, className }: We
               domain={['auto', 'auto']}
             />
             <Tooltip content={<CustomTooltip />} />
+            {goal && (
+              <ReferenceLine y={goal} stroke="#22c55e" strokeDasharray="5 5" />
+            )}
             <Line
               type="monotone"
               dataKey="weight"

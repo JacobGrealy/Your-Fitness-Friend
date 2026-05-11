@@ -64,8 +64,8 @@ export default function WeightChartWithGoal({ data, height = 180, goal }: Weight
           />
           <Tooltip content={<CustomTooltip />} />
           {goal && (
-            <ReferenceLine y={goal} stroke="#185ADB" strokeDasharray="5 5">
-              <Label value="Goal" position="right" fill="#185ADB" fontSize={11} />
+            <ReferenceLine y={goal} stroke="#22c55e" strokeDasharray="5 5">
+              <Label value="Goal" position="right" fill="#22c55e" fontSize={11} />
             </ReferenceLine>
           )}
           <Area
