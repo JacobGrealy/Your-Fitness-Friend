@@ -1,10 +1,13 @@
 from functools import wraps
 
-from flask import Blueprint, request, jsonify, session, redirect, url_for
+from flask import Blueprint, request, jsonify, session, redirect, url_for, send_file, current_app
+import uuid
+import os
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db
 from app.models.user import User
 from app.utils.bmr_calculator import calculate_bmr_and_macros
+from app.config import Config
 from werkzeug.security import generate_password_hash, check_password_hash
 
 bp = Blueprint('auth', __name__)
@@ -206,3 +209,56 @@ def profile():
                 'weight_goal_lbs': current_user.weight_goal_lbs
             }
         })
+
+
+@bp.route('/profile-photo', methods=['POST'])
+@login_required
+def upload_profile_photo():
+    """Upload a profile photo for the current user."""
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo provided'}), 400
+
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    if '.' not in file.filename:
+        return jsonify({'error': 'Invalid file type. Only JPG, PNG, and WebP are allowed.'}), 400
+
+    extension = file.filename.rsplit('.', 1)[1].lower()
+    allowed = Config.ALLOWED_EXTENSIONS.get('profile_photos', set())
+    if extension not in allowed:
+        return jsonify({'error': 'Invalid file type. Only JPG, PNG, and WebP are allowed.'}), 400
+
+    if file.content_length and file.content_length > 10 * 1024 * 1024:
+        return jsonify({'error': 'File too large. Maximum size is 10MB.'}), 400
+
+    if current_user.profile_photo_path:
+        old_path = os.path.join(
+            current_app.root_path,
+            'uploads',
+            current_user.profile_photo_path
+        )
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+            except Exception:
+                pass
+
+    unique_filename = f"{uuid.uuid4().hex}.{extension}"
+
+    upload_folder = os.path.join(
+        current_app.root_path,
+        'uploads',
+        'profile_photos'
+    )
+    os.makedirs(upload_folder, exist_ok=True)
+    filepath = os.path.join(upload_folder, unique_filename)
+    file.save(filepath)
+
+    current_user.profile_photo_path = unique_filename
+    db.session.commit()
+
+    return jsonify({
+        'profile_photo_url': unique_filename
+    }), 200
