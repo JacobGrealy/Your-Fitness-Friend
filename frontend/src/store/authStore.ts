@@ -34,8 +34,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await authApi.login({ email, password })
-      set({ user: response.user, isAuthenticated: true, isLoading: false })
+      await authApi.login({ email, password })
+      const user = await authApi.getProfile()
+      set({ user, isAuthenticated: true, isLoading: false })
     } catch (error: any) {
       set({ 
         error: error.response?.data?.error || 'Login failed',
