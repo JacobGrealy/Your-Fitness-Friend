@@ -66,7 +66,6 @@ def create_app(config_name='default'):
         return User.query.get(int(user_id))
 
     # Serve frontend static files
-    import os
     static_path = os.path.join(os.path.dirname(__file__), 'static')
     if os.path.exists(static_path):
         from flask import send_from_directory
