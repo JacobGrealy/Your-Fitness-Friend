@@ -154,7 +154,8 @@ def get_current_user():
         'height': current_user.height,
         'weight': current_user.weight,
         'activity_level': current_user.activity_level,
-        'created_at': current_user.created_at.isoformat()
+        'created_at': current_user.created_at.isoformat(),
+        'profile_photo_path': current_user.profile_photo_path
     }
     return jsonify(user)
 
@@ -173,7 +174,8 @@ def profile():
             'height': current_user.height,
             'weight': current_user.weight,
             'activity_level': current_user.activity_level,
-            'weight_goal_lbs': current_user.weight_goal_lbs
+            'weight_goal_lbs': current_user.weight_goal_lbs,
+            'profile_photo_path': current_user.profile_photo_path
         }
         return jsonify(user)
     
@@ -283,3 +285,14 @@ def delete_profile_photo():
         db.session.commit()
 
     return jsonify({'success': True}), 200
+
+
+@bp.route('/uploads/<path:filename>')
+@login_required
+def serve_profile_photo(filename):
+    """Serve an uploaded profile photo."""
+    upload_folder = os.path.join(current_app.root_path, 'uploads', 'profile_photos')
+    filepath = os.path.join(upload_folder, filename)
+    if os.path.exists(filepath):
+        return send_file(filepath)
+    return jsonify({'error': 'File not found'}), 404
