@@ -38,10 +38,6 @@ export default function WeightHistory() {
     ? Math.abs(currentWeight - goalWeight)
     : null
 
-  const isOverGoal = currentWeight !== null && goalWeight
-    ? currentWeight > goalWeight
-    : null
-
   const handleDelete = () => {
     if (deleteId) {
       deleteLog(deleteId)
@@ -64,9 +60,9 @@ export default function WeightHistory() {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium" style={{ color: '#757575' }}>
-              {isOverGoal ? 'Over Goal' : 'Under Goal'}
+              Distance to Goal
             </span>
-            <span className="text-sm font-bold" style={{ color: isOverGoal ? '#185ADB' : '#185ADB' }}>
+            <span className="text-sm font-bold" style={{ color: '#185ADB' }}>
               {distanceToGoal?.toFixed(1)} lbs
             </span>
           </div>
