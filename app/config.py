@@ -31,7 +31,8 @@ class Config:
     ALLOWED_EXTENSIONS = {
         'weights': {'png', 'jpg', 'jpeg', 'gif'},
         'foods': {'png', 'jpg', 'jpeg', 'gif'},
-        'meal_photos': {'png', 'jpg', 'jpeg', 'gif'}
+        'meal_photos': {'png', 'jpg', 'jpeg', 'gif'},
+        'profile_photos': {'png', 'jpg', 'jpeg', 'gif', 'webp'}
     }
     
     @staticmethod
