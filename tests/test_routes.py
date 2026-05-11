@@ -189,3 +189,86 @@ class TestDashboardRoutes:
     def test_weekly_summary(self, authenticated_client):
         response = authenticated_client.get('/api/dashboard/weekly-summary')
         assert response.status_code == 200
+
+
+class TestProfilePhotoRoutes:
+    def _register_and_login(self, client):
+        client.post('/api/auth/register', json={
+            'username': 'photouser',
+            'password': 'testpass123',
+            'email': 'photo@test.com',
+            'age': 25,
+            'gender': 'male',
+            'height': 175,
+            'weight': 70
+        })
+        client.post('/api/auth/login', json={
+            'email': 'photo@test.com',
+            'password': 'testpass123'
+        })
+
+    def test_upload_profile_photo_success(self, client):
+        self._register_and_login(client)
+        jpeg_header = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
+        response = client.post(
+            '/api/auth/profile-photo',
+            data={'photo': (jpeg_header + b'\x00' * 100, 'test.jpg')},
+            content_type='multipart/form-data'
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert 'profile_photo_url' in data
+        assert data['profile_photo_url'].endswith('.jpg')
+
+    def test_upload_profile_photo_no_file(self, client):
+        self._register_and_login(client)
+        response = client.post(
+            '/api/auth/profile-photo',
+            data={},
+            content_type='multipart/form-data'
+        )
+        assert response.status_code == 400
+
+    def test_upload_profile_photo_invalid_type(self, client):
+        self._register_and_login(client)
+        response = client.post(
+            '/api/auth/profile-photo',
+            data={'photo': (b'test content', 'test.txt')},
+            content_type='multipart/form-data'
+        )
+        assert response.status_code == 400
+
+    def test_delete_profile_photo(self, client):
+        self._register_and_login(client)
+        jpeg_header = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
+        response = client.post(
+            '/api/auth/profile-photo',
+            data={'photo': (jpeg_header + b'\x00' * 100, 'test.jpg')},
+            content_type='multipart/form-data'
+        )
+        assert response.status_code == 200
+        response = client.delete('/api/auth/profile-photo')
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['success'] is True
+
+    def test_serve_profile_photo(self, client):
+        self._register_and_login(client)
+        jpeg_header = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
+        response = client.post(
+            '/api/auth/profile-photo',
+            data={'photo': (jpeg_header + b'\x00' * 100, 'test.jpg')},
+            content_type='multipart/form-data'
+        )
+        data = response.get_json()
+        photo_filename = data['profile_photo_url']
+        response = client.get(f'/api/auth/uploads/{photo_filename}')
+        assert response.status_code == 200
+
+    def test_profile_photo_in_get_profile(self, client):
+        self._register_and_login(client)
+        response = client.get('/api/auth/profile')
+        assert response.status_code == 200
+        data = response.get_json()
+        assert 'profile_photo_path' in data
+        assert data['profile_photo_path'] is None
