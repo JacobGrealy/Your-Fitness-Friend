@@ -262,3 +262,24 @@ def upload_profile_photo():
     return jsonify({
         'profile_photo_url': unique_filename
     }), 200
+
+
+@bp.route('/profile-photo', methods=['DELETE'])
+@login_required
+def delete_profile_photo():
+    """Delete the user's profile photo."""
+    if current_user.profile_photo_path:
+        file_path = os.path.join(
+            current_app.root_path,
+            'uploads',
+            current_user.profile_photo_path
+        )
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
+        current_user.profile_photo_path = None
+        db.session.commit()
+
+    return jsonify({'success': True}), 200
