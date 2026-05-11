@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWeightStore } from '@/store/weightStore'
+import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { formatWeight } from '@/utils/formatters'
 import Button from '@/components/common/Button'
 import Card from '@/components/common/Card'
@@ -7,8 +9,11 @@ import Loading from '@/components/common/Loading'
 import { WeightChart } from '@/components/charts'
 
 export default function Weight() {
+  const { setTitle } = usePageTitle()
   const navigate = useNavigate()
   const { logs, statistics, trend, isLoading } = useWeightStore()
+
+  useEffect(() => { setTitle('Progress') }, [setTitle])
 
   const chartData = [...logs]
     .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())

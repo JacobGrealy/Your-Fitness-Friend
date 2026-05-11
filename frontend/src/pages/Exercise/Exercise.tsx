@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useExerciseStore } from '@/store/exerciseStore'
+import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { formatDuration, formatCalories, formatDate } from '@/utils/formatters'
 import Button from '@/components/common/Button'
 import Card from '@/components/common/Card'
@@ -9,8 +10,11 @@ import EmptyState from '@/components/common/EmptyState'
 import { startOfWeek, addDays } from 'date-fns'
 
 export default function Exercise() {
+  const { setTitle } = usePageTitle()
   const navigate = useNavigate()
   const { savedExercises, exerciseLogs, isLoading, fetchSavedExercises, fetchExerciseLogs } = useExerciseStore()
+
+  useEffect(() => { setTitle('Exercise') }, [setTitle])
 
   useEffect(() => {
     fetchSavedExercises()

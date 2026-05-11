@@ -1,14 +1,37 @@
 import { useState, useEffect } from 'react'
 import { useExerciseStore } from '@/store/exerciseStore'
+import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { formatDate, formatDuration, formatCalories } from '@/utils/formatters'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
 import Modal from '@/components/common/Modal'
-import Header from '@/components/layout/Header'
 
 export default function ExerciseHistory() {
+  const { setTitle, setHeaderRightContent } = usePageTitle()
   const { exerciseLogs, isLoading, fetchExerciseLogs, deleteExerciseLog } = useExerciseStore()
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  useEffect(() => { setTitle('Exercise') }, [setTitle])
+
+  const handleRefresh = () => {
+    fetchExerciseLogs()
+  }
+
+  useEffect(() => {
+    setHeaderRightContent(
+      <button
+        onClick={handleRefresh}
+        className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"
+        aria-label="Refresh"
+        disabled={isLoading}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </button>
+    )
+    return () => { setHeaderRightContent(null) }
+  }, [setHeaderRightContent, isLoading])
 
   useEffect(() => {
     fetchExerciseLogs()
@@ -25,28 +48,8 @@ export default function ExerciseHistory() {
     }
   }
 
-  const handleRefresh = () => {
-    fetchExerciseLogs()
-  }
-
   return (
-    <main className="pb-20 sm:pb-0 pt-14 sm:pt-0">
-      <Header
-        title="Recent Exercise"
-        rightContent={
-          <button
-            onClick={handleRefresh}
-            className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"
-            aria-label="Refresh"
-            disabled={isLoading}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
-        }
-      />
-
+    <div>
       <div className="bg-white">
         {isLoading && exerciseLogs.length === 0 ? (
           <div className="flex justify-center py-12">
@@ -122,6 +125,6 @@ export default function ExerciseHistory() {
           Are you sure you want to delete this exercise log? This action cannot be undone.
         </p>
       </Modal>
-    </main>
+    </div>
   )
 }

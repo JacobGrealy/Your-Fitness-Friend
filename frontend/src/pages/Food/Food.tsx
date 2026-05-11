@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFoodStore } from '@/store/foodStore'
+import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { MealType, FoodLog } from '@/types'
 import { formatCalories, formatMacros } from '@/utils/formatters'
 import { MEAL_TYPES } from '@/utils/constants'
@@ -18,8 +19,11 @@ const MEAL_LABELS: Record<MealType, string> = {
 }
 
 export default function Food() {
+  const { setTitle } = usePageTitle()
   const navigate = useNavigate()
   const { dailyTotals, foodLogs, isLoading, fetchDailyTotals, fetchFoodLogs } = useFoodStore()
+
+  useEffect(() => { setTitle('Diary') }, [setTitle])
 
   useEffect(() => {
     fetchDailyTotals()

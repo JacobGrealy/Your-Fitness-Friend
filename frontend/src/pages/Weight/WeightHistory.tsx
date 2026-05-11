@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWeightStore } from '@/store/weightStore'
 import { useAuthStore } from '@/store/authStore'
+import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { formatDate, formatWeight } from '@/utils/formatters'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
@@ -9,10 +10,13 @@ import Modal from '@/components/common/Modal'
 import WeightChartWithGoal from '@/components/charts/WeightChartWithGoal'
 
 export default function WeightHistory() {
+  const { setTitle } = usePageTitle()
   const { logs, isLoading, fetchLogs, deleteLog } = useWeightStore()
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  useEffect(() => { setTitle('Progress') }, [setTitle])
 
   useEffect(() => {
     fetchLogs()
@@ -46,12 +50,7 @@ export default function WeightHistory() {
   }
 
   return (
-    <div className="p-4" style={{ backgroundColor: '#f2f2f2', minHeight: '100vh' }}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold" style={{ color: '#185ADB' }}>Progress</h1>
-      </div>
-
+    <div className="p-4 pb-24" style={{ backgroundColor: '#f2f2f2', minHeight: '100vh' }}>
       {/* Weight Goal Card */}
       {goalWeight && currentWeight !== null && (
         <div className="bg-white rounded-lg p-4 mb-4 border border-[#e0e0e0]">

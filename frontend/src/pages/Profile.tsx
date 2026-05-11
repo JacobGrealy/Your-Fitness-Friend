@@ -1,14 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
+import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { authApi } from '@/api/auth'
 import Loading from '@/components/common/Loading'
 import Modal from '@/components/common/Modal'
 
 function Profile() {
+  const { setTitle } = usePageTitle()
   const { user, isLoading, checkAuth, logout } = useAuthStore()
   const [goalModalOpen, setGoalModalOpen] = useState(false)
   const [goalValue, setGoalValue] = useState('')
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => { setTitle('More') }, [setTitle])
 
   const handleSaveGoal = async () => {
     const goal = parseFloat(goalValue)
@@ -46,7 +50,7 @@ function Profile() {
   const emailInitial = user?.email?.charAt(0).toUpperCase() || '?'
 
   return (
-    <div className="min-h-screen bg-[#f2f2f2] pb-8">
+    <div className="min-h-screen bg-[#f2f2f2]">
       {/* Blue header section */}
       <div className="bg-[#185ADB] px-4 pt-6 pb-10">
         <div className="flex items-center gap-4">

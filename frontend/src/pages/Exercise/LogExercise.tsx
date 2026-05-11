@@ -1,16 +1,20 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
 import { useExerciseStore } from '@/store/exerciseStore'
+import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { ExerciseLogCreate } from '@/types'
 import { logExerciseSchema } from '@/utils/schemas'
 import { INTENSITIES, MAX_EXERCISE_LOG_NOTES } from '@/utils/constants'
-import Header from '@/components/layout/Header'
 
 type LogExerciseFormData = ExerciseLogCreate & { notes?: string }
 
 export default function LogExercise() {
+  const { setTitle } = usePageTitle()
   const navigate = useNavigate()
+
+  useEffect(() => { setTitle('Log Exercise') }, [setTitle])
   const { savedExercises, logExercise, error, isLoading } = useExerciseStore()
 
   const {
@@ -48,10 +52,8 @@ export default function LogExercise() {
   const inputClass = "w-full border border-mfp-border rounded-lg px-3 py-2 text-mfp-text bg-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-mfp-blue focus:border-transparent"
 
   return (
-    <>
-      <Header title="Log Exercise" showBack />
-      <main className="bg-white min-h-screen pb-20 sm:pb-0 pt-14 sm:pt-0">
-        {error && (
+    <div className="bg-white min-h-screen pb-20 sm:pb-0 pt-14 sm:pt-0">
+      {error && (
           <div className="px-4 pt-4">
             <div className="bg-mfp-error/10 border border-mfp-error/20 rounded-lg p-3">
               <p className="text-sm text-mfp-error">{error}</p>
@@ -196,7 +198,6 @@ export default function LogExercise() {
             {isLoading ? 'Logging...' : 'Log Exercise'}
           </button>
         </form>
-      </main>
-    </>
+    </div>
   )
 }

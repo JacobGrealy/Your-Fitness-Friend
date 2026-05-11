@@ -1,15 +1,18 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFoodStore } from '@/store/foodStore'
+import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { FoodLogCreate } from '@/types'
 import { MEAL_TYPES } from '@/utils/constants'
 import { formatMacros } from '@/utils/formatters'
-import Header from '@/components/layout/Header'
 
 const MEAL_LABELS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks']
 
 export default function LogFood() {
+  const { setTitle } = usePageTitle()
   const navigate = useNavigate()
+
+  useEffect(() => { setTitle('Add Food') }, [setTitle])
   const { foods, isLoading, logFood, error, fetchFoods, clearError } = useFoodStore()
   const [mealType, setMealType] = useState('breakfast')
   const [foodId, setFoodId] = useState('')
@@ -53,10 +56,8 @@ export default function LogFood() {
   }))
 
   return (
-    <>
-      <Header title="Add Food" showBack />
-      <main className="bg-white min-h-screen pb-20 sm:pb-0 pt-14 sm:pt-0">
-        {error && (
+    <div className="bg-white min-h-screen pb-20 sm:pb-0 pt-14 sm:pt-0">
+      {error && (
           <div className="px-4 pt-4">
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <p className="text-sm text-[#E53935]">{error}</p>
@@ -143,7 +144,6 @@ export default function LogFood() {
             {isLoading ? 'Adding...' : 'Add Food'}
           </button>
         </form>
-      </main>
-    </>
+    </div>
   )
 }

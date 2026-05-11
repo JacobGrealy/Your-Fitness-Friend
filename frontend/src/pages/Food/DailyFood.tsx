@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { subDays, addDays, isToday, format } from 'date-fns'
 import { useFoodStore } from '@/store/foodStore'
+import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { MealType, FoodLog } from '@/types'
 import { formatCalories } from '@/utils/formatters'
 import { MEAL_TYPES } from '@/utils/constants'
 import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
-import Header from '@/components/layout/Header'
 import Loading from '@/components/common/Loading'
 import Modal from '@/components/common/Modal'
 
@@ -24,10 +25,34 @@ const MEAL_LABELS: Record<MealType, string> = {
 }
 
 export default function DailyFood() {
+  const { setTitle } = usePageTitle()
   const navigate = useNavigate()
   const { foodLogs, dailyTotals, isLoading, fetchFoodLogs, fetchDailyTotals, deleteFoodLog, error } = useFoodStore()
   const [deleteLogId, setDeleteLogId] = useState<string | null>(null)
   const [collapsedMeals, setCollapsedMeals] = useState<Set<MealType>>(new Set())
+  const [currentDate, setCurrentDate] = useState(new Date())
+
+  useEffect(() => { setTitle('Diary') }, [setTitle])
+
+  const formatDateLabel = (date: Date) => {
+    if (isToday(date)) return 'Today'
+    return format(date, 'MMM d')
+  }
+
+  const handlePrevDay = () => {
+    setCurrentDate((prev) => subDays(prev, 1))
+  }
+
+  const handleNextDay = () => {
+    setCurrentDate((prev) => {
+      if (isToday(prev)) return prev
+      return addDays(prev, 1)
+    })
+  }
+
+  const handleToday = () => {
+    setCurrentDate(new Date())
+  }
 
   useEffect(() => {
     fetchDailyTotals()
@@ -73,7 +98,6 @@ export default function DailyFood() {
   if (isLoading && foodLogs.length === 0 && !dailyTotals) {
     return (
       <div className="min-h-screen bg-[#f2f2f2]">
-        <Header title="Diary" showDateNav />
         <div className="flex justify-center py-12">
           <Loading text="Loading food data..." />
         </div>
@@ -83,10 +107,17 @@ export default function DailyFood() {
 
   return (
     <div className="min-h-screen bg-[#f2f2f2] pb-4">
-      <Header title="Diary" showDateNav />
-
+      <div className="flex items-center justify-center gap-4 py-3 bg-white border-b border-[#e0e0e0]">
+        <button onClick={handlePrevDay} className="p-1 text-[#185ADB] hover:bg-[#f2f2f2] rounded-full transition-colors" aria-label="Previous day">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        </button>
+        <button onClick={handleToday} className="px-3 py-1 text-sm font-medium text-[#212121] hover:bg-[#f2f2f2] rounded-full transition-colors">{formatDateLabel(currentDate)}</button>
+        <button onClick={handleNextDay} className="p-1 text-[#185ADB] hover:bg-[#f2f2f2] rounded-full transition-colors" aria-label="Next day">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+        </button>
+      </div>
       {error && (
-        <div className="px-4 pt-20">
+        <div className="px-4 pt-2">
           <div className="bg-white rounded-lg p-3 text-red-600 text-sm">
             {error}
           </div>
@@ -114,31 +145,31 @@ export default function DailyFood() {
             return (
                <div key={meal} className="bg-white rounded-lg">
                  <button
-                   type="button"
-                   className="flex items-center justify-between w-full px-4 py-3 cursor-pointer bg-[#185ADB] rounded-t-lg text-left"
-                   onClick={() => toggleMeal(meal)}
-                   aria-expanded={!isCollapsed}
-                   aria-label={`${MEAL_LABELS[meal]} section`}
-                 >
-                  <div className="flex items-center gap-2">
-                    <span>{MEAL_ICONS[meal]}</span>
-                    <span className="font-bold text-white">{MEAL_LABELS[meal]}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white text-sm">
-                      {totals.calories > 0 ? `${totals.calories} cal` : '0 cal'}
-                    </span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className={`w-4 h-4 text-white transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                 </button>
+                    type="button"
+                    className="flex items-center justify-between w-full px-4 py-3 cursor-pointer bg-[#185ADB] rounded-t-lg text-left"
+                    onClick={() => toggleMeal(meal)}
+                    aria-expanded={!isCollapsed}
+                    aria-label={`${MEAL_LABELS[meal]} section`}
+                  >
+                   <div className="flex items-center gap-2">
+                     <span>{MEAL_ICONS[meal]}</span>
+                     <span className="font-bold text-white">{MEAL_LABELS[meal]}</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <span className="text-white text-sm">
+                       {totals.calories > 0 ? `${totals.calories} cal` : '0 cal'}
+                     </span>
+                     <svg
+                       xmlns="http://www.w3.org/2000/svg"
+                       className={`w-4 h-4 text-white transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                       fill="none"
+                       viewBox="0 0 24 24"
+                       stroke="currentColor"
+                     >
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                     </svg>
+                   </div>
+                  </button>
 
                 {!isCollapsed && (
                   <div className="divide-y divide-[#e0e0e0]">

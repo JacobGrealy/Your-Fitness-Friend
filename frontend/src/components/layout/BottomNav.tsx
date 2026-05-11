@@ -27,6 +27,16 @@ export default function BottomNav() {
       ),
     },
     {
+      label: null,
+      path: null,
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+      ),
+      isAdd: true,
+    },
+    {
       label: 'Progress',
       path: '/weight/history',
       icon: (
@@ -47,6 +57,7 @@ export default function BottomNav() {
   ]
 
   const isActive = useCallback((path: string) => {
+    if (!path) return false
     if (path === '/dashboard') return location.pathname === '/dashboard' || location.pathname === '/'
     return location.pathname.startsWith(path)
   }, [location.pathname])
@@ -55,33 +66,39 @@ export default function BottomNav() {
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#f2f2f2] border-t border-gray-200 sm:hidden">
         <div className="flex justify-around items-center px-2 py-1">
-          {tabs.map((tab) => (
+          {tabs.map((tab, index) => (
             <button
-              key={tab.path}
-              onClick={() => navigate(tab.path)}
-              className={`flex flex-col items-center justify-center gap-0.5 py-2 px-3 rounded-lg transition-colors min-w-[56px] ${
-                isActive(tab.path)
-                  ? 'text-[#185ADB]'
-                  : 'text-[#757575] hover:text-[#212121]'
+              key={index}
+              onClick={() => {
+                if (tab.isAdd) {
+                  setFabOpen(true)
+                } else if (tab.path) {
+                  navigate(tab.path)
+                }
+              }}
+             className={`flex flex-col items-center justify-center transition-colors min-w-[56px] ${
+                tab.isAdd
+                  ? 'flex-1'
+                  : isActive(tab.path!)
+                    ? 'text-[#185ADB]'
+                    : 'text-[#757575] hover:text-[#212121]'
               }`}
-              aria-label={tab.label}
+              aria-label={tab.isAdd ? 'Add log' : (tab.label ?? '')}
             >
-              <span className="w-6 h-6">{tab.icon}</span>
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              {tab.isAdd ? (
+                <div className="w-12 h-12 rounded-full bg-[#185ADB] text-white flex items-center justify-center shadow-lg">
+                  {tab.icon}
+                </div>
+              ) : (
+                <>
+                  <span className="w-6 h-6">{tab.icon}</span>
+                  {tab.label && <span className="text-[10px] font-medium">{tab.label}</span>}
+                </>
+              )}
             </button>
           ))}
         </div>
       </nav>
-      <button
-        onClick={() => setFabOpen(true)}
-        className="fixed z-50 bottom-16 left-1/2 -translate-x-1/2 sm:bottom-8 sm:left-1/2 sm:-translate-x-1/2 w-14 h-14 rounded-full bg-[#185ADB] text-white shadow-lg flex items-center justify-center hover:bg-[#1047b0] transition-colors"
-        aria-label="Add log"
-        aria-expanded={fabOpen}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
       <FABModal isOpen={fabOpen} onClose={() => setFabOpen(false)} />
     </>
   )

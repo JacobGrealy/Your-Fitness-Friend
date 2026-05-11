@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useDashboardStore } from '@/store/dashboardStore'
 import { WeightTrendChart } from '@/components/charts'
 import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
-import Header from '@/components/layout/Header'
+import { usePageTitle } from '@/components/layout/PageTitleContext'
 import Loading from '@/components/common/Loading'
 import type { DailyMealItem } from '@/types'
 
@@ -36,6 +36,7 @@ function groupMealsByType(meals: DailyMealItem[]): { type: string; label: string
 
 function Dashboard() {
   const navigate = useNavigate()
+  const { setTitle } = usePageTitle()
   const {
     dailySummary,
     weightTrend,
@@ -44,6 +45,8 @@ function Dashboard() {
     fetchDailySummary,
     fetchWeightTrend,
   } = useDashboardStore()
+
+  useEffect(() => { setTitle('Home') }, [setTitle])
 
   const [expandedMeals, setExpandedMeals] = useState<Record<string, boolean>>({})
 
@@ -90,10 +93,9 @@ function Dashboard() {
     navigate('/food/daily')
   }
 
-  if (isLoading && !dailySummary) {
+     if (isLoading && !dailySummary) {
     return (
-      <div className="min-h-screen pt-14" style={{ backgroundColor: '#f2f2f2' }}>
-        <Header title="Home" />
+      <div className="min-h-screen" style={{ backgroundColor: '#f2f2f2' }}>
         <div className="p-4 flex justify-center py-12">
           <Loading text="Loading dashboard..." />
         </div>
@@ -103,8 +105,7 @@ function Dashboard() {
 
   if (error && !dailySummary) {
     return (
-      <div className="min-h-screen pt-14" style={{ backgroundColor: '#f2f2f2' }}>
-        <Header title="Home" />
+      <div className="min-h-screen" style={{ backgroundColor: '#f2f2f2' }}>
         <div className="p-4 flex justify-center py-12">
           <p style={{ color: '#E53935' }}>{error}</p>
         </div>
@@ -114,8 +115,7 @@ function Dashboard() {
 
   if (!dailySummary) {
     return (
-      <div className="min-h-screen pt-14" style={{ backgroundColor: '#f2f2f2' }}>
-        <Header title="Home" />
+      <div className="min-h-screen" style={{ backgroundColor: '#f2f2f2' }}>
         <div className="p-4 flex justify-center py-12">
           <Loading text="No data available yet. Try logging food or exercise first." />
         </div>
@@ -124,9 +124,7 @@ function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen pt-14" style={{ backgroundColor: '#f2f2f2' }}>
-      <Header title="Home" />
-
+    <div className="min-h-screen" style={{ backgroundColor: '#f2f2f2' }}>
       <div className="p-4 space-y-4">
         {/* Calorie Summary */}
         <CalorieSummaryBar calories={dailySummary.calories} />

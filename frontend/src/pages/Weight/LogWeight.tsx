@@ -5,11 +5,14 @@ import { useNavigate } from 'react-router-dom'
 import { logWeightSchema } from '@/utils/schemas'
 import type { WeightLogCreate } from '@/types'
 import { useWeightStore } from '@/store/weightStore'
+import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { MAX_WEIGHT_LOG_NOTES } from '@/utils/constants'
-import Header from '@/components/layout/Header'
 
 export default function LogWeight() {
+  const { setTitle } = usePageTitle()
   const navigate = useNavigate()
+
+  useEffect(() => { setTitle('Log Weight') }, [setTitle])
   const { logWeight, uploadPhoto, error, isLoading, uploadedPhotoUrl } = useWeightStore()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -132,10 +135,7 @@ export default function LogWeight() {
   }
 
   return (
-    <main className="pb-20 sm:pb-0 pt-14 sm:pt-0">
-      <Header title="Log Weight" showBack />
-
-      <div className="bg-[#f2f2f2] min-h-full">
+    <div className="bg-[#f2f2f2] min-h-full">
         {error && (
           <div className="mx-4 mt-4 bg-[#E53935]/10 border border-[#E53935] rounded-lg p-3">
             <p className="text-[#E53935] text-sm">{error}</p>
@@ -298,6 +298,5 @@ export default function LogWeight() {
           </button>
         </form>
       </div>
-    </main>
   )
 }
