@@ -21,6 +21,7 @@ export interface UserProfile {
   activity_level?: string
   daily_calorie_goal?: number
   created_at?: string
+  profile_photo_path?: string
 }
 
 export interface ApiResponse<T> {

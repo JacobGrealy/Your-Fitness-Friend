@@ -25,4 +25,16 @@ export const authApi = {
     const response = await api.put('/auth/profile', data)
     return response.data
   },
+
+  uploadProfilePhoto: async (formData: FormData) => {
+    const response = await api.post('/auth/profile-photo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
+
+  deleteProfilePhoto: async () => {
+    const response = await api.delete('/auth/profile-photo')
+    return response.data
+  },
 }
