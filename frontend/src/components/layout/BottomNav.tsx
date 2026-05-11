@@ -62,10 +62,10 @@ export default function BottomNav() {
     return location.pathname.startsWith(path)
   }, [location.pathname])
 
-  return (
+ return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#f2f2f2] border-t border-gray-200 sm:hidden">
-        <div className="flex justify-around items-center px-2 py-1">
+        <div className="grid grid-cols-5 items-center px-2 py-1">
           {tabs.map((tab, index) => (
             <button
               key={index}
@@ -76,12 +76,10 @@ export default function BottomNav() {
                   navigate(tab.path)
                 }
               }}
-             className={`flex flex-col items-center justify-center transition-colors min-w-[56px] ${
-                tab.isAdd
-                  ? 'flex-1'
-                  : isActive(tab.path!)
-                    ? 'text-[#185ADB]'
-                    : 'text-[#757575] hover:text-[#212121]'
+              className={`flex flex-col items-center justify-center transition-colors ${
+                isActive(tab.path!)
+                  ? 'text-[#185ADB]'
+                  : 'text-[#757575] hover:text-[#212121]'
               }`}
               aria-label={tab.isAdd ? 'Add log' : (tab.label ?? '')}
             >
