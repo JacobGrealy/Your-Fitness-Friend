@@ -6,10 +6,10 @@ import { useAuthStore } from './store/authStore'
 useAuthStore.getState().checkAuth()
 
 function App() {
-  const hasChecked = useAuthStore((s) => s.hasChecked)
+  const isLoading = useAuthStore((s) => s.isLoading)
 
   // Block route rendering until auth is verified
-  if (!hasChecked) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">

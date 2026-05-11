@@ -6,7 +6,6 @@ interface AuthState {
   user: UserProfile | null
   isAuthenticated: boolean
   isLoading: boolean
-  hasChecked: boolean
   error: string | null
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, name: string) => Promise<void>
@@ -19,17 +18,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
-  hasChecked: false,
   error: null,
 
   checkAuth: async () => {
-    if (get().hasChecked || get().isLoading) return
+    if (get().isLoading) return
     set({ isLoading: true })
     try {
       const user = await authApi.getProfile()
-      set({ user, isAuthenticated: true, isLoading: false, hasChecked: true })
+      set({ user, isAuthenticated: true, isLoading: false })
     } catch {
-      set({ user: null, isAuthenticated: false, isLoading: false, hasChecked: true })
+      set({ user: null, isAuthenticated: false, isLoading: false })
     }
   },
 
@@ -37,7 +35,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await authApi.login({ email, password })
-      set({ user: response.user, isAuthenticated: true, isLoading: false, hasChecked: true })
+      set({ user: response.user, isAuthenticated: true, isLoading: false })
     } catch (error: any) {
       set({ 
         error: error.response?.data?.error || 'Login failed',
@@ -68,8 +66,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ 
         user: null, 
         isAuthenticated: false,
-        error: null,
-        hasChecked: false
+        error: null
       })
     }
   },
