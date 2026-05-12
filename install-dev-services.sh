@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# FitnessFriend Full-Stack Systemd Service Installer
+# Installs both backend (gunicorn) and frontend (Vite dev server) as separate
+# systemd services.
+#
+# Backend: serves the Flask API + frontend static files on port 5001
+# Frontend: serves the Vite dev server on port 5173 (for development)
+#
+# Note: For production deployment, use install-backend-service.sh instead,
+# which serves the built frontend via gunicorn on a single port.
+
 set -e
 
 BACKEND_SERVICE="/home/angrygiant/github_projects/FitnessFriend/fitness-backend.service"

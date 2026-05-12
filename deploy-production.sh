@@ -1,7 +1,11 @@
 #!/bin/bash
 
-# FitnessFriend Systemd Installation Script
-# Run this script with sudo: sudo ./install-service.sh
+# FitnessFriend Production Build + Backend Service Installer
+# Installs the backend systemd service and ensures the frontend is built first.
+#
+# The backend (gunicorn) serves the Flask API and the frontend static files
+# from app/static/. This script runs `vite build` before deploying to ensure
+# the latest frontend code is available.
 
 set -e
 
@@ -26,9 +30,8 @@ if [ ! -d "$APP_DIR" ]; then
 fi
 
 # Check if start script exists
-if [ ! -f "$APP_DIR/start.sh" ]; then
-    echo "Error: Start script not found: $APP_DIR/start.sh"
-    echo "Please run ./start.sh first to create it."
+if [ ! -f "$APP_DIR/run-backend.sh" ]; then
+    echo "Error: Backend script not found: $APP_DIR/run-backend.sh"
     exit 1
 fi
 
@@ -37,6 +40,35 @@ if [ ! -d "$APP_DIR/venv" ]; then
     echo "Error: Virtual environment not found: $APP_DIR/venv"
     exit 1
 fi
+
+# Check if frontend exists
+if [ ! -d "$APP_DIR/frontend" ]; then
+    echo "Error: Frontend directory not found: $APP_DIR/frontend"
+    echo "Run ./bootstrap-frontend.sh to set up the frontend first."
+    exit 1
+fi
+
+# Build frontend
+echo "=== Building Frontend ==="
+NODE_BIN="/home/angrygiant/.nvm/versions/node/v22.22.2/bin/node"
+
+if [ ! -f "$APP_DIR/frontend/node_modules/.bin/vite" ]; then
+    echo "Node modules not installed. Running npm install..."
+    cd "$APP_DIR/frontend"
+    npm install
+fi
+
+echo "Running vite build..."
+cd "$APP_DIR/frontend"
+$NODE_BIN node_modules/vite/bin/vite.js build 2>&1
+
+if [ $? -ne 0 ]; then
+    echo "Error: Frontend build failed. Aborting."
+    exit 1
+fi
+
+echo "Frontend build complete."
+echo ""
 
 # Copy service file
 echo "1. Copying service file to $SYSTEMD_DIR..."
@@ -52,7 +84,7 @@ systemctl enable "$APP_NAME"
 
 # Start the service
 echo "4. Starting service..."
-systemctl start "$APP_NAME"
+systemctl restart "$APP_NAME"
 
 # Check service status
 echo ""

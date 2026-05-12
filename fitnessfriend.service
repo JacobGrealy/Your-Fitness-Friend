@@ -7,7 +7,8 @@ Type=simple
 User=angrygiant
 WorkingDirectory=/home/angrygiant/github_projects/FitnessFriend
 Environment="PATH=/home/angrygiant/github_projects/FitnessFriend/venv/bin"
-ExecStart=/home/angrygiant/github_projects/FitnessFriend/start.sh
+Environment="FLASK_ENV=production"
+ExecStart=/home/angrygiant/github_projects/FitnessFriend/run-backend.sh
 Restart=on-failure
 RestartSec=5
 

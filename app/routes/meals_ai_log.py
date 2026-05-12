@@ -8,7 +8,6 @@ import base64
 import uuid
 import json
 import re
-import requests
 
 bp = Blueprint('meals_ai_log', __name__)
 
@@ -47,6 +46,10 @@ def encode_file_to_base64(filepath):
 
 def parse_ai_nutrition(content):
     """Parse JSON nutrition data from AI response."""
+    # Strip markdown code blocks if present
+    if content.strip().startswith('```'):
+        content = re.search(r'\{.*\}', content, re.DOTALL).group() if re.search(r'\{.*\}', content, re.DOTALL) else content.strip()
+    
     try:
         result = json.loads(content.strip())
         if all(k in result for k in ('calories', 'protein', 'carbs', 'fat')):
@@ -142,9 +145,9 @@ def ai_log():
             analysis = qwen_client.analyze_meal_photo(image_base64)
             analysis_data = {
                 'calories': int(analysis['calories']),
-                'protein': float(analysis['protein']),
-                'carbs': float(analysis['carbs']),
-                'fat': float(analysis['fat']),
+                'protein_g': float(analysis['protein']),
+                'carbs_g': float(analysis['carbs']),
+                'fat_g': float(analysis['fat']),
             }
             food_name = ', '.join(analysis.get('items', ['Analyzed meal']))[:120]
         except Exception:
@@ -166,7 +169,7 @@ def ai_log():
 
         conversation_history = [{
             'role': 'ai',
-            'content': f"Analyzed your {meal_type}. Estimated: {analysis_data['calories']} calories, {analysis_data['protein']}g protein, {analysis_data['carbs']}g carbs, {analysis_data['fat']}g fat." if analysis_data else "Could not analyze the photo. Please try again."
+            'content': f"Analyzed your {meal_type}. Estimated: {analysis_data['calories']} calories, {analysis_data['protein_g']}g protein, {analysis_data['carbs_g']}g carbs, {analysis_data['fat_g']}g fat." if analysis_data else "Could not analyze the photo. Please try again."
         }]
 
         return jsonify({
@@ -208,20 +211,7 @@ def ai_log():
     messages.append({"role": "user", "content": user_message})
 
     try:
-        # Send to Qwen API
-        payload = {
-            "model": "qwen",
-            "messages": messages,
-            "temperature": 0.3,
-            "max_tokens": 300,
-        }
-        response = requests.post(
-            f"{qwen_client.base_url}/chat/completions",
-            json=payload,
-            timeout=qwen_client.timeout,
-        )
-        response.raise_for_status()
-        ai_content = response.json()['choices'][0]['message']['content']
+        ai_content = qwen_client.chat(messages)
 
         # Parse the AI response
         parsed = parse_ai_nutrition(ai_content)

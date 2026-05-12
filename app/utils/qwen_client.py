@@ -10,7 +10,57 @@ class QwenClient:
     
     def __init__(self, base_url=None):
         self.base_url = base_url or Config.QWEN_BASE_URL
+        self.model = Config.QWEN_MODEL
         self.timeout = Config.QWEN_TIMEOUT
+        self.temperature = Config.QWEN_TEMPERATURE
+        self.max_tokens = Config.QWEN_MAX_TOKENS
+
+    def _build_payload(self, messages, max_tokens=None, temperature=None):
+        """Build the base API payload with configurable parameters."""
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "max_tokens": max_tokens if max_tokens is not None else self.max_tokens
+        }
+        if temperature is not None:
+            payload["temperature"] = temperature
+        elif self.temperature is not None:
+            payload["temperature"] = self.temperature
+        return payload
+
+    def chat(self, messages, max_tokens=None, temperature=None):
+        """
+        Generic chat completion.
+
+        Args:
+            messages: List of message dicts with 'role' and 'content' keys
+            max_tokens: Override max_tokens (defaults to Config.QWEN_MAX_TOKENS)
+            temperature: Override temperature (defaults to Config.QWEN_TEMPERATURE)
+
+        Returns:
+            str: The raw response content from the model
+
+        Raises:
+            requests.exceptions.RequestException: If the API call fails
+        """
+        payload = self._build_payload(messages, max_tokens=max_tokens, temperature=temperature)
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/chat/completions",
+                json=payload,
+                timeout=self.timeout
+            )
+            response.raise_for_status()
+            return response.json()['choices'][0]['message']['content']
+        except requests.exceptions.Timeout:
+            raise requests.exceptions.Timeout(
+                "Qwen API request timed out. The AI server may be slow."
+            )
+        except requests.exceptions.ConnectionError:
+            raise requests.exceptions.ConnectionError(
+                "Could not connect to Qwen AI server. Make sure it's running."
+            )
     
     def estimate_exercise_calories(self, description, duration_min, weight_kg):
         """
@@ -34,17 +84,9 @@ class QwenClient:
             "Return ONLY valid JSON: {{\"calories\": number}}"
         )
         
-        payload = {
-            "model": "qwen",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            "temperature": 0.3,
-            "max_tokens": 50
-        }
+        payload = self._build_payload([
+            {"role": "user", "content": prompt}
+        ])
         
         try:
             response = requests.post(
@@ -103,28 +145,16 @@ class QwenClient:
             "\"carbs\": number, \"fat\": number, \"items\": [\"item1\", \"item2\"]}"
         )
         
-        payload = {
-            "model": "qwen",
-            "messages": [
+        payload = self._build_payload([{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
                 {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": prompt
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{image_base64}"
-                            }
-                        }
-                    ]
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}
                 }
-            ],
-            "temperature": 0.3,
-            "max_tokens": 200
-        }
+            ]
+        }])
         
         try:
             response = requests.post(
@@ -140,6 +170,10 @@ class QwenClient:
             # Check if response contains an error message from the model
             if isinstance(content, str) and ('model does not support' in content or 'Cannot read' in content):
                 raise requests.exceptions.RequestException(f"LLM server error: {content}")
+            
+            # Strip markdown code blocks if present
+            if content.strip().startswith('```'):
+                content = re.search(r'\{.*\}', content, re.DOTALL).group() if re.search(r'\{.*\}', content, re.DOTALL) else content.strip()
             
             # Parse JSON response
             try:

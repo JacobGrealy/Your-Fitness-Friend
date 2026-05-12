@@ -57,7 +57,7 @@ Add a new food logging option in the FAB (+) popup menu that lets users log food
   ]
 }
 ```
-- Sends conversation history to Qwen (with system prompt about food/macros)
+- Sends conversation history to Qwen with system prompt: "You are a nutritionist. The user previously uploaded a photo that was analyzed for nutrition. They are now asking about food modifications. Respond with JSON containing only the NEW/ADDED food items from their request, with calories, protein, carbs, and fat. If they want to remove something, respond with JSON containing the removed items with negative values."
 - Creates additional `FoodLog` entry with updated values
 - Returns updated `logs` array and full `conversation_history`
 
