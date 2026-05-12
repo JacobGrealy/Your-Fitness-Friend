@@ -77,6 +77,8 @@ export default function BottomNav() {
                 }
               }}
               className={`flex flex-col items-center justify-center transition-colors ${
+                tab.isAdd ? 'self-start justify-start' : ''
+              } ${
                 isActive(tab.path!)
                   ? 'text-[#185ADB]'
                   : 'text-[#757575] hover:text-[#212121]'
