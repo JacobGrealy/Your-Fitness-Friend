@@ -3,26 +3,31 @@ from flask_login import login_required, current_user
 from app import db
 from app.models.food_log import FoodLog
 from app.utils.qwen_client import qwen_client
-from app.config import Config
 import os
 import base64
 import uuid
 import json
 import re
+import requests
 
 bp = Blueprint('meals_ai_log', __name__)
 
 UPLOAD_FOLDER = 'ai_food_logs'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+VALID_MEAL_TYPES = {'breakfast', 'lunch', 'dinner', 'snack'}
 
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    if not filename or '.' not in filename:
+        return False
+    return filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def save_uploaded_file(file):
     if not allowed_file(file.filename):
         return None, "Invalid file type. Only JPG and PNG are allowed."
+    if file.content_length and file.content_length > 16 * 1024 * 1024:
+        return None, "File too large. Maximum size is 16MB."
     extension = file.filename.rsplit('.', 1)[1].lower()
     unique_filename = f"{uuid.uuid4().hex}.{extension}"
     upload_path = os.path.join(current_app.root_path, 'uploads', UPLOAD_FOLDER)
@@ -86,6 +91,18 @@ def create_food_log(user_id, food_name, calories, protein_g, carbs_g, fat_g, mea
     return food_log
 
 
+def format_log_entry(food_log):
+    return {
+        'id': food_log.id,
+        'food_name': food_log.food_name,
+        'calories': food_log.calories,
+        'protein_g': food_log.protein_g,
+        'carbs_g': food_log.carbs_g,
+        'fat_g': food_log.fat_g,
+        'meal_type': food_log.meal_type,
+    }
+
+
 @bp.route('/ai-log', methods=['POST'])
 @login_required
 def ai_log():
@@ -107,7 +124,7 @@ def ai_log():
     # Handle initial photo upload
     if 'photo' in request.files:
         file = request.files['photo']
-        if file.filename == '':
+        if not file.filename or file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
 
         photo_path, error = save_uploaded_file(file)
@@ -118,6 +135,8 @@ def ai_log():
         image_base64 = encode_file_to_base64(full_path)
 
         meal_type = request.form.get('meal_type', 'lunch')
+        if meal_type not in VALID_MEAL_TYPES:
+            meal_type = 'lunch'
 
         try:
             analysis = qwen_client.analyze_meal_photo(image_base64)
@@ -129,6 +148,7 @@ def ai_log():
             }
             food_name = ', '.join(analysis.get('items', ['Analyzed meal']))[:120]
         except Exception:
+            current_app.logger.exception("AI meal analysis failed for photo upload")
             analysis_data = None
             food_name = 'Analyzed meal'
 
@@ -140,16 +160,7 @@ def ai_log():
                 meal_type=meal_type,
             )
             db.session.commit()
-
-            logs = [{
-                'id': food_log.id,
-                'food_name': food_log.food_name,
-                'calories': food_log.calories,
-                'protein_g': food_log.protein_g,
-                'carbs_g': food_log.carbs_g,
-                'fat_g': food_log.fat_g,
-                'meal_type': food_log.meal_type,
-            }]
+            logs = [format_log_entry(food_log)]
         else:
             logs = []
 
@@ -169,7 +180,7 @@ def ai_log():
     if not data:
         return jsonify({'error': 'Invalid request'}), 400
 
-    conversation_history = data.get('conversation_history', [])
+    conversation_history = list(data.get('conversation_history', []))
     user_message = data.get('user_message', '').strip()
 
     if not user_message:
@@ -204,7 +215,6 @@ def ai_log():
             "temperature": 0.3,
             "max_tokens": 300,
         }
-        import requests
         response = requests.post(
             f"{qwen_client.base_url}/chat/completions",
             json=payload,
@@ -217,7 +227,17 @@ def ai_log():
         parsed = parse_ai_nutrition(ai_content)
 
         logs = []
-        if not parsed:
+        if parsed:
+            # Single-item JSON response (calories, protein, carbs, fat)
+            food_log = create_food_log(
+                user_id=current_user.id,
+                food_name='Additional item',
+                **parsed,
+                meal_type='snack',
+            )
+            db.session.commit()
+            logs.append(format_log_entry(food_log))
+        else:
             # Try extracting multiple items from JSON
             match = re.search(r'\{[^{}]*"items"[^{}]*\}', ai_content, re.DOTALL)
             if match:
@@ -240,47 +260,34 @@ def ai_log():
                                 fat_g=float(item.get('fat', 0)),
                                 meal_type='snack',
                             )
-                            logs.append({
-                                'id': food_log.id,
-                                'food_name': food_log.food_name,
-                                'calories': food_log.calories,
-                                'protein_g': food_log.protein_g,
-                                'carbs_g': food_log.carbs_g,
-                                'fat_g': food_log.fat_g,
-                                'meal_type': food_log.meal_type,
-                            })
+                            logs.append(format_log_entry(food_log))
                     db.session.commit()
                 else:
                     db.session.rollback()
 
         # Build response
-        ai_message = {
-            'role': 'ai',
-            'content': user_message,  # Will be updated below
-        }
         conversation_history.append({'role': 'user', 'content': user_message})
 
         # Generate a user-friendly AI response
-        if logs:
-            total_cal = sum(l['calories'] for l in logs)
-            ai_message['content'] = (
+        ai_message = {
+            'role': 'ai',
+            'content': (
                 f"Added: {', '.join(l['food_name'] for l in logs)}. "
-                f"Total: {total_cal} calories."
-            )
-        else:
-            ai_message['content'] = (
+                f"Total: {sum(l['calories'] for l in logs)} calories."
+            ) if logs else (
                 "I couldn't parse specific food items from your request. "
                 "Please describe the food more specifically."
-            )
-
+            ),
+        }
         conversation_history.append(ai_message)
 
         return jsonify({
-            'logs': logs if logs else [],
+            'logs': logs,
             'conversation_history': conversation_history,
         }), 200
 
     except Exception as e:
+        current_app.logger.exception("AI conversation failed")
         return jsonify({
             'error': 'AI analysis failed. Please try again.',
             'conversation_history': conversation_history,
