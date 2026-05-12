@@ -21,10 +21,12 @@ export default function PhotoLog() {
   const [step, setStep] = useState<Step>('capture')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [mealType, setMealType] = useState<string>('lunch')
   const [logEntries, setLogEntries] = useState<FoodPhotoLogEntry[]>([])
   const [messages, setMessages] = useState<FoodPhotoMessage[]>([])
   const [userMessage, setUserMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => { setTitle('Log Food Photo') }, [setTitle])
 
@@ -32,7 +34,7 @@ export default function PhotoLog() {
     if (step === 'review' && messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [step, messages, logEntries])
+  }, [step, messages])
 
   useEffect(() => {
     return () => {
@@ -56,12 +58,13 @@ export default function PhotoLog() {
   }, [handleFileSelect])
 
   const handleCapture = useCallback(async () => {
-    if (!selectedFile) return
+    if (!selectedFile || isSubmitting) return
+    setIsSubmitting(true)
     setStep('loading')
 
     const formData = new FormData()
     formData.append('photo', selectedFile)
-    formData.append('meal_type', 'lunch')
+    formData.append('meal_type', mealType)
 
     try {
       const response = await mealsAiLogApi.analyzePhoto(formData)
@@ -71,11 +74,13 @@ export default function PhotoLog() {
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to analyze photo')
       setStep('capture')
+      setIsSubmitting(false)
     }
-  }, [selectedFile])
+  }, [selectedFile, mealType, isSubmitting])
 
   const handleSendMessage = useCallback(async () => {
-    if (!userMessage.trim()) return
+    if (!userMessage.trim() || isSubmitting) return
+    setIsSubmitting(true)
     setStep('loading')
 
     const newMessages: FoodPhotoMessage[] = [
@@ -110,8 +115,9 @@ export default function PhotoLog() {
       setMessages([...newMessages, { role: 'ai', content: err.response?.data?.error || 'Failed to get response' }])
       setError(err.response?.data?.error || 'Failed to get response')
       setStep('review')
+      setIsSubmitting(false)
     }
-  }, [userMessage, messages])
+  }, [userMessage, messages, isSubmitting])
 
   const handleEditEntry = useCallback((index: number, field: keyof FoodPhotoLogEntry, value: string | number) => {
     setLogEntries(prev => prev.map((entry, i) => {
@@ -127,7 +133,9 @@ export default function PhotoLog() {
   }, [])
 
   const handleAccept = useCallback(async () => {
-    if (logEntries.length === 0) return
+    if (logEntries.length === 0 || isSubmitting) return
+    setIsSubmitting(true)
+    setStep('loading')
 
     try {
       for (const entry of logEntries) {
@@ -144,15 +152,13 @@ export default function PhotoLog() {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save food logs')
       setStep('review')
+      setIsSubmitting(false)
     }
-  }, [logEntries, foodStore, navigate])
+  }, [logEntries, foodStore, navigate, isSubmitting])
 
   const handleBack = useCallback(() => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-    }
     navigate(-1)
-  }, [previewUrl, navigate])
+  }, [navigate])
 
   return (
     <div className="bg-[#f2f2f2] min-h-screen pt-14 sm:pt-0 pb-20 sm:pb-0">
@@ -207,9 +213,21 @@ export default function PhotoLog() {
           </div>
 
           {previewUrl && (
-            <div className="bg-white rounded-xl p-3">
+            <div className="bg-white rounded-xl p-3 space-y-3">
               <img src={previewUrl} alt="Preview" className="w-full max-h-[300px] object-contain rounded-lg" />
-              <div className="flex gap-3 mt-3">
+              <div>
+                <label className="block text-xs text-[#757575] mb-1">Meal Type</label>
+                <select
+                  value={mealType}
+                  onChange={(e) => setMealType(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-[#185ADB]"
+                >
+                  {MEAL_TYPES.map((type, i) => (
+                    <option key={type} value={type}>{MEAL_LABELS[i]}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3">
                 <button
                   onClick={() => {
                     setSelectedFile(null)
@@ -222,7 +240,8 @@ export default function PhotoLog() {
                 </button>
                 <button
                   onClick={handleCapture}
-                  className="flex-1 py-2 text-sm font-medium text-white bg-[#185ADB] rounded-lg"
+                  disabled={isSubmitting}
+                  className="flex-1 py-2 text-sm font-medium text-white bg-[#185ADB] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Analyze
                 </button>
