@@ -106,25 +106,38 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   logFood: async (data: FoodLogCreate) => {
     set({ isLoading: true, error: null })
     try {
-      const food = get().foods.find(f => String(f.id) === data.food_id)
-      if (!food) {
-        throw new Error('Food not found')
-      }
-      const quantity = data.quantity || 1
-      const totalCalories = Math.round(food.calories * quantity)
-      const totalProtein = food.protein_g * quantity
-      const totalCarbs = food.carbs_g * quantity
-      const totalFat = food.fat_g * quantity
       const today = new Date().toISOString().split('T')[0]
-      await foodApi.logFood({
-        food_name: food.name,
-        calories: totalCalories,
-        protein_g: totalProtein,
-        carbs_g: totalCarbs,
-        fat_g: totalFat,
-        date: today,
-        meal_type: data.meal_type,
-      })
+
+      if (data.food_id) {
+        const food = get().foods.find(f => String(f.id) === data.food_id)
+        if (!food) {
+          throw new Error('Food not found')
+        }
+        const quantity = data.quantity || 1
+        const totalCalories = Math.round(food.calories * quantity)
+        const totalProtein = food.protein_g * quantity
+        const totalCarbs = food.carbs_g * quantity
+        const totalFat = food.fat_g * quantity
+        await foodApi.logFood({
+          food_name: food.name,
+          calories: totalCalories,
+          protein_g: totalProtein,
+          carbs_g: totalCarbs,
+          fat_g: totalFat,
+          date: today,
+          meal_type: data.meal_type,
+        })
+      } else {
+        await foodApi.logFood({
+          food_name: data.food_name!,
+          calories: data.calories!,
+          protein_g: data.protein_g,
+          carbs_g: data.carbs_g,
+          fat_g: data.fat_g,
+          date: today,
+          meal_type: data.meal_type,
+        })
+      }
       get().fetchFoodLogs()
       get().fetchDailyTotals()
       useUIStore.getState().showToast('Food logged successfully', 'success')
