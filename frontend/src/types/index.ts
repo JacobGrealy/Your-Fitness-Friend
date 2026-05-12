@@ -47,6 +47,12 @@ export type {
 } from './meals'
 
 export type {
+  FoodPhotoLogEntry,
+  FoodPhotoMessage,
+  AiLogResponse,
+} from './foodPhotoLog'
+
+export type {
   DailySummary,
   DailyCalorieData,
   DailyMacroData,
