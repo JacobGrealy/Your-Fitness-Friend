@@ -1,0 +1,287 @@
+from flask import Blueprint, request, jsonify, current_app
+from flask_login import login_required, current_user
+from app import db
+from app.models.food_log import FoodLog
+from app.utils.qwen_client import qwen_client
+from app.config import Config
+import os
+import base64
+import uuid
+import json
+import re
+
+bp = Blueprint('meals_ai_log', __name__)
+
+UPLOAD_FOLDER = 'ai_food_logs'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def save_uploaded_file(file):
+    if not allowed_file(file.filename):
+        return None, "Invalid file type. Only JPG and PNG are allowed."
+    extension = file.filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"{uuid.uuid4().hex}.{extension}"
+    upload_path = os.path.join(current_app.root_path, 'uploads', UPLOAD_FOLDER)
+    os.makedirs(upload_path, exist_ok=True)
+    filepath = os.path.join(upload_path, unique_filename)
+    try:
+        file.save(filepath)
+        return f"{UPLOAD_FOLDER}/{unique_filename}", None
+    except Exception as e:
+        return None, f"Error saving file: {str(e)}"
+
+
+def encode_file_to_base64(filepath):
+    with open(filepath, 'rb') as f:
+        return base64.b64encode(f.read()).decode('utf-8')
+
+
+def parse_ai_nutrition(content):
+    """Parse JSON nutrition data from AI response."""
+    try:
+        result = json.loads(content.strip())
+        if all(k in result for k in ('calories', 'protein', 'carbs', 'fat')):
+            return {
+                'calories': int(float(result['calories'])),
+                'protein': float(result['protein']),
+                'carbs': float(result['carbs']),
+                'fat': float(result['fat']),
+            }
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        pass
+    match = re.search(r'\{[^{}]*"calories"[^{}]*"protein"[^{}]*"carbs"[^{}]*"fat"[^{}]*\}', content, re.DOTALL)
+    if match:
+        try:
+            result = json.loads(match.group())
+            if all(k in result for k in ('calories', 'protein', 'carbs', 'fat')):
+                return {
+                    'calories': int(float(result['calories'])),
+                    'protein': float(result['protein']),
+                    'carbs': float(result['carbs']),
+                    'fat': float(result['fat']),
+                }
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+            pass
+    return None
+
+
+def create_food_log(user_id, food_name, calories, protein_g, carbs_g, fat_g, meal_type):
+    today = db.func.date(db.func.now())
+    food_log = FoodLog(
+        user_id=user_id,
+        food_name=food_name,
+        calories=calories,
+        protein_g=protein_g,
+        carbs_g=carbs_g,
+        fat_g=fat_g,
+        date=today,
+        meal_type=meal_type,
+    )
+    db.session.add(food_log)
+    db.session.flush()
+    return food_log
+
+
+@bp.route('/ai-log', methods=['POST'])
+@login_required
+def ai_log():
+    """
+    Log food via photo with AI analysis.
+
+    Initial request (first photo):
+        - photo: Image file (multipart)
+        - meal_type: breakfast|lunch|dinner|snack
+        - conversation_history: []
+
+    Follow-up request (conversation):
+        - conversation_history: [{role: 'user'|'ai', content: string}]
+        - user_message: string (the latest user message)
+
+    Returns:
+        { logs: [...], conversation_history: [...], error?: string }
+    """
+    # Handle initial photo upload
+    if 'photo' in request.files:
+        file = request.files['photo']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        photo_path, error = save_uploaded_file(file)
+        if error:
+            return jsonify({'error': error}), 400
+
+        full_path = os.path.join(current_app.root_path, 'uploads', photo_path)
+        image_base64 = encode_file_to_base64(full_path)
+
+        meal_type = request.form.get('meal_type', 'lunch')
+
+        try:
+            analysis = qwen_client.analyze_meal_photo(image_base64)
+            analysis_data = {
+                'calories': int(analysis['calories']),
+                'protein': float(analysis['protein']),
+                'carbs': float(analysis['carbs']),
+                'fat': float(analysis['fat']),
+            }
+            food_name = ', '.join(analysis.get('items', ['Analyzed meal']))[:120]
+        except Exception:
+            analysis_data = None
+            food_name = 'Analyzed meal'
+
+        if analysis_data:
+            food_log = create_food_log(
+                user_id=current_user.id,
+                food_name=food_name,
+                **analysis_data,
+                meal_type=meal_type,
+            )
+            db.session.commit()
+
+            logs = [{
+                'id': food_log.id,
+                'food_name': food_log.food_name,
+                'calories': food_log.calories,
+                'protein_g': food_log.protein_g,
+                'carbs_g': food_log.carbs_g,
+                'fat_g': food_log.fat_g,
+                'meal_type': food_log.meal_type,
+            }]
+        else:
+            logs = []
+
+        conversation_history = [{
+            'role': 'ai',
+            'content': f"Analyzed your {meal_type}. Estimated: {analysis_data['calories']} calories, {analysis_data['protein']}g protein, {analysis_data['carbs']}g carbs, {analysis_data['fat']}g fat." if analysis_data else "Could not analyze the photo. Please try again."
+        }]
+
+        return jsonify({
+            'logs': logs,
+            'conversation_history': conversation_history,
+            'photo_path': photo_path,
+        }), 200
+
+    # Handle follow-up conversation
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid request'}), 400
+
+    conversation_history = data.get('conversation_history', [])
+    user_message = data.get('user_message', '').strip()
+
+    if not user_message:
+        return jsonify({'error': 'No message provided'}), 400
+
+    # Build the prompt with conversation history
+    system_prompt = (
+        "You are a nutritionist. The user previously uploaded a photo of a meal that was analyzed. "
+        "They are now asking about food modifications to that meal. "
+        "Respond with ONLY valid JSON containing the NEW or MODIFIED food items from their request. "
+        "Format: {\"items\": [{\"food_name\": \"item name\", \"calories\": number, \"protein\": number, \"carbs\": number, \"fat\": number}]}. "
+        "If they want to add something, include only the added items. "
+        "If they want to modify something, include the full item with updated values. "
+        "If they want to remove something, include the removed item with negative values."
+    )
+
+    # Build messages for the API
+    messages = [
+        {"role": "system", "content": system_prompt},
+    ]
+    # Add conversation history
+    for msg in conversation_history:
+        messages.append({"role": msg['role'], "content": msg['content']})
+    # Add the latest user message
+    messages.append({"role": "user", "content": user_message})
+
+    try:
+        # Send to Qwen API
+        payload = {
+            "model": "qwen",
+            "messages": messages,
+            "temperature": 0.3,
+            "max_tokens": 300,
+        }
+        import requests
+        response = requests.post(
+            f"{qwen_client.base_url}/chat/completions",
+            json=payload,
+            timeout=qwen_client.timeout,
+        )
+        response.raise_for_status()
+        ai_content = response.json()['choices'][0]['message']['content']
+
+        # Parse the AI response
+        parsed = parse_ai_nutrition(ai_content)
+
+        logs = []
+        if not parsed:
+            # Try extracting multiple items from JSON
+            match = re.search(r'\{[^{}]*"items"[^{}]*\}', ai_content, re.DOTALL)
+            if match:
+                try:
+                    result = json.loads(match.group())
+                    items = result.get('items', [])
+                except json.JSONDecodeError:
+                    items = []
+
+                if items:
+                    for item in items:
+                        cal = int(float(item.get('calories', 0)))
+                        if cal != 0:  # Skip items with 0 calories (likely not food)
+                            food_log = create_food_log(
+                                user_id=current_user.id,
+                                food_name=item.get('food_name', item.get('name', 'Additional item'))[:120],
+                                calories=cal,
+                                protein_g=float(item.get('protein', 0)),
+                                carbs_g=float(item.get('carbs', 0)),
+                                fat_g=float(item.get('fat', 0)),
+                                meal_type='snack',
+                            )
+                            logs.append({
+                                'id': food_log.id,
+                                'food_name': food_log.food_name,
+                                'calories': food_log.calories,
+                                'protein_g': food_log.protein_g,
+                                'carbs_g': food_log.carbs_g,
+                                'fat_g': food_log.fat_g,
+                                'meal_type': food_log.meal_type,
+                            })
+                    db.session.commit()
+                else:
+                    db.session.rollback()
+
+        # Build response
+        ai_message = {
+            'role': 'ai',
+            'content': user_message,  # Will be updated below
+        }
+        conversation_history.append({'role': 'user', 'content': user_message})
+
+        # Generate a user-friendly AI response
+        if logs:
+            total_cal = sum(l['calories'] for l in logs)
+            ai_message['content'] = (
+                f"Added: {', '.join(l['food_name'] for l in logs)}. "
+                f"Total: {total_cal} calories."
+            )
+        else:
+            ai_message['content'] = (
+                "I couldn't parse specific food items from your request. "
+                "Please describe the food more specifically."
+            )
+
+        conversation_history.append(ai_message)
+
+        return jsonify({
+            'logs': logs if logs else [],
+            'conversation_history': conversation_history,
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'error': 'AI analysis failed. Please try again.',
+            'conversation_history': conversation_history,
+        }), 200
