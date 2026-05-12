@@ -7,9 +7,9 @@ import type { FoodPhotoLogEntry, FoodPhotoMessage } from '@/types/foodPhotoLog'
 import { MEAL_TYPES } from '@/utils/constants'
 import { useFoodStore } from '@/store/foodStore'
 
-type Step = 'capture' | 'review' | 'loading'
+const MEAL_LABELS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'] as const
 
-const MEAL_LABELS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks']
+type Step = 'capture' | 'review' | 'loading'
 
 export default function PhotoLog() {
   const { setTitle } = usePageTitle()
@@ -280,8 +280,8 @@ export default function PhotoLog() {
                     onChange={(e) => handleEditEntry(index, 'meal_type', e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-[#185ADB]"
                   >
-                    {MEAL_TYPES.map(type => (
-                      <option key={type} value={type}>{MEAL_LABELS[MEAL_TYPES.indexOf(type)]}</option>
+                    {MEAL_TYPES.map((type, i) => (
+                      <option key={type} value={type}>{MEAL_LABELS[i]}</option>
                     ))}
                   </select>
 
