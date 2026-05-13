@@ -17,6 +17,7 @@ export interface Food {
   protein_g: number
   carbs_g: number
   fat_g: number
+  brand?: string
   created_at: string
 }
 
