@@ -74,6 +74,9 @@ export interface FoodLogCreate {
   fat_g?: number
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
   date?: string
+  serving_size?: string
+  brand?: string
+  barcode_id?: string
 }
 
 /**
