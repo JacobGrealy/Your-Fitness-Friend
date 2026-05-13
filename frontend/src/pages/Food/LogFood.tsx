@@ -74,8 +74,7 @@ export default function LogFood() {
   }
 
   const handleHistoryTap = (history: FoodRecent) => {
-    const matchingFood = foods.find(f => f.name === history.food_name)
-    const foodIdParam = matchingFood ? `&foodId=${matchingFood.id}` : ''
+    const foodIdParam = history.food_id ? `&foodId=${history.food_id}` : ''
     navigate(
       `/food/log/select?name=${encodeURIComponent(history.food_name)}&calories=${history.calories}&protein=${history.protein_g}&carbs=${history.carbs_g}&fat=${history.fat_g}&brand=${encodeURIComponent(history.brand || '')}&barcode_id=${encodeURIComponent(history.barcode_id || '')}&serving_size=${encodeURIComponent(history.serving_size || '')}${foodIdParam}`
     )

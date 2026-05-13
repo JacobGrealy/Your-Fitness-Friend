@@ -113,6 +113,7 @@ export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
  */
 export interface FoodRecent {
   food_name: string
+  food_id?: string | null
   calories: number
   protein_g: number
   carbs_g: number

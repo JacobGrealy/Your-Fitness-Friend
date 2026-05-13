@@ -55,6 +55,10 @@ def get_recent_foods():
         FoodLog.date >= cutoff_date
     ).order_by(FoodLog.date.desc()).all()
 
+    # Build a lookup of user's foods by name
+    all_foods = Food.query.filter_by(user_id=current_user.id).all()
+    food_by_name = {f.name: f.id for f in all_foods}
+
     # Group by food_name, keeping the most recent macros
     grouped = {}
     for log in logs:
@@ -62,6 +66,7 @@ def get_recent_foods():
         if key not in grouped:
             grouped[key] = {
                 'food_name': log.food_name,
+                'food_id': food_by_name.get(log.food_name),
                 'calories': log.calories,
                 'protein_g': log.protein_g,
                 'carbs_g': log.carbs_g,

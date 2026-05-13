@@ -63,13 +63,17 @@ export default function FoodLogSelect() {
   useEffect(() => {
     setTitle('Add Food')
     clearError()
+    fetchFoods()
+  }, [fetchFoods, clearError])
 
-    // Check for history query params first
+  useEffect(() => {
+    if (!foods.length) return
+
     const historyName = searchParams.get('name')
     const historyCalories = searchParams.get('calories')
     const historyFoodId = searchParams.get('foodId')
 
-   if (historyName && historyCalories) {
+    if (historyName && historyCalories) {
       setIsQuickAdd(true)
       setCameFromHistory(true)
       setValue('name', historyName)
@@ -100,14 +104,12 @@ export default function FoodLogSelect() {
         setValue('carbs_g', food.carbs_g)
         setValue('fat_g', food.fat_g)
         setValue('brand', food.brand || '')
-      } else {
-        fetchFoods()
       }
     } else {
       setIsQuickAdd(true)
       setServingSize('1')
     }
-  }, [foodId, fetchFoods, clearError, setValue])
+  }, [foods, foodId, searchParams, setValue])
 
   const onSubmit = async (data: any) => {
     setIsSubmitting(true)
