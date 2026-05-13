@@ -1,16 +1,19 @@
 import { create } from 'zustand'
 import { foodApi } from '@/api/food'
-import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch, MacroGoals } from '@/types'
+import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch, MacroGoals, FoodRecent } from '@/types'
 import { useUIStore } from './uiStore'
+import { RECENT_FOODS_DAYS } from '@/utils/constants'
 
 interface FoodState {
   foods: Food[]
+  recentFoods: FoodRecent[]
   foodLogs: FoodLog[]
   dailyTotals: DailyTotals | null
   macroGoals: MacroGoals | null
   isLoading: boolean
   error: string | null
   fetchFoods: (params?: FoodSearch) => Promise<void>
+  fetchRecentFoods: (days?: number) => Promise<void>
   fetchFoodLogs: (date?: string) => Promise<void>
   fetchDailyTotals: (date?: string) => Promise<void>
   fetchMacroGoals: () => Promise<void>
@@ -29,6 +32,7 @@ const initialFetch = () => {
 
 export const useFoodStore = create<FoodState>((set, get) => ({
   foods: [],
+  recentFoods: [],
   foodLogs: [],
   dailyTotals: null,
   macroGoals: null,
@@ -43,6 +47,20 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to fetch foods',
+        isLoading: false,
+      })
+    }
+  },
+
+  fetchRecentFoods: async (days?: number) => {
+    set({ isLoading: true, error: null })
+    try {
+      const daysParam = days ?? RECENT_FOODS_DAYS
+      const recentFoods = await foodApi.getRecentFoods(daysParam)
+      set({ recentFoods, isLoading: false })
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to fetch recent foods',
         isLoading: false,
       })
     }
