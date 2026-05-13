@@ -92,6 +92,8 @@ def create_food():
     protein_g = data.get('protein_g', 0.0)
     carbs_g = data.get('carbs_g', 0.0)
     fat_g = data.get('fat_g', 0.0)
+    brand = data.get('brand')
+    barcode_id = data.get('barcode_id')
     
     if not name or calories is None:
         return jsonify({'error': 'name and calories are required'}), 400
@@ -113,7 +115,9 @@ def create_food():
         calories=calories,
         protein_g=protein_g,
         carbs_g=carbs_g,
-        fat_g=fat_g
+        fat_g=fat_g,
+        brand=brand,
+        barcode_id=barcode_id
     )
     
     db.session.add(food)
@@ -126,7 +130,9 @@ def create_food():
         'calories': food.calories,
         'protein_g': food.protein_g,
         'carbs_g': food.carbs_g,
-        'fat_g': food.fat_g
+        'fat_g': food.fat_g,
+        'brand': food.brand,
+        'barcode_id': food.barcode_id
     }), 201
 
 
@@ -188,6 +194,9 @@ def create_food_log():
     protein_g = data.get('protein_g', 0.0)
     carbs_g = data.get('carbs_g', 0.0)
     fat_g = data.get('fat_g', 0.0)
+    brand = data.get('brand')
+    barcode_id = data.get('barcode_id')
+    serving_size = data.get('serving_size')
     date_param = data.get('date')
     meal_type = data.get('meal_type')
     
@@ -217,6 +226,7 @@ def create_food_log():
         protein_g=protein_g,
         carbs_g=carbs_g,
         fat_g=fat_g,
+        serving_size=serving_size,
         date=log_date,
         meal_type=meal_type
     )
@@ -231,6 +241,7 @@ def create_food_log():
         'protein_g': food_log.protein_g,
         'carbs_g': food_log.carbs_g,
         'fat_g': food_log.fat_g,
+        'serving_size': food_log.serving_size,
         'date': food_log.date.isoformat(),
         'meal_type': food_log.meal_type
     }), 201
