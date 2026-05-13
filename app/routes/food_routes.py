@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app.models.food import Food
 from app.models.food_log import FoodLog
 from app import db
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 
 bp = Blueprint('food', __name__)
@@ -39,6 +39,43 @@ def get_foods():
         'carbs_g': f.carbs_g,
         'fat_g': f.fat_g
     } for f in foods]), 200
+
+
+@bp.route('/recent', methods=['GET'])
+@login_required
+def get_recent_foods():
+    """Get user's recently logged foods, grouped by food name."""
+    days = request.args.get('days', 7, type=int)
+    cutoff_date = datetime.utcnow().date() - timedelta(days=days)
+
+    logs = FoodLog.query.filter(
+        FoodLog.user_id == current_user.id,
+        FoodLog.date >= cutoff_date
+    ).order_by(FoodLog.date.desc()).all()
+
+    # Group by food_name, keeping the most recent macros
+    grouped = {}
+    for log in logs:
+        key = log.food_name
+        if key not in grouped:
+            grouped[key] = {
+                'food_name': log.food_name,
+                'calories': log.calories,
+                'protein_g': log.protein_g,
+                'carbs_g': log.carbs_g,
+                'fat_g': log.fat_g,
+                'serving_size': log.serving_size,
+                'total_logs': 0,
+                'last_logged': log.date.isoformat(),
+            }
+        grouped[key]['total_logs'] += 1
+        # Keep the latest macros (already sorted by date desc)
+
+    result = list(grouped.values())
+    # Sort by last_logged descending
+    result.sort(key=lambda x: x['last_logged'], reverse=True)
+
+    return jsonify(result), 200
 
 
 @bp.route('', methods=['POST'])
