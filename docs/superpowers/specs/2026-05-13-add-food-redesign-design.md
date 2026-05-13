@@ -225,9 +225,16 @@ New configurable constants (e.g., in `utils/constants.ts`):
 
 ---
 
+## Database Indexes
+
+A composite index on `food_logs(user_id, date DESC)` is needed for the recent foods query. This covers:
+- `GET /food/recent` — filters by user_id, orders by date DESC, groups by food_name
+- Existing `GET /food/log` and `GET /food/daily` — already filtered by user_id + date
+
+Note: The existing `foods.name` B-tree index does not help with `ILIKE '%term%'` pattern matching. This is acceptable for the current `LIMIT 20` search. Full-text search is a future enhancement.
+
 ## Migration
 
-A new migration file will be created to add the three new columns:
-- `foods.brand` (String, nullable)
-- `foods.barcode_id` (String, nullable)
-- `food_logs.serving_size` (String, nullable)
+A new migration file will be created to add:
+- New columns: `foods.brand` (String, nullable), `foods.barcode_id` (String, nullable), `food_logs.serving_size` (String, nullable)
+- New index: `food_logs(user_id, date DESC)` composite index
