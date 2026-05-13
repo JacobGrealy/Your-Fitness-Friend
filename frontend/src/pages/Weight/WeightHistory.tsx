@@ -26,10 +26,12 @@ export default function WeightHistory() {
     new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()
   )
 
-  const chartData = sortedLogs.map(log => ({
-    date: log.recorded_at,
-    weight: log.weight,
-  }))
+  const chartData = [...logs]
+    .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
+    .map(log => ({
+      date: log.recorded_at,
+      weight: log.weight,
+    }))
 
   const currentWeight = sortedLogs.length > 0 ? sortedLogs[0].weight : null
   const goalWeight = user?.weight_goal_lbs

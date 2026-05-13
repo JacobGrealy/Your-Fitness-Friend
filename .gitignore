@@ -71,3 +71,6 @@ app/uploads/
 app/static/assets/
 frontend/playwright-report/
 frontend/test-results/
+
+# Local tracking files
+TODO.md
