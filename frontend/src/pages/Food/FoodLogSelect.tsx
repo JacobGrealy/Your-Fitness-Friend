@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useFoodStore } from '@/store/foodStore'
@@ -19,6 +19,7 @@ const MEAL_LABELS: Record<string, string> = {
 export default function FoodLogSelect() {
   const { setTitle } = usePageTitle()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { foodId } = useParams<{ foodId?: string }>()
   const { foods, isLoading, logFood, createFood, fetchFoods, error, clearError } = useFoodStore()
 
@@ -36,14 +37,15 @@ export default function FoodLogSelect() {
     watch,
   } = useForm({
     resolver: zodResolver(quickAddFoodSchema),
-     defaultValues: {
+    defaultValues: {
       name: '',
-      calories: undefined,
-      protein_g: undefined,
-      carbs_g: undefined,
-      fat_g: undefined,
+      calories: 0,
+      protein_g: 0,
+      carbs_g: 0,
+      fat_g: 0,
       brand: '',
       barcode_id: '',
+      serving_size: '',
       meal_type: 'breakfast',
     },
   })
@@ -53,30 +55,44 @@ export default function FoodLogSelect() {
   const protein_g = watch('protein_g') || 0
   const carbs_g = watch('carbs_g') || 0
   const fat_g = watch('fat_g') || 0
+  const brand = watch('brand')
   const meal_type = watch('meal_type')
-
-  const setVal = (field: string, value: unknown) => setValue(field as any, value as any)
 
   useEffect(() => {
     setTitle('Add Food')
     clearError()
 
+    // Check for history query params first
+    const historyName = searchParams.get('name')
+    const historyCalories = searchParams.get('calories')
+
+    if (historyName && historyCalories) {
+      setIsQuickAdd(true)
+      setValue('name', historyName)
+      setValue('calories', parseInt(historyCalories, 10) || 0)
+      setValue('protein_g', parseFloat(searchParams.get('protein') || '0'))
+      setValue('carbs_g', parseFloat(searchParams.get('carbs') || '0'))
+      setValue('fat_g', parseFloat(searchParams.get('fat') || '0'))
+      return
+    }
+
     if (foodId) {
       const food = foods.find(f => String(f.id) === foodId)
       if (food) {
         setSelectedFood(food)
-        setVal('name', food.name)
-        setVal('calories', food.calories)
-        setVal('protein_g', food.protein_g)
-        setVal('carbs_g', food.carbs_g)
-        setVal('fat_g', food.fat_g)
+        setValue('name', food.name)
+        setValue('calories', food.calories)
+        setValue('protein_g', food.protein_g)
+        setValue('carbs_g', food.carbs_g)
+        setValue('fat_g', food.fat_g)
+        setValue('brand', food.brand || '')
       } else {
         fetchFoods()
       }
     } else {
       setIsQuickAdd(true)
     }
-  }, [foodId, fetchFoods, clearError, setVal])
+  }, [foodId, fetchFoods, clearError, setValue])
 
   const onSubmit = async (data: any) => {
     setIsSubmitting(true)
@@ -84,6 +100,7 @@ export default function FoodLogSelect() {
       const quantityNum = parseFloat(servingSize) || 1
 
       if (data.name && !selectedFood) {
+        // Save to DB first, then log
         const foodCreate = {
           name: data.name,
           calories: data.calories,
@@ -98,6 +115,7 @@ export default function FoodLogSelect() {
         fetchFoods()
       }
 
+      // Log the food
       const logData: FoodLogCreate = {
         food_id: selectedFood ? String(selectedFood.id) : undefined,
         quantity: quantityNum,
@@ -123,11 +141,12 @@ export default function FoodLogSelect() {
 
   const calculateNutrition = () => {
     const qty = parseFloat(servingSize) || 1
+    const cal = calories || 0
     return {
-      calories: Math.round((calories || 0) * qty),
-      protein: ((protein_g || 0) * qty).toFixed(1),
-      carbs: ((carbs_g || 0) * qty).toFixed(1),
-      fat: ((fat_g || 0) * qty).toFixed(1),
+      calories: Math.round(cal * qty),
+      protein: (protein_g * qty).toFixed(1),
+      carbs: (carbs_g * qty).toFixed(1),
+      fat: (fat_g * qty).toFixed(1),
     }
   }
 
@@ -140,6 +159,8 @@ export default function FoodLogSelect() {
   }
 
   const nutrition = calculateNutrition()
+  const displayName = selectedFood?.name || name || 'Unnamed Food'
+  const displayBrand = selectedFood?.brand || brand
 
   return (
     <div className="min-h-screen bg-[#f2f2f2]">
@@ -151,9 +172,7 @@ export default function FoodLogSelect() {
         >
           ← Back
         </button>
-        <h1 className="font-bold text-[#212121]">
-          {selectedFood ? selectedFood.name : 'Quick Add'}
-        </h1>
+        <h1 className="font-bold text-[#212121]">{isQuickAdd ? 'Quick Add' : displayName}</h1>
         <button
           onClick={handleSubmit(onSubmit)}
           disabled={isSubmitting || !calories}
@@ -168,11 +187,9 @@ export default function FoodLogSelect() {
 
       {/* Food Info */}
       <div className="bg-white px-4 py-3 border-b border-[#e0e0e0]">
-        <h2 className="font-bold text-lg text-[#212121]">
-          {selectedFood?.name || name || 'Unnamed Food'}
-        </h2>
+        <h2 className="font-bold text-lg text-[#212121]">{displayName}</h2>
         <p className="text-sm text-[#757575] mt-1">
-          {calories} cal
+          {calories} cal{displayBrand ? ` · ${displayBrand}` : ''}
         </p>
       </div>
 
@@ -218,7 +235,6 @@ export default function FoodLogSelect() {
             />
             <span className="text-sm text-[#757575]">servings</span>
           </div>
-
         </div>
 
         {/* Nutrition */}
@@ -311,7 +327,7 @@ export default function FoodLogSelect() {
                 placeholder="e.g. 0.4"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[#212121] text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
               />
-             {formErrors.fat_g && (
+              {formErrors.fat_g && (
                 <p className="mt-1 text-xs text-[#E53935]">{formErrors.fat_g.message}</p>
               )}
             </div>
@@ -337,7 +353,6 @@ export default function FoodLogSelect() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[#212121] text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
               />
             </div>
-
           </>
         )}
 
