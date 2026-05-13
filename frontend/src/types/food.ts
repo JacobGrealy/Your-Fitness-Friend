@@ -116,6 +116,8 @@ export interface FoodRecent {
   carbs_g: number
   fat_g: number
   serving_size: string | null
+  brand: string | null
+  barcode_id: string | null
   total_logs: number
   last_logged: string
 }

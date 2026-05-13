@@ -67,6 +67,8 @@ def get_recent_foods():
                 'carbs_g': log.carbs_g,
                 'fat_g': log.fat_g,
                 'serving_size': log.serving_size,
+                'brand': log.brand,
+                'barcode_id': log.barcode_id,
                 'total_logs': 0,
                 'last_logged': log.date.isoformat(),
             }
@@ -221,6 +223,21 @@ def create_food_log():
     except (TypeError, ValueError):
         return jsonify({'error': 'calories must be a positive integer and date must be YYYY-MM-DD'}), 400
     
+    # Get brand/barcode_id from food reference or request data
+    brand = None
+    barcode_id = None
+    if data.get('food_id'):
+        food = Food.query.filter_by(
+            id=int(data['food_id']),
+            user_id=current_user.id
+        ).first()
+        if food:
+            brand = food.brand
+            barcode_id = food.barcode_id
+    else:
+        brand = data.get('brand')
+        barcode_id = data.get('barcode_id')
+    
     food_log = FoodLog(
         user_id=current_user.id,
         food_name=food_name,
@@ -229,6 +246,8 @@ def create_food_log():
         carbs_g=carbs_g,
         fat_g=fat_g,
         serving_size=serving_size,
+        brand=brand,
+        barcode_id=barcode_id,
         date=log_date,
         meal_type=meal_type
     )
@@ -244,6 +263,8 @@ def create_food_log():
         'carbs_g': food_log.carbs_g,
         'fat_g': food_log.fat_g,
         'serving_size': food_log.serving_size,
+        'brand': food_log.brand,
+        'barcode_id': food_log.barcode_id,
         'date': food_log.date.isoformat(),
         'meal_type': food_log.meal_type
     }), 201

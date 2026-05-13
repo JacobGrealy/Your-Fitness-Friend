@@ -17,7 +17,7 @@ interface FoodState {
   fetchFoodLogs: (date?: string) => Promise<void>
   fetchDailyTotals: (date?: string) => Promise<void>
   fetchMacroGoals: () => Promise<void>
-  createFood: (data: FoodCreate) => Promise<void>
+  createFood: (data: FoodCreate) => Promise<Food>
   logFood: (data: FoodLogCreate) => Promise<void>
   deleteFood: (id: string) => Promise<void>
   deleteFoodLog: (id: string) => Promise<void>
@@ -108,16 +108,18 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   createFood: async (data: FoodCreate) => {
     set({ isLoading: true, error: null })
     try {
-      await foodApi.createFood(data)
+      const created = await foodApi.createFood(data)
       get().fetchFoods()
       useUIStore.getState().showToast('Food added successfully', 'success')
       set({ isLoading: false })
+      return created
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to add food',
         isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to add food', 'error')
+      throw error
     }
   },
 
@@ -137,6 +139,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
         const totalCarbs = food.carbs_g * quantity
         const totalFat = food.fat_g * quantity
         await foodApi.logFood({
+          food_id: data.food_id,
           food_name: food.name,
           calories: totalCalories,
           protein_g: totalProtein,
@@ -147,6 +150,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
         })
       } else {
         await foodApi.logFood({
+          food_id: data.food_id,
           food_name: data.food_name!,
           calories: data.calories!,
           protein_g: data.protein_g,

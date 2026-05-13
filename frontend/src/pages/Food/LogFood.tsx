@@ -205,7 +205,7 @@ export default function LogFood() {
             >
               <div className="font-medium text-sm text-[#212121]">{history.food_name}</div>
               <div className="text-xs text-[#757575] mt-0.5">
-                {history.calories} cal · {history.total_logs} log{history.total_logs > 1 ? 's' : ''}
+                {history.calories} cal{history.brand ? ` · ${history.brand}` : ''} · {history.total_logs} log{history.total_logs > 1 ? 's' : ''}
               </div>
             </button>
           )

@@ -56,6 +56,7 @@ export default function FoodLogSelect() {
   const carbs_g = watch('carbs_g') || 0
   const fat_g = watch('fat_g') || 0
   const brand = watch('brand')
+  const barcode_id = watch('barcode_id')
   const meal_type = watch('meal_type')
 
   useEffect(() => {
@@ -111,8 +112,10 @@ export default function FoodLogSelect() {
           brand: data.brand || undefined,
           barcode_id: data.barcode_id || undefined,
         }
-        await createFood(foodCreate)
-        fetchFoods()
+        const response = await createFood(foodCreate)
+        if (response && response.id) {
+          setSelectedFood({ ...response } as Food)
+        }
       }
 
       // Log the food
