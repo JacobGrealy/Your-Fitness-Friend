@@ -235,6 +235,8 @@ Note: The existing `foods.name` B-tree index does not help with `ILIKE '%term%'`
 
 ## Migration
 
-A new migration file will be created to add:
-- New columns: `foods.brand` (String, nullable), `foods.barcode_id` (String, nullable), `food_logs.serving_size` (String, nullable)
+A new migration file will be created to add the three new columns:
+- `foods.brand` (String, nullable)
+- `foods.barcode_id` (String, nullable)
+- `food_logs.serving_size` (String, nullable)
 - New index: `food_logs(user_id, date DESC)` composite index
