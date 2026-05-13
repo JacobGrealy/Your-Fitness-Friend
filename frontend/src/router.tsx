@@ -5,7 +5,7 @@ import Register from './pages/Auth/Register'
 import Dashboard from './pages/Dashboard'
 import { Weight, LogWeight, WeightHistory, EditWeight } from './pages/Weight'
 import { Exercise, ExerciseLibrary, LogExercise, ExerciseHistory } from './pages/Exercise'
-import { Food, DailyFood, LogFood, CustomFoods, PhotoLog } from './pages/Food'
+import { Food, DailyFood, LogFood, CustomFoods, PhotoLog, FoodLogSelect } from './pages/Food'
 import { Meals, UploadPhoto, PhotoGallery } from './pages/Meals'
 import Profile from './pages/Profile'
 import AuthGuard from './components/layout/AuthGuard'
@@ -108,6 +108,14 @@ export const router = createBrowserRouter([
         element: (
           <AuthGuard>
             <LogFood />
+          </AuthGuard>
+        ),
+      },
+      {
+        path: 'food/log/select/:foodId?',
+        element: (
+          <AuthGuard>
+            <FoodLogSelect />
           </AuthGuard>
         ),
       },
