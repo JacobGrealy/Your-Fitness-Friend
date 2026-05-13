@@ -147,6 +147,9 @@ export const useFoodStore = create<FoodState>((set, get) => ({
           fat_g: totalFat,
           date: today,
           meal_type: data.meal_type,
+          serving_size: data.serving_size,
+          brand: data.brand,
+          barcode_id: data.barcode_id,
         })
       } else {
         await foodApi.logFood({
@@ -158,6 +161,9 @@ export const useFoodStore = create<FoodState>((set, get) => ({
           fat_g: data.fat_g,
           date: today,
           meal_type: data.meal_type,
+          serving_size: data.serving_size,
+          brand: data.brand,
+          barcode_id: data.barcode_id,
         })
       }
       get().fetchFoodLogs()

@@ -113,18 +113,34 @@ def create_food():
     except (TypeError, ValueError):
         return jsonify({'error': 'calories must be a positive integer'}), 400
     
-    food = Food(
-        user_id=current_user.id,
-        name=name,
-        calories=calories,
-        protein_g=protein_g,
-        carbs_g=carbs_g,
-        fat_g=fat_g,
-        brand=brand,
-        barcode_id=barcode_id
-    )
+    food_id = data.get('food_id')
     
-    db.session.add(food)
+    if food_id:
+        food = Food.query.filter_by(
+            id=int(food_id),
+            user_id=current_user.id
+        ).first()
+        if food:
+            food.name = name
+            food.calories = calories
+            food.protein_g = protein_g
+            food.carbs_g = carbs_g
+            food.fat_g = fat_g
+            food.brand = brand
+            food.barcode_id = barcode_id
+    else:
+        food = Food(
+            user_id=current_user.id,
+            name=name,
+            calories=calories,
+            protein_g=protein_g,
+            carbs_g=carbs_g,
+            fat_g=fat_g,
+            brand=brand,
+            barcode_id=barcode_id
+        )
+        db.session.add(food)
+    
     db.session.commit()
     
     return jsonify({
@@ -232,6 +248,14 @@ def create_food_log():
             user_id=current_user.id
         ).first()
         if food:
+            food.name = data.get('food_name', food.name)
+            food.calories = data.get('calories', food.calories)
+            food.protein_g = data.get('protein_g', food.protein_g)
+            food.carbs_g = data.get('carbs_g', food.carbs_g)
+            food.fat_g = data.get('fat_g', food.fat_g)
+            food.brand = data.get('brand', food.brand)
+            food.barcode_id = data.get('barcode_id', food.barcode_id)
+            db.session.commit()
             brand = food.brand
             barcode_id = food.barcode_id
     else:
@@ -273,7 +297,7 @@ def create_food_log():
 @bp.route('/log/<int:log_id>', methods=['DELETE'])
 @login_required
 def delete_food_log(log_id):
-    """Delete a food log entry."""
+    """Delete a food log entry and orphaned food items."""
     log = FoodLog.query.filter_by(
         id=log_id,
         user_id=current_user.id
@@ -282,8 +306,23 @@ def delete_food_log(log_id):
     if not log:
         return jsonify({'error': 'Food log not found'}), 404
     
+    food_name = log.food_name
     db.session.delete(log)
     db.session.commit()
+    
+    remaining = FoodLog.query.filter_by(
+        user_id=current_user.id,
+        food_name=food_name
+    ).first()
+    
+    if not remaining:
+        food = Food.query.filter_by(
+            user_id=current_user.id,
+            name=food_name
+        ).first()
+        if food:
+            db.session.delete(food)
+            db.session.commit()
     
     return jsonify({'message': 'Food log deleted'}), 200
 

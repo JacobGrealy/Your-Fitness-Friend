@@ -25,6 +25,7 @@ export default function FoodLogSelect() {
 
   const [selectedFood, setSelectedFood] = useState<Food | null>(null)
   const [isQuickAdd, setIsQuickAdd] = useState(false)
+  const [cameFromHistory, setCameFromHistory] = useState(false)
   const [mealType, setMealType] = useState('breakfast')
   const [servingSize, setServingSize] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -66,14 +67,26 @@ export default function FoodLogSelect() {
     // Check for history query params first
     const historyName = searchParams.get('name')
     const historyCalories = searchParams.get('calories')
+    const historyFoodId = searchParams.get('foodId')
 
-    if (historyName && historyCalories) {
+   if (historyName && historyCalories) {
       setIsQuickAdd(true)
+      setCameFromHistory(true)
       setValue('name', historyName)
       setValue('calories', parseInt(historyCalories, 10) || 0)
       setValue('protein_g', parseFloat(searchParams.get('protein') || '0'))
       setValue('carbs_g', parseFloat(searchParams.get('carbs') || '0'))
       setValue('fat_g', parseFloat(searchParams.get('fat') || '0'))
+      setValue('serving_size', searchParams.get('serving_size') || '')
+      setValue('brand', searchParams.get('brand') || '')
+      setValue('barcode_id', searchParams.get('barcode_id') || '')
+
+      if (historyFoodId) {
+        const food = foods.find(f => String(f.id) === historyFoodId)
+        if (food) {
+          setSelectedFood(food)
+        }
+      }
       return
     }
 
@@ -92,6 +105,7 @@ export default function FoodLogSelect() {
       }
     } else {
       setIsQuickAdd(true)
+      setServingSize('1')
     }
   }, [foodId, fetchFoods, clearError, setValue])
 
@@ -100,9 +114,8 @@ export default function FoodLogSelect() {
     try {
       const quantityNum = parseFloat(servingSize) || 1
 
-      if (data.name && !selectedFood) {
-        // Save to DB first, then log
-        const foodCreate = {
+      if (data.name) {
+        const foodCreate: any = {
           name: data.name,
           calories: data.calories,
           protein_g: data.protein_g || 0,
@@ -111,6 +124,9 @@ export default function FoodLogSelect() {
           serving_size: data.serving_size || '',
           brand: data.brand || undefined,
           barcode_id: data.barcode_id || undefined,
+        }
+        if (selectedFood) {
+          foodCreate.food_id = String(selectedFood.id)
         }
         const response = await createFood(foodCreate)
         if (response && response.id) {
@@ -221,39 +237,83 @@ export default function FoodLogSelect() {
           </div>
         </div>
 
-        {/* Serving Size */}
-        <div className="bg-white rounded-lg p-4">
-          <label className="block text-sm font-medium text-[#212121] mb-2">
-            Serving Size
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min="0.1"
-              step="0.1"
-              value={servingSize}
-              onChange={(e) => setServingSize(e.target.value)}
-              placeholder="e.g. 1.5"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-[#212121] text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
-            />
-            <span className="text-sm text-[#757575]">servings</span>
-          </div>
-        </div>
-
-        {/* Nutrition */}
-        <div className="bg-white rounded-lg p-4">
-          <label className="block text-sm font-medium text-[#212121] mb-2">
-            Nutrition
-          </label>
-          <div className="text-sm text-[#757575]">
-            <span className="font-medium text-[#212121]">{nutrition.calories}</span> cal ·
-            P:{nutrition.protein}g C:{nutrition.carbs}g F:{nutrition.fat}g
-          </div>
-        </div>
-
         {/* Quick Add Fields */}
         {isQuickAdd && (
           <>
+            {cameFromHistory ? (
+              <>
+                <div className="bg-white rounded-lg p-4">
+                  <label className="block text-sm font-medium text-[#212121] mb-2">
+                    Serving Size
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      value={servingSize}
+                      onChange={(e) => setServingSize(e.target.value)}
+                      placeholder="e.g. 1.5"
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-[#212121] text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
+                    />
+                    <span className="text-sm text-[#757575]">servings</span>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-4">
+                  <label className="block text-sm font-medium text-[#212121] mb-2">
+                    Calories *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    {...register('calories')}
+                    placeholder="e.g. 105"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[#212121] text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
+                  />
+                  {formErrors.calories && (
+                    <p className="mt-1 text-xs text-[#E53935]">{formErrors.calories.message}</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="bg-white rounded-lg p-4">
+                  <label className="block text-sm font-medium text-[#212121] mb-2">
+                    Calories *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    {...register('calories')}
+                    placeholder="e.g. 105"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[#212121] text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
+                  />
+                  {formErrors.calories && (
+                    <p className="mt-1 text-xs text-[#E53935]">{formErrors.calories.message}</p>
+                  )}
+                </div>
+
+                <div className="bg-white rounded-lg p-4">
+                  <label className="block text-sm font-medium text-[#212121] mb-2">
+                    Serving Size
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      value={servingSize}
+                      onChange={(e) => setServingSize(e.target.value)}
+                      placeholder="e.g. 1.5"
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-[#212121] text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
+                    />
+                    <span className="text-sm text-[#757575]">servings</span>
+                  </div>
+                </div>
+              </>
+            )}
+
             <div className="bg-white rounded-lg p-4">
               <label className="block text-sm font-medium text-[#212121] mb-2">
                 Food Name (optional)
@@ -265,22 +325,6 @@ export default function FoodLogSelect() {
               />
               {formErrors.name && (
                 <p className="mt-1 text-xs text-[#E53935]">{formErrors.name.message}</p>
-              )}
-            </div>
-
-            <div className="bg-white rounded-lg p-4">
-              <label className="block text-sm font-medium text-[#212121] mb-2">
-                Calories *
-              </label>
-              <input
-                type="number"
-                min="1"
-                {...register('calories')}
-                placeholder="e.g. 105"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[#212121] text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
-              />
-              {formErrors.calories && (
-                <p className="mt-1 text-xs text-[#E53935]">{formErrors.calories.message}</p>
               )}
             </div>
 
@@ -357,6 +401,15 @@ export default function FoodLogSelect() {
               />
             </div>
           </>
+        )}
+
+        {selectedFood && selectedFood.id && (
+          <div className="bg-white rounded-lg p-4">
+            <label className="block text-sm font-medium text-[#757575] mb-2">
+              Food ID
+            </label>
+            <p className="text-sm text-[#212121]">{selectedFood.id}</p>
+          </div>
         )}
 
         {error && (

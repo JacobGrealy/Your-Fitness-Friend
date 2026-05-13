@@ -33,6 +33,7 @@ export interface FoodLog {
   protein_g: number
   carbs_g: number
   fat_g: number
+  serving_size?: string
   date: string
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
   created_at: string
@@ -60,6 +61,7 @@ export interface FoodCreate {
   carbs_g: number
   fat_g: number
   serving_size: string
+  food_id?: string
 }
 
 /**
