@@ -10,51 +10,60 @@ describe('Button component', () => {
   })
 
   describe('variant classes', () => {
-    it('applies primary variant class by default', () => {
+    it('applies primary variant styling by default', () => {
       const { container } = render(<Button>Default</Button>)
-      expect(container.querySelector('button')).toHaveClass('btn-primary')
+      const btn = container.querySelector('button')
+      expect(btn).toHaveClass('bg-mfp-blue text-white')
     })
 
-    it('applies secondary variant class', () => {
+    it('applies secondary variant styling', () => {
       const { container } = render(<Button variant="secondary">Secondary</Button>)
-      expect(container.querySelector('button')).toHaveClass('btn-secondary')
+      const btn = container.querySelector('button')
+      expect(btn).toHaveClass('border border-mfp-blue text-mfp-blue')
     })
 
-    it('applies ghost variant class', () => {
+    it('applies ghost variant styling', () => {
       const { container } = render(<Button variant="ghost">Ghost</Button>)
-      expect(container.querySelector('button')).toHaveClass('btn-ghost')
+      const btn = container.querySelector('button')
+      expect(btn).toHaveClass('text-mfp-textSecondary hover:text-mfp-text')
     })
 
-    it('applies outline variant class', () => {
+    it('applies outline variant styling', () => {
       const { container } = render(<Button variant="outline">Outline</Button>)
-      expect(container.querySelector('button')).toHaveClass('btn-outline')
+      const btn = container.querySelector('button')
+      expect(btn).toHaveClass('border border-mfp-blue text-mfp-blue')
     })
 
-    it('applies accent variant class', () => {
+    it('applies accent variant styling', () => {
       const { container } = render(<Button variant="accent">Accent</Button>)
-      expect(container.querySelector('button')).toHaveClass('btn-accent')
+      const btn = container.querySelector('button')
+      expect(btn).toHaveClass('bg-mfp-success text-white')
     })
   })
 
   describe('size classes', () => {
     it('applies md size class by default', () => {
       const { container } = render(<Button>Default</Button>)
-      expect(container.querySelector('button')).toHaveClass('btn-md')
+      const btn = container.querySelector('button')
+      expect(btn).toHaveClass('text-sm px-4 py-2')
     })
 
     it('applies xs size class', () => {
       const { container } = render(<Button size="xs">XS</Button>)
-      expect(container.querySelector('button')).toHaveClass('btn-xs')
+      const btn = container.querySelector('button')
+      expect(btn).toHaveClass('text-xs px-2 py-1')
     })
 
     it('applies sm size class', () => {
       const { container } = render(<Button size="sm">SM</Button>)
-      expect(container.querySelector('button')).toHaveClass('btn-sm')
+      const btn = container.querySelector('button')
+      expect(btn).toHaveClass('text-sm px-3 py-1.5')
     })
 
     it('applies lg size class', () => {
       const { container } = render(<Button size="lg">LG</Button>)
-      expect(container.querySelector('button')).toHaveClass('btn-lg')
+      const btn = container.querySelector('button')
+      expect(btn).toHaveClass('text-base px-6 py-3')
     })
   })
 
@@ -63,8 +72,8 @@ describe('Button component', () => {
       const { container } = render(<Button loading>Loading</Button>)
       const button = container.querySelector('button')
       expect(button).toHaveAttribute('disabled')
-      expect(button).toHaveClass('btn-disabled')
-      expect(container.querySelector('.loading-spinner')).toBeInTheDocument()
+      expect(button).toHaveClass('disabled:opacity-50')
+      expect(container.querySelector('svg')).toBeInTheDocument()
     })
   })
 
@@ -84,7 +93,7 @@ describe('Button component', () => {
     it('sets disabled attribute when disabled is true', () => {
       const { container } = render(<Button disabled>Disabled</Button>)
       expect(container.querySelector('button')).toHaveAttribute('disabled')
-      expect(container.querySelector('button')).toHaveClass('btn-disabled')
+      expect(container.querySelector('button')).toHaveClass('disabled:opacity-50')
     })
 
     it('does not set disabled attribute by default', () => {

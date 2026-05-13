@@ -15,9 +15,9 @@ describe('Card component', () => {
       expect(screen.getByText('Card Title')).toBeInTheDocument()
     })
 
-    it('applies card-title class to title', () => {
+    it('applies title styling', () => {
       const { container } = render(<Card title="Card Title"><p>Content</p></Card>)
-      expect(container.querySelector('.card-title')).toHaveTextContent('Card Title')
+      expect(container.querySelector('h2')).toHaveTextContent('Card Title')
     })
   })
 
@@ -29,21 +29,21 @@ describe('Card component', () => {
   })
 
   describe('shadow class', () => {
-    it('applies shadow-md when shadow is true', () => {
+    it('applies shadow-sm when shadow is true', () => {
       const { container } = render(<Card shadow><p>Content</p></Card>)
-      expect(container.querySelector('.card')).toHaveClass('shadow-md')
+      expect(container.querySelector('[class*="bg-white"]')).toHaveClass('shadow-sm')
     })
 
     it('does not apply shadow by default', () => {
       const { container } = render(<Card><p>Content</p></Card>)
-      expect(container.querySelector('.card')).not.toHaveClass('shadow-md')
+      expect(container.querySelector('[class*="bg-white"]')).not.toHaveClass('shadow-sm')
     })
   })
 
   describe('custom className', () => {
     it('applies custom className', () => {
       const { container } = render(<Card className="custom-class"><p>Content</p></Card>)
-      expect(container.querySelector('.card')).toHaveClass('custom-class')
+      expect(container.querySelector('[class*="bg-white"]')).toHaveClass('custom-class')
     })
   })
 })

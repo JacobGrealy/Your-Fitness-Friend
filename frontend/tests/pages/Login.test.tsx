@@ -119,7 +119,7 @@ describe('Login page', () => {
 
       await waitFor(() => {
         expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'password123')
-        expect(mockNavigate).toHaveBeenCalledWith('/dashboard')
+        expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true })
       })
     })
   })
