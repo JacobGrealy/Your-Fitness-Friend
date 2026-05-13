@@ -37,7 +37,9 @@ def get_foods():
         'calories': f.calories,
         'protein_g': f.protein_g,
         'carbs_g': f.carbs_g,
-        'fat_g': f.fat_g
+        'fat_g': f.fat_g,
+        'brand': f.brand,
+        'barcode_id': f.barcode_id,
     } for f in foods]), 200
 
 
