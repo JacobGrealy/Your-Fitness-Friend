@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch, MacroGoals } from '@/types'
+import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch, MacroGoals, FoodRecent } from '@/types'
 
 export const foodApi = {
   // Food entries
@@ -29,4 +29,8 @@ export const foodApi = {
     api.get<MacroGoals>('/food/macro-goals').then(res => res.data),
   setMacroGoals: (goals: MacroGoals) =>
     api.put<MacroGoals>('/food/macro-goals', goals).then(res => res.data),
+
+  // Recent foods
+  getRecentFoods: (days?: number) =>
+    api.get<FoodRecent[]>('/food/recent', { params: { days } }).then(res => res.data),
 }
