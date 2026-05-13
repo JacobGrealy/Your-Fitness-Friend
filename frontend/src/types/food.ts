@@ -101,3 +101,17 @@ export interface MacroGoals {
  * Meal type literal union type.
  */
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+
+/**
+ * Summary of a recently logged food, grouped by name.
+ */
+export interface FoodRecent {
+  food_name: string
+  calories: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+  serving_size: string | null
+  total_logs: number
+  last_logged: string
+}

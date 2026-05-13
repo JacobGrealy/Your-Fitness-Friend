@@ -38,6 +38,7 @@ export type {
   FoodSearch,
   MacroGoals,
   MealType,
+  FoodRecent,
 } from './food'
 
 export type {
