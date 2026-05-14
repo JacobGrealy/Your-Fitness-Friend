@@ -190,13 +190,13 @@ export default function PhotoLog() {
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={handleInputChange}
             className="hidden"
           />
 
-          <div
-            className="bg-white rounded-xl p-6 text-center cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#185ADB] transition-colors"
+          {!previewUrl && (
+            <div
+              className="bg-white rounded-xl p-6 text-center cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#185ADB] transition-colors"
             onClick={() => fileInputRef.current?.click()}
             role="button"
             tabIndex={0}
@@ -213,6 +213,7 @@ export default function PhotoLog() {
             <p className="text-lg font-semibold text-[#212121]">Take a Photo</p>
             <p className="text-sm text-[#757575] mt-1">or choose from gallery</p>
           </div>
+          )}
 
           {previewUrl && (
             <div className="bg-white rounded-xl p-3 space-y-3">
