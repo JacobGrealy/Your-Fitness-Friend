@@ -54,10 +54,16 @@ export default function DailyFood() {
     setCurrentDate(new Date())
   }
 
+  const [isNavigating, setIsNavigating] = useState(false)
+
   useEffect(() => {
-    fetchDailyTotals()
-    fetchFoodLogs()
-  }, [])
+    const dateStr = format(currentDate, 'yyyy-MM-dd')
+    setIsNavigating(true)
+    Promise.all([
+      fetchDailyTotals(dateStr),
+      fetchFoodLogs(dateStr),
+    ]).finally(() => setIsNavigating(false))
+  }, [currentDate, fetchDailyTotals, fetchFoodLogs])
 
   const groupedLogs = MEAL_TYPES.reduce((acc, meal) => {
     acc[meal] = foodLogs.filter(log => log.meal_type === meal)
@@ -95,7 +101,7 @@ export default function DailyFood() {
     )
   }
 
-  if (isLoading && foodLogs.length === 0 && !dailyTotals) {
+  if ((isLoading || isNavigating) && foodLogs.length === 0 && !dailyTotals) {
     return (
       <div className="min-h-screen bg-[#f2f2f2]">
         <div className="flex justify-center py-12">
