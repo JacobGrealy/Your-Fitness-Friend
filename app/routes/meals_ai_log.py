@@ -156,14 +156,15 @@ def ai_log():
             food_name = 'Analyzed meal'
 
         if analysis_data:
-            food_log = create_food_log(
-                user_id=current_user.id,
-                food_name=food_name,
-                **analysis_data,
-                meal_type=meal_type,
-            )
-            db.session.commit()
-            logs = [format_log_entry(food_log)]
+            logs = [{
+                'id': None,
+                'food_name': food_name,
+                'calories': analysis_data['calories'],
+                'protein_g': analysis_data['protein_g'],
+                'carbs_g': analysis_data['carbs_g'],
+                'fat_g': analysis_data['fat_g'],
+                'meal_type': meal_type,
+            }]
         else:
             logs = []
 
@@ -219,14 +220,15 @@ def ai_log():
         logs = []
         if parsed:
             # Single-item JSON response (calories, protein, carbs, fat)
-            food_log = create_food_log(
-                user_id=current_user.id,
-                food_name='Additional item',
-                **parsed,
-                meal_type='snack',
-            )
-            db.session.commit()
-            logs.append(format_log_entry(food_log))
+            logs.append({
+                'id': None,
+                'food_name': 'Additional item',
+                'calories': parsed['calories'],
+                'protein_g': parsed['protein_g'],
+                'carbs_g': parsed['carbs_g'],
+                'fat_g': parsed['fat_g'],
+                'meal_type': 'snack',
+            })
         else:
             # Try extracting multiple items from JSON
             match = re.search(r'\{[^{}]*"items"[^{}]*\}', ai_content, re.DOTALL)
@@ -241,19 +243,15 @@ def ai_log():
                     for item in items:
                         cal = int(float(item.get('calories', 0)))
                         if cal != 0:  # Skip items with 0 calories (likely not food)
-                            food_log = create_food_log(
-                                user_id=current_user.id,
-                                food_name=item.get('food_name', item.get('name', 'Additional item'))[:120],
-                                calories=cal,
-                                protein_g=float(item.get('protein', 0)),
-                                carbs_g=float(item.get('carbs', 0)),
-                                fat_g=float(item.get('fat', 0)),
-                                meal_type='snack',
-                            )
-                            logs.append(format_log_entry(food_log))
-                    db.session.commit()
-                else:
-                    db.session.rollback()
+                            logs.append({
+                                'id': None,
+                                'food_name': item.get('food_name', item.get('name', 'Additional item'))[:120],
+                                'calories': cal,
+                                'protein_g': float(item.get('protein', 0)),
+                                'carbs_g': float(item.get('carbs', 0)),
+                                'fat_g': float(item.get('fat', 0)),
+                                'meal_type': 'snack',
+                            })
 
         # Build response
         conversation_history.append({'role': 'user', 'content': user_message})
