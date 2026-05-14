@@ -46,41 +46,52 @@ def get_foods():
 @bp.route('/recent', methods=['GET'])
 @login_required
 def get_recent_foods():
-    """Get user's recently logged foods, grouped by food name."""
+    """Get user's recently logged foods, using Food as source of truth."""
     days = request.args.get('days', 7, type=int)
     cutoff_date = datetime.utcnow().date() - timedelta(days=days)
 
     logs = FoodLog.query.filter(
         FoodLog.user_id == current_user.id,
-        FoodLog.date >= cutoff_date
-    ).order_by(FoodLog.date.desc()).all()
+        FoodLog.date >= cutoff_date,
+        FoodLog.food_id.isnot(None)
+    ).order_by(FoodLog.id.desc()).all()
 
-    # Build a lookup of user's foods by name
-    all_foods = Food.query.filter_by(user_id=current_user.id).all()
-    food_by_name = {f.name: f.id for f in all_foods}
-
-    # Group by food_name, keeping the most recent macros
+    # Group by food_id: count logs, track most recent date
+    # Since logs are ordered by id desc, the first log per food_id is the most recent
     grouped = {}
     for log in logs:
-        key = log.food_name
+        key = log.food_id
         if key not in grouped:
             grouped[key] = {
-                'food_name': log.food_name,
-                'food_id': food_by_name.get(log.food_name),
-                'calories': log.calories,
-                'protein_g': log.protein_g,
-                'carbs_g': log.carbs_g,
-                'fat_g': log.fat_g,
-                'serving_size': log.serving_size,
-                'brand': log.brand,
-                'barcode_id': log.barcode_id,
                 'total_logs': 0,
-                'last_logged': log.date.isoformat(),
+                'last_logged': log.date,
+                'serving_size': log.serving_size,
             }
         grouped[key]['total_logs'] += 1
-        # Keep the latest macros (already sorted by date desc)
 
-    result = list(grouped.values())
+    # Get Food records for all food_ids
+    food_ids = [fid for fid in grouped.keys()]
+    foods = Food.query.filter(Food.id.in_(food_ids)).all()
+    food_lookup = {f.id: f for f in foods}
+
+    result = []
+    for food_id, data in grouped.items():
+        food = food_lookup.get(food_id)
+        if food:
+            result.append({
+                'food_name': food.name,
+                'food_id': food_id,
+                'calories': food.calories,
+                'protein_g': food.protein_g,
+                'carbs_g': food.carbs_g,
+                'fat_g': food.fat_g,
+                'serving_size': data['serving_size'],
+                'brand': food.brand,
+                'barcode_id': food.barcode_id,
+                'total_logs': data['total_logs'],
+                'last_logged': data['last_logged'].isoformat(),
+            })
+
     # Sort by last_logged descending
     result.sort(key=lambda x: x['last_logged'], reverse=True)
 
@@ -194,7 +205,10 @@ def get_food_logs():
             'protein_g': log.protein_g,
             'carbs_g': log.carbs_g,
             'fat_g': log.fat_g,
-            'meal_type': log.meal_type
+            'meal_type': log.meal_type,
+            'brand': log.brand,
+            'food_id': log.food_id,
+            'serving_size': log.serving_size,
         } for log in logs],
         'totals': {
             'total_calories': total_calories,
@@ -269,6 +283,7 @@ def create_food_log():
     
     food_log = FoodLog(
         user_id=current_user.id,
+        food_id=data.get('food_id'),
         food_name=food_name,
         calories=calories,
         protein_g=protein_g,

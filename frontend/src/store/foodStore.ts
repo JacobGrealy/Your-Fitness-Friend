@@ -130,27 +130,40 @@ export const useFoodStore = create<FoodState>((set, get) => ({
 
       if (data.food_id) {
         const food = get().foods.find(f => String(f.id) === data.food_id)
-        if (!food) {
-          throw new Error('Food not found')
+        if (food) {
+          const quantity = data.quantity || 1
+          const totalCalories = Math.round(food.calories * quantity)
+          const totalProtein = food.protein_g * quantity
+          const totalCarbs = food.carbs_g * quantity
+          const totalFat = food.fat_g * quantity
+          await foodApi.logFood({
+            food_id: data.food_id,
+            food_name: food.name,
+            calories: totalCalories,
+            protein_g: totalProtein,
+            carbs_g: totalCarbs,
+            fat_g: totalFat,
+            date: today,
+            meal_type: data.meal_type,
+            serving_size: data.serving_size,
+            brand: data.brand,
+            barcode_id: data.barcode_id,
+          })
+        } else {
+          await foodApi.logFood({
+            food_id: data.food_id,
+            food_name: data.food_name!,
+            calories: data.calories!,
+            protein_g: data.protein_g,
+            carbs_g: data.carbs_g,
+            fat_g: data.fat_g,
+            date: today,
+            meal_type: data.meal_type,
+            serving_size: data.serving_size,
+            brand: data.brand,
+            barcode_id: data.barcode_id,
+          })
         }
-        const quantity = data.quantity || 1
-        const totalCalories = Math.round(food.calories * quantity)
-        const totalProtein = food.protein_g * quantity
-        const totalCarbs = food.carbs_g * quantity
-        const totalFat = food.fat_g * quantity
-        await foodApi.logFood({
-          food_id: data.food_id,
-          food_name: food.name,
-          calories: totalCalories,
-          protein_g: totalProtein,
-          carbs_g: totalCarbs,
-          fat_g: totalFat,
-          date: today,
-          meal_type: data.meal_type,
-          serving_size: data.serving_size,
-          brand: data.brand,
-          barcode_id: data.barcode_id,
-        })
       } else {
         await foodApi.logFood({
           food_id: data.food_id,

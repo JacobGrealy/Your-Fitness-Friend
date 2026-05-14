@@ -34,6 +34,8 @@ export interface FoodLog {
   carbs_g: number
   fat_g: number
   serving_size?: string
+  brand?: string
+  food_id?: string | null
   date: string
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
   created_at: string

@@ -9,6 +9,7 @@ class FoodLog(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    food_id = db.Column(db.Integer, db.ForeignKey('foods.id'), nullable=True, index=True)
     food_name = db.Column(db.String(120), nullable=False)
     calories = db.Column(db.Integer, nullable=False)
     protein_g = db.Column(db.Float, default=0.0)
@@ -21,6 +22,9 @@ class FoodLog(db.Model):
     meal_type = db.Column(db.String(20), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship to Food (optional - only set when user logs from their food database)
+    food = db.relationship('Food', backref='food_logs')
     
     def to_dict(self):
         return {

@@ -67,8 +67,6 @@ export default function FoodLogSelect() {
   }, [fetchFoods, clearError])
 
   useEffect(() => {
-    if (!foods.length) return
-
     const historyName = searchParams.get('name')
     const historyCalories = searchParams.get('calories')
     const historyFoodId = searchParams.get('foodId')
@@ -84,14 +82,19 @@ export default function FoodLogSelect() {
       setValue('serving_size', searchParams.get('serving_size') || '')
       setValue('brand', searchParams.get('brand') || '')
       setValue('barcode_id', searchParams.get('barcode_id') || '')
+    }
+  }, [searchParams, setValue])
 
-      if (historyFoodId) {
-        const food = foods.find(f => String(f.id) === historyFoodId)
-        if (food) {
-          setSelectedFood(food)
-        }
+  useEffect(() => {
+    if (!foods.length) return
+
+    const historyFoodId = searchParams.get('foodId')
+    if (historyFoodId) {
+      const food = foods.find(f => String(f.id) === historyFoodId)
+      if (food) {
+        setSelectedFood(food)
+        return
       }
-      return
     }
 
     if (foodId) {
@@ -104,17 +107,20 @@ export default function FoodLogSelect() {
         setValue('carbs_g', food.carbs_g)
         setValue('fat_g', food.fat_g)
         setValue('brand', food.brand || '')
+        return
       }
-    } else {
-      setIsQuickAdd(true)
+    }
+
+    if (!selectedFood && !isQuickAdd) {
       setServingSize('1')
     }
-  }, [foods, foodId, searchParams, setValue])
+  }, [foods, foodId, searchParams, setValue, selectedFood, isQuickAdd])
 
   const onSubmit = async (data: any) => {
     setIsSubmitting(true)
     try {
       const quantityNum = parseFloat(servingSize) || 1
+      let createdFoodId: string | undefined
 
       if (data.name) {
         const foodCreate: any = {
@@ -132,13 +138,14 @@ export default function FoodLogSelect() {
         }
         const response = await createFood(foodCreate)
         if (response && response.id) {
+          createdFoodId = String(response.id)
           setSelectedFood({ ...response } as Food)
         }
       }
 
       // Log the food
       const logData: FoodLogCreate = {
-        food_id: selectedFood ? String(selectedFood.id) : undefined,
+        food_id: createdFoodId || (selectedFood ? String(selectedFood.id) : undefined),
         quantity: quantityNum,
         food_name: data.name || 'Quick Add',
         calories: Math.round(data.calories * quantityNum),
