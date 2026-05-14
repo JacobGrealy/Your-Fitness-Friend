@@ -71,6 +71,7 @@ export default function PhotoLog() {
       setLogEntries(response.logs)
       setMessages(response.conversation_history)
       setStep('review')
+      setIsSubmitting(false)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to analyze photo')
       setStep('capture')
@@ -111,6 +112,7 @@ export default function PhotoLog() {
 
       setUserMessage('')
       setStep('review')
+      setIsSubmitting(false)
     } catch (err: any) {
       setMessages([...newMessages, { role: 'ai', content: err.response?.data?.error || 'Failed to get response' }])
       setError(err.response?.data?.error || 'Failed to get response')
