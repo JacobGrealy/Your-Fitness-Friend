@@ -18,6 +18,7 @@ export default function PhotoLog() {
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const foodStore = useFoodStore()
+  const [accepting, setAccepting] = useState(false)
 
   const [step, setStep] = useState<Step>('capture')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -136,28 +137,30 @@ export default function PhotoLog() {
   }, [])
 
   const handleAccept = useCallback(async () => {
-    if (logEntries.length === 0 || isSubmitting) return
-    setIsSubmitting(true)
+    if (logEntries.length === 0 || accepting) return
+    setAccepting(true)
     setStep('loading')
 
     try {
       for (const entry of logEntries) {
-        await foodStore.logFood({
-          food_name: entry.food_name,
-          calories: entry.calories,
-          protein_g: entry.protein_g,
-          carbs_g: entry.carbs_g,
-          fat_g: entry.fat_g,
-          meal_type: entry.meal_type,
-        })
+        if (entry.id) {
+          await foodStore.updateFoodLog(String(entry.id), {
+            food_name: entry.food_name,
+            calories: entry.calories,
+            protein_g: entry.protein_g,
+            carbs_g: entry.carbs_g,
+            fat_g: entry.fat_g,
+            meal_type: entry.meal_type,
+          })
+        }
       }
       navigate('/food')
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save food logs')
       setStep('review')
-      setIsSubmitting(false)
+      setAccepting(false)
     }
-  }, [logEntries, foodStore, navigate, isSubmitting])
+  }, [logEntries, foodStore, navigate, accepting])
 
   const handleBack = useCallback(() => {
     navigate(-1)

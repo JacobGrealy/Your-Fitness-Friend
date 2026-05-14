@@ -17,6 +17,8 @@ export const foodApi = {
     api.get<any>('/food/log', { params }).then(res => res.data.logs || []),
   logFood: (data: FoodLogCreate) =>
     api.post<FoodLog>('/food/log', data).then(res => res.data),
+  updateFoodLog: (id: string, data: Partial<FoodLogCreate>) =>
+    api.put<FoodLog>(`/food/log/${id}`, data).then(res => res.data),
   deleteFoodLog: (id: string) =>
     api.delete(`/food/log/${id}`).then(res => res.data),
 

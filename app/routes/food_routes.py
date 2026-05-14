@@ -347,6 +347,53 @@ def delete_food_log(log_id):
     return jsonify({'message': 'Food log deleted'}), 200
 
 
+@bp.route('/log/<int:log_id>', methods=['PUT'])
+@login_required
+def update_food_log(log_id):
+    """Update a food log entry."""
+    log = FoodLog.query.filter_by(
+        id=log_id,
+        user_id=current_user.id
+    ).first()
+    
+    if not log:
+        return jsonify({'error': 'Food log not found'}), 404
+    
+    data = request.get_json()
+    
+    if data.get('food_name') is not None:
+        log.food_name = data['food_name']
+    if data.get('calories') is not None:
+        log.calories = int(data['calories'])
+    if data.get('protein_g') is not None:
+        log.protein_g = float(data['protein_g'])
+    if data.get('carbs_g') is not None:
+        log.carbs_g = float(data['carbs_g'])
+    if data.get('fat_g') is not None:
+        log.fat_g = float(data['fat_g'])
+    if data.get('meal_type') is not None:
+        log.meal_type = data['meal_type']
+    if data.get('serving_size') is not None:
+        log.serving_size = data['serving_size']
+    if data.get('brand') is not None:
+        log.brand = data['brand']
+    
+    db.session.commit()
+    
+    return jsonify({
+        'id': log.id,
+        'food_name': log.food_name,
+        'calories': log.calories,
+        'protein_g': log.protein_g,
+        'carbs_g': log.carbs_g,
+        'fat_g': log.fat_g,
+        'serving_size': log.serving_size,
+        'brand': log.brand,
+        'date': log.date.isoformat(),
+        'meal_type': log.meal_type
+    }), 200
+
+
 @bp.route('/daily', methods=['GET'])
 @login_required
 def get_daily_totals():

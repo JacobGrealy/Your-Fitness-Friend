@@ -19,6 +19,7 @@ interface FoodState {
   fetchMacroGoals: () => Promise<void>
   createFood: (data: FoodCreate) => Promise<Food>
   logFood: (data: FoodLogCreate) => Promise<void>
+  updateFoodLog: (id: string, data: Partial<FoodLogCreate>) => Promise<void>
   deleteFood: (id: string) => Promise<void>
   deleteFoodLog: (id: string) => Promise<void>
   setMacroGoals: (goals: MacroGoals) => Promise<void>
@@ -189,6 +190,26 @@ export const useFoodStore = create<FoodState>((set, get) => ({
         isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to log food', 'error')
+    }
+  },
+
+  updateFoodLog: async (id: string, data: Partial<FoodLogCreate>) => {
+    set({ isLoading: true, error: null })
+    try {
+      const updated = await foodApi.updateFoodLog(id, data)
+      set(state => ({
+        foodLogs: state.foodLogs.map(log =>
+          String(log.id) === String(id) ? { ...log, ...updated } : log
+        ),
+        isLoading: false,
+      }))
+      useUIStore.getState().showToast('Food log updated', 'success')
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to update food log',
+        isLoading: false,
+      })
+      useUIStore.getState().showToast(error.response?.data?.message || 'Failed to update food log', 'error')
     }
   },
 
