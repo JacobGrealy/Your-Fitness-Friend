@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app.models.food import Food
 from app.models.food_log import FoodLog
 from app import db
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 
 bp = Blueprint('food', __name__)
@@ -37,8 +37,65 @@ def get_foods():
         'calories': f.calories,
         'protein_g': f.protein_g,
         'carbs_g': f.carbs_g,
-        'fat_g': f.fat_g
+        'fat_g': f.fat_g,
+        'brand': f.brand,
+        'barcode_id': f.barcode_id,
     } for f in foods]), 200
+
+
+@bp.route('/recent', methods=['GET'])
+@login_required
+def get_recent_foods():
+    """Get user's recently logged foods, using Food as source of truth."""
+    days = request.args.get('days', 7, type=int)
+    cutoff_date = datetime.utcnow().date() - timedelta(days=days)
+
+    logs = FoodLog.query.filter(
+        FoodLog.user_id == current_user.id,
+        FoodLog.date >= cutoff_date,
+        FoodLog.food_id.isnot(None)
+    ).order_by(FoodLog.id.desc()).all()
+
+    # Group by food_id: count logs, track most recent date
+    # Since logs are ordered by id desc, the first log per food_id is the most recent
+    grouped = {}
+    for log in logs:
+        key = log.food_id
+        if key not in grouped:
+            grouped[key] = {
+                'total_logs': 0,
+                'last_logged': log.date,
+                'serving_size': log.serving_size,
+            }
+        grouped[key]['total_logs'] += 1
+
+    # Get Food records for all food_ids
+    food_ids = [fid for fid in grouped.keys()]
+    foods = Food.query.filter(Food.id.in_(food_ids)).all()
+    food_lookup = {f.id: f for f in foods}
+
+    result = []
+    for food_id, data in grouped.items():
+        food = food_lookup.get(food_id)
+        if food:
+            result.append({
+                'food_name': food.name,
+                'food_id': food_id,
+                'calories': food.calories,
+                'protein_g': food.protein_g,
+                'carbs_g': food.carbs_g,
+                'fat_g': food.fat_g,
+                'serving_size': data['serving_size'],
+                'brand': food.brand,
+                'barcode_id': food.barcode_id,
+                'total_logs': data['total_logs'],
+                'last_logged': data['last_logged'].isoformat(),
+            })
+
+    # Sort by last_logged descending
+    result.sort(key=lambda x: x['last_logged'], reverse=True)
+
+    return jsonify(result), 200
 
 
 @bp.route('', methods=['POST'])
@@ -55,6 +112,8 @@ def create_food():
     protein_g = data.get('protein_g', 0.0)
     carbs_g = data.get('carbs_g', 0.0)
     fat_g = data.get('fat_g', 0.0)
+    brand = data.get('brand')
+    barcode_id = data.get('barcode_id')
     
     if not name or calories is None:
         return jsonify({'error': 'name and calories are required'}), 400
@@ -70,16 +129,34 @@ def create_food():
     except (TypeError, ValueError):
         return jsonify({'error': 'calories must be a positive integer'}), 400
     
-    food = Food(
-        user_id=current_user.id,
-        name=name,
-        calories=calories,
-        protein_g=protein_g,
-        carbs_g=carbs_g,
-        fat_g=fat_g
-    )
+    food_id = data.get('food_id')
     
-    db.session.add(food)
+    if food_id:
+        food = Food.query.filter_by(
+            id=int(food_id),
+            user_id=current_user.id
+        ).first()
+        if food:
+            food.name = name
+            food.calories = calories
+            food.protein_g = protein_g
+            food.carbs_g = carbs_g
+            food.fat_g = fat_g
+            food.brand = brand
+            food.barcode_id = barcode_id
+    else:
+        food = Food(
+            user_id=current_user.id,
+            name=name,
+            calories=calories,
+            protein_g=protein_g,
+            carbs_g=carbs_g,
+            fat_g=fat_g,
+            brand=brand,
+            barcode_id=barcode_id
+        )
+        db.session.add(food)
+    
     db.session.commit()
     
     return jsonify({
@@ -89,7 +166,9 @@ def create_food():
         'calories': food.calories,
         'protein_g': food.protein_g,
         'carbs_g': food.carbs_g,
-        'fat_g': food.fat_g
+        'fat_g': food.fat_g,
+        'brand': food.brand,
+        'barcode_id': food.barcode_id
     }), 201
 
 
@@ -126,7 +205,10 @@ def get_food_logs():
             'protein_g': log.protein_g,
             'carbs_g': log.carbs_g,
             'fat_g': log.fat_g,
-            'meal_type': log.meal_type
+            'meal_type': log.meal_type,
+            'brand': log.brand,
+            'food_id': log.food_id,
+            'serving_size': log.serving_size,
         } for log in logs],
         'totals': {
             'total_calories': total_calories,
@@ -151,6 +233,9 @@ def create_food_log():
     protein_g = data.get('protein_g', 0.0)
     carbs_g = data.get('carbs_g', 0.0)
     fat_g = data.get('fat_g', 0.0)
+    brand = data.get('brand')
+    barcode_id = data.get('barcode_id')
+    serving_size = data.get('serving_size')
     date_param = data.get('date')
     meal_type = data.get('meal_type')
     
@@ -173,13 +258,40 @@ def create_food_log():
     except (TypeError, ValueError):
         return jsonify({'error': 'calories must be a positive integer and date must be YYYY-MM-DD'}), 400
     
+    # Get brand/barcode_id from food reference or request data
+    brand = None
+    barcode_id = None
+    if data.get('food_id'):
+        food = Food.query.filter_by(
+            id=int(data['food_id']),
+            user_id=current_user.id
+        ).first()
+        if food:
+            food.name = data.get('food_name', food.name)
+            food.calories = data.get('calories', food.calories)
+            food.protein_g = data.get('protein_g', food.protein_g)
+            food.carbs_g = data.get('carbs_g', food.carbs_g)
+            food.fat_g = data.get('fat_g', food.fat_g)
+            food.brand = data.get('brand', food.brand)
+            food.barcode_id = data.get('barcode_id', food.barcode_id)
+            db.session.commit()
+            brand = food.brand
+            barcode_id = food.barcode_id
+    else:
+        brand = data.get('brand')
+        barcode_id = data.get('barcode_id')
+    
     food_log = FoodLog(
         user_id=current_user.id,
+        food_id=data.get('food_id'),
         food_name=food_name,
         calories=calories,
         protein_g=protein_g,
         carbs_g=carbs_g,
         fat_g=fat_g,
+        serving_size=serving_size,
+        brand=brand,
+        barcode_id=barcode_id,
         date=log_date,
         meal_type=meal_type
     )
@@ -194,6 +306,9 @@ def create_food_log():
         'protein_g': food_log.protein_g,
         'carbs_g': food_log.carbs_g,
         'fat_g': food_log.fat_g,
+        'serving_size': food_log.serving_size,
+        'brand': food_log.brand,
+        'barcode_id': food_log.barcode_id,
         'date': food_log.date.isoformat(),
         'meal_type': food_log.meal_type
     }), 201
@@ -202,7 +317,7 @@ def create_food_log():
 @bp.route('/log/<int:log_id>', methods=['DELETE'])
 @login_required
 def delete_food_log(log_id):
-    """Delete a food log entry."""
+    """Delete a food log entry and orphaned food items."""
     log = FoodLog.query.filter_by(
         id=log_id,
         user_id=current_user.id
@@ -211,8 +326,23 @@ def delete_food_log(log_id):
     if not log:
         return jsonify({'error': 'Food log not found'}), 404
     
+    food_name = log.food_name
     db.session.delete(log)
     db.session.commit()
+    
+    remaining = FoodLog.query.filter_by(
+        user_id=current_user.id,
+        food_name=food_name
+    ).first()
+    
+    if not remaining:
+        food = Food.query.filter_by(
+            user_id=current_user.id,
+            name=food_name
+        ).first()
+        if food:
+            db.session.delete(food)
+            db.session.commit()
     
     return jsonify({'message': 'Food log deleted'}), 200
 

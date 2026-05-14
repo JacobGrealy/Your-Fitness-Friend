@@ -10,3 +10,6 @@ export const MUSCLE_GROUPS = ['chest', 'back', 'legs', 'shoulders', 'arms', 'cor
 export const EXERCISE_TYPES = ['cardio', 'strength', 'flexibility', 'other'] as const
 export const GENDERS = ['male', 'female', 'other'] as const
 export const ACTIVITY_LEVELS = ['sedentary', 'light', 'moderate', 'active', 'very_active'] as const
+export const SEARCH_DEBOUNCE_MS = 300
+export const RECENT_FOODS_DAYS = 7
+export const SEARCH_RESULTS_LIMIT = 15

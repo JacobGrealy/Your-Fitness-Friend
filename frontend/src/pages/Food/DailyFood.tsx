@@ -182,6 +182,9 @@ export default function DailyFood() {
                         <div key={log.id} className="flex items-center justify-between px-4 py-3">
                           <div className="flex-1 min-w-0 mr-3">
                             <span className="font-medium text-sm" style={{ color: '#212121' }}>{log.food_name}</span>
+                            {log.brand && (
+                              <div className="text-xs text-[#757575] mt-0.5">{log.brand}</div>
+                            )}
                             <div className="text-xs text-[#757575] mt-0.5">
                               {formatCalories(log.calories)} cal · P:{log.protein_g}g C:{log.carbs_g}g F:{log.fat_g}g
                             </div>

@@ -1,20 +1,23 @@
 import { create } from 'zustand'
 import { foodApi } from '@/api/food'
-import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch, MacroGoals } from '@/types'
+import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch, MacroGoals, FoodRecent } from '@/types'
 import { useUIStore } from './uiStore'
+import { RECENT_FOODS_DAYS } from '@/utils/constants'
 
 interface FoodState {
   foods: Food[]
+  recentFoods: FoodRecent[]
   foodLogs: FoodLog[]
   dailyTotals: DailyTotals | null
   macroGoals: MacroGoals | null
   isLoading: boolean
   error: string | null
   fetchFoods: (params?: FoodSearch) => Promise<void>
+  fetchRecentFoods: (days?: number) => Promise<void>
   fetchFoodLogs: (date?: string) => Promise<void>
   fetchDailyTotals: (date?: string) => Promise<void>
   fetchMacroGoals: () => Promise<void>
-  createFood: (data: FoodCreate) => Promise<void>
+  createFood: (data: FoodCreate) => Promise<Food>
   logFood: (data: FoodLogCreate) => Promise<void>
   deleteFood: (id: string) => Promise<void>
   deleteFoodLog: (id: string) => Promise<void>
@@ -29,6 +32,7 @@ const initialFetch = () => {
 
 export const useFoodStore = create<FoodState>((set, get) => ({
   foods: [],
+  recentFoods: [],
   foodLogs: [],
   dailyTotals: null,
   macroGoals: null,
@@ -43,6 +47,20 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to fetch foods',
+        isLoading: false,
+      })
+    }
+  },
+
+  fetchRecentFoods: async (days?: number) => {
+    set({ isLoading: true, error: null })
+    try {
+      const daysParam = days ?? RECENT_FOODS_DAYS
+      const recentFoods = await foodApi.getRecentFoods(daysParam)
+      set({ recentFoods, isLoading: false })
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to fetch recent foods',
         isLoading: false,
       })
     }
@@ -90,16 +108,18 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   createFood: async (data: FoodCreate) => {
     set({ isLoading: true, error: null })
     try {
-      await foodApi.createFood(data)
+      const created = await foodApi.createFood(data)
       get().fetchFoods()
       useUIStore.getState().showToast('Food added successfully', 'success')
       set({ isLoading: false })
+      return created
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to add food',
         isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to add food', 'error')
+      throw error
     }
   },
 
@@ -110,25 +130,43 @@ export const useFoodStore = create<FoodState>((set, get) => ({
 
       if (data.food_id) {
         const food = get().foods.find(f => String(f.id) === data.food_id)
-        if (!food) {
-          throw new Error('Food not found')
+        if (food) {
+          const quantity = data.quantity || 1
+          const totalCalories = Math.round(food.calories * quantity)
+          const totalProtein = food.protein_g * quantity
+          const totalCarbs = food.carbs_g * quantity
+          const totalFat = food.fat_g * quantity
+          await foodApi.logFood({
+            food_id: data.food_id,
+            food_name: food.name,
+            calories: totalCalories,
+            protein_g: totalProtein,
+            carbs_g: totalCarbs,
+            fat_g: totalFat,
+            date: today,
+            meal_type: data.meal_type,
+            serving_size: data.serving_size,
+            brand: data.brand,
+            barcode_id: data.barcode_id,
+          })
+        } else {
+          await foodApi.logFood({
+            food_id: data.food_id,
+            food_name: data.food_name!,
+            calories: data.calories!,
+            protein_g: data.protein_g,
+            carbs_g: data.carbs_g,
+            fat_g: data.fat_g,
+            date: today,
+            meal_type: data.meal_type,
+            serving_size: data.serving_size,
+            brand: data.brand,
+            barcode_id: data.barcode_id,
+          })
         }
-        const quantity = data.quantity || 1
-        const totalCalories = Math.round(food.calories * quantity)
-        const totalProtein = food.protein_g * quantity
-        const totalCarbs = food.carbs_g * quantity
-        const totalFat = food.fat_g * quantity
-        await foodApi.logFood({
-          food_name: food.name,
-          calories: totalCalories,
-          protein_g: totalProtein,
-          carbs_g: totalCarbs,
-          fat_g: totalFat,
-          date: today,
-          meal_type: data.meal_type,
-        })
       } else {
         await foodApi.logFood({
+          food_id: data.food_id,
           food_name: data.food_name!,
           calories: data.calories!,
           protein_g: data.protein_g,
@@ -136,6 +174,9 @@ export const useFoodStore = create<FoodState>((set, get) => ({
           fat_g: data.fat_g,
           date: today,
           meal_type: data.meal_type,
+          serving_size: data.serving_size,
+          brand: data.brand,
+          barcode_id: data.barcode_id,
         })
       }
       get().fetchFoodLogs()

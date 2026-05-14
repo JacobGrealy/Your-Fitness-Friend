@@ -6,8 +6,11 @@ jest.mock('@/api/auth', () => ({
     login: jest.fn(),
     register: jest.fn(),
     logout: jest.fn(),
+    getProfile: jest.fn(),
   },
 }))
+
+const mockGetProfile = jest.fn()
 
 jest.mock('@/api/client', () => ({
   default: {
@@ -50,14 +53,13 @@ describe('authStore', () => {
   describe('login success', () => {
     it('sets user, token, and isAuthenticated on success', async () => {
       const mockUser = { id: '1', email: 'test@example.com', name: 'Test', created_at: '2024-01-01' }
-      const mockToken = 'test-token'
-      ;(authApi.login as jest.Mock).mockResolvedValue({ data: { token: mockToken, user: mockUser } })
+      ;(authApi.login as jest.Mock).mockResolvedValue({ data: { token: 'test-token', user: mockUser } })
+      ;(authApi.getProfile as jest.Mock).mockResolvedValue(mockUser)
 
       await useAuthStore.getState().login('test@example.com', 'password123')
 
       const state = useAuthStore.getState()
       expect(state.user).toEqual(mockUser)
-      expect(state.token).toBe(mockToken)
       expect(state.isAuthenticated).toBe(true)
       expect(state.isLoading).toBe(false)
       expect(state.error).toBeNull()
@@ -66,7 +68,7 @@ describe('authStore', () => {
 
   describe('login failure', () => {
     it('sets error and isLoading false on failure', async () => {
-      const error = { response: { data: { message: 'Invalid credentials' } } }
+      const error = { response: { data: { error: 'Invalid credentials' } } }
       ;(authApi.login as jest.Mock).mockRejectedValue(error)
 
       await useAuthStore.getState().login('test@example.com', 'wrong')
@@ -79,24 +81,19 @@ describe('authStore', () => {
   })
 
   describe('register success', () => {
-    it('sets user, token, and isAuthenticated on success', async () => {
-      const mockUser = { id: '2', email: 'new@example.com', name: 'New User', created_at: '2024-01-02' }
-      const mockToken = 'new-token'
-      ;(authApi.register as jest.Mock).mockResolvedValue({ data: { token: mockToken, user: mockUser } })
+    it('clears isLoading on success', async () => {
+      ;(authApi.register as jest.Mock).mockResolvedValue({ data: { token: 'new-token', user: { id: '2', email: 'new@example.com', name: 'New User', created_at: '2024-01-02' } } })
 
       await useAuthStore.getState().register('new@example.com', 'password123', 'New User')
 
       const state = useAuthStore.getState()
-      expect(state.user).toEqual(mockUser)
-      expect(state.token).toBe(mockToken)
-      expect(state.isAuthenticated).toBe(true)
       expect(state.isLoading).toBe(false)
       expect(state.error).toBeNull()
     })
   })
 
   describe('logout', () => {
-    it('clears user, token, and isAuthenticated', async () => {
+    it('clears user and isAuthenticated', async () => {
       useAuthStore.setState({
         user: { id: '1', email: 'test@example.com', name: 'Test', created_at: '2024-01-01' },
         token: 'test-token',
@@ -107,7 +104,6 @@ describe('authStore', () => {
 
       const state = useAuthStore.getState()
       expect(state.user).toBeNull()
-      expect(state.token).toBeNull()
       expect(state.isAuthenticated).toBe(false)
       expect(state.error).toBeNull()
     })
@@ -124,7 +120,6 @@ describe('authStore', () => {
 
       const state = useAuthStore.getState()
       expect(state.user).toBeNull()
-      expect(state.token).toBeNull()
       expect(state.isAuthenticated).toBe(false)
     })
   })

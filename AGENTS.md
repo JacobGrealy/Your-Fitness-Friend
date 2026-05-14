@@ -15,3 +15,9 @@
 ## Testing
 - Backend: `./venv/bin/python -m pytest tests/`
 - Frontend: `cd frontend && npm test`
+
+## Branching
+- When working on a feature or bug fix, create a feature branch (e.g., `feat/add-food-redesign` or `fix/diary-date-nav`)
+- Do not wait for user confirmation — create the branch proactively
+- Switch to the feature branch before starting work
+- Commit work to the feature branch

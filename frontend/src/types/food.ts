@@ -17,6 +17,7 @@ export interface Food {
   protein_g: number
   carbs_g: number
   fat_g: number
+  brand?: string
   created_at: string
 }
 
@@ -32,6 +33,9 @@ export interface FoodLog {
   protein_g: number
   carbs_g: number
   fat_g: number
+  serving_size?: string
+  brand?: string
+  food_id?: string | null
   date: string
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
   created_at: string
@@ -59,6 +63,7 @@ export interface FoodCreate {
   carbs_g: number
   fat_g: number
   serving_size: string
+  food_id?: string
 }
 
 /**
@@ -74,6 +79,9 @@ export interface FoodLogCreate {
   fat_g?: number
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
   date?: string
+  serving_size?: string
+  brand?: string
+  barcode_id?: string
 }
 
 /**
@@ -101,3 +109,20 @@ export interface MacroGoals {
  * Meal type literal union type.
  */
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+
+/**
+ * Summary of a recently logged food, grouped by name.
+ */
+export interface FoodRecent {
+  food_name: string
+  food_id?: string | null
+  calories: number
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+  serving_size: string | null
+  brand: string | null
+  barcode_id: string | null
+  total_logs: number
+  last_logged: string
+}
