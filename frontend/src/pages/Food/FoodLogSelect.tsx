@@ -82,8 +82,10 @@ export default function FoodLogSelect() {
       setValue('serving_size', searchParams.get('serving_size') || '')
       setValue('brand', searchParams.get('brand') || '')
       setValue('barcode_id', searchParams.get('barcode_id') || '')
+    } else if (!foodId) {
+      setIsQuickAdd(true)
     }
-  }, [searchParams, setValue])
+  }, [searchParams, setValue, foodId])
 
   useEffect(() => {
     if (!foods.length) return
