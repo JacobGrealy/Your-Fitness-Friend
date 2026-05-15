@@ -351,10 +351,14 @@ def delete_food_log(log_id):
 @login_required
 def update_food_log(log_id):
     """Update a food log entry."""
+    current_app.logger.info(f"Update food log request: log_id={log_id} data={request.get_json()}")
     log = FoodLog.query.filter_by(
         id=log_id,
         user_id=current_user.id
     ).first()
+    if not log:
+        current_app.logger.error(f"Update food log: log_id={log_id} not found for user {current_user.id}")
+        return jsonify({'error': 'Food log not found'}), 404
     
     if not log:
         return jsonify({'error': 'Food log not found'}), 404
@@ -379,6 +383,7 @@ def update_food_log(log_id):
         log.brand = data['brand']
     
     db.session.commit()
+    current_app.logger.info(f"Update food log: log_id={log_id} updated name={log.food_name} cal={log.calories}")
     
     return jsonify({
         'id': log.id,

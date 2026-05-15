@@ -163,6 +163,7 @@ def ai_log():
                 meal_type=meal_type,
             )
             db.session.commit()
+            current_app.logger.info(f"AI log created: id={food_log.id} name={food_log.food_name} date={food_log.date}")
             logs = [format_log_entry(food_log)]
         else:
             logs = []

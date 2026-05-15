@@ -140,10 +140,13 @@ export default function PhotoLog() {
     if (logEntries.length === 0 || accepting) return
     setAccepting(true)
     setStep('loading')
+    console.log('[PhotoLog] Accept called, entries:', JSON.stringify(logEntries))
 
     try {
       for (const entry of logEntries) {
+        console.log('[PhotoLog] Processing entry:', entry)
         if (entry.id) {
+          console.log('[PhotoLog] Updating entry id:', entry.id)
           await foodStore.updateFoodLog(String(entry.id), {
             food_name: entry.food_name,
             calories: entry.calories,
@@ -152,10 +155,14 @@ export default function PhotoLog() {
             fat_g: entry.fat_g,
             meal_type: entry.meal_type,
           })
+        } else {
+          console.log('[PhotoLog] Skipping entry, no id:', entry)
         }
       }
+      console.log('[PhotoLog] All entries processed, navigating to /food')
       navigate('/food')
     } catch (err: any) {
+      console.error('[PhotoLog] Accept error:', err)
       setError(err.response?.data?.message || 'Failed to save food logs')
       setStep('review')
       setAccepting(false)
