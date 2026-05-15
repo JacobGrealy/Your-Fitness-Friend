@@ -360,9 +360,6 @@ def update_food_log(log_id):
         current_app.logger.error(f"Update food log: log_id={log_id} not found for user {current_user.id}")
         return jsonify({'error': 'Food log not found'}), 404
     
-    if not log:
-        return jsonify({'error': 'Food log not found'}), 404
-    
     data = request.get_json()
     
     if data.get('food_name') is not None:

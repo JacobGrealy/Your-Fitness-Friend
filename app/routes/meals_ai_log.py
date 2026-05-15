@@ -78,7 +78,7 @@ def parse_ai_nutrition(content):
 
 
 def create_food_log(user_id, food_name, calories, protein_g, carbs_g, fat_g, meal_type):
-    today = db.func.date(db.func.now())
+    today = datetime.utcnow().date()
     food_log = FoodLog(
         user_id=user_id,
         food_name=food_name,
