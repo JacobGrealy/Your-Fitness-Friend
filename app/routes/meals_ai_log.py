@@ -44,6 +44,31 @@ def encode_file_to_base64(filepath):
         return base64.b64encode(f.read()).decode('utf-8')
 
 
+def encode_image_for_ai(filepath, max_size=1024, quality=80):
+    """Resize and compress image for AI analysis to avoid timeouts."""
+    from PIL import Image
+    img = Image.open(filepath)
+    
+    # Convert to RGB if needed (handles PNG with transparency, etc.)
+    if img.mode not in ('RGB', 'RGBA'):
+        img = img.convert('RGB')
+    
+    # Resize if needed
+    width, height = img.size
+    if width > max_size or height > max_size:
+        ratio = min(max_size / width, max_size / height)
+        new_size = (int(width * ratio), int(height * ratio))
+        img = img.resize(new_size, Image.LANCZOS)
+    
+    # Save as compressed JPEG
+    import io
+    output = io.BytesIO()
+    img.save(output, format='JPEG', quality=quality, optimize=True)
+    output.seek(0)
+    
+    return base64.b64encode(output.read()).decode('utf-8')
+
+
 def parse_ai_nutrition(content):
     """Parse JSON nutrition data from AI response."""
     # Strip markdown code blocks if present
@@ -135,7 +160,7 @@ def ai_log():
             return jsonify({'error': error}), 400
 
         full_path = os.path.join(current_app.root_path, 'uploads', photo_path)
-        image_base64 = encode_file_to_base64(full_path)
+        image_base64 = encode_image_for_ai(full_path)
 
         meal_type = request.form.get('meal_type', 'lunch')
         if meal_type not in VALID_MEAL_TYPES:
