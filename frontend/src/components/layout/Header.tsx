@@ -18,7 +18,7 @@ export default function Header({
   centerContent,
   rightContent,
 }: HeaderProps) {
-  const { title: contextTitle, headerRightContent: contextRight } = usePageTitle()
+  const { title: contextTitle, headerRightContent: contextRight, centerContent: contextCenter } = usePageTitle()
   const navigate = useNavigate()
 
   const handleBack = () => {
@@ -60,7 +60,7 @@ export default function Header({
         </div>
 
         <div className="flex items-center gap-1">
-          {centerContent || (
+          {centerContent || contextCenter || (
             <h1 className="text-lg font-bold text-white">{propTitle || contextTitle}</h1>
           )}
         </div>
