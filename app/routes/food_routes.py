@@ -48,7 +48,7 @@ def get_foods():
 def get_recent_foods():
     """Get user's recently logged foods, using Food as source of truth."""
     days = request.args.get('days', 7, type=int)
-    cutoff_date = datetime.utcnow().date() - timedelta(days=days)
+    cutoff_date = datetime.now().date() - timedelta(days=days)
 
     logs = FoodLog.query.filter(
         FoodLog.user_id == current_user.id,
