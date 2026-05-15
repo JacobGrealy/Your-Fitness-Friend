@@ -161,11 +161,11 @@ export default function DailyFood() {
     setCenterContent(
       <div className="flex items-center justify-center gap-4 text-white">
         <button onClick={handlePrevDay} className="p-1 text-white hover:bg-white/10 rounded-full transition-colors" aria-label="Previous day">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <button onClick={handleToday} className="px-3 py-1 text-sm font-medium text-white hover:bg-white/10 rounded-full transition-colors">{formatDateLabel(currentDate)}</button>
+        <button onClick={handleToday} className="px-3 py-1 text-lg font-bold text-white hover:bg-white/10 rounded-full transition-colors">{formatDateLabel(currentDate)}</button>
         <button onClick={handleNextDay} className="p-1 text-white hover:bg-white/10 rounded-full transition-colors" aria-label="Next day">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
     )
