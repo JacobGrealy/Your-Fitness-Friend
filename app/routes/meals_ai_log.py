@@ -8,6 +8,7 @@ import base64
 import uuid
 import json
 import re
+from datetime import datetime
 
 bp = Blueprint('meals_ai_log', __name__)
 
@@ -49,8 +50,8 @@ def encode_image_for_ai(filepath, max_size=1024, quality=80):
     from PIL import Image
     img = Image.open(filepath)
     
-    # Convert to RGB if needed (handles PNG with transparency, etc.)
-    if img.mode not in ('RGB', 'RGBA'):
+    # Convert to RGB (JPEG doesn't support RGBA/transparency)
+    if img.mode != 'RGB':
         img = img.convert('RGB')
     
     # Resize if needed
