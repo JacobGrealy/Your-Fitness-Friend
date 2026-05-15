@@ -28,7 +28,7 @@ export default function Header({
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#185ADB]">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#185ADB] shadow-md">
       <div className="flex items-center justify-between w-full px-4 py-3 max-w-4xl mx-auto min-h-[48px]">
         <div className="flex items-center gap-2">
           {showBack && (
