@@ -6,6 +6,7 @@ import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { MealType, FoodLog } from '@/types'
 import { formatCalories } from '@/utils/formatters'
 import { MEAL_TYPES } from '@/utils/constants'
+import Header from '@/components/layout/Header'
 import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
 import Loading from '@/components/common/Loading'
 import Modal from '@/components/common/Modal'
@@ -112,16 +113,21 @@ export default function DailyFood() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f2f2f2] pb-4">
-      <div className="flex items-center justify-center gap-4 py-3 bg-white border-b border-[#e0e0e0]">
-        <button onClick={handlePrevDay} className="p-1 text-[#185ADB] hover:bg-[#f2f2f2] rounded-full transition-colors" aria-label="Previous day">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-        </button>
-        <button onClick={handleToday} className="px-3 py-1 text-sm font-medium text-[#212121] hover:bg-[#f2f2f2] rounded-full transition-colors">{formatDateLabel(currentDate)}</button>
-        <button onClick={handleNextDay} className="p-1 text-[#185ADB] hover:bg-[#f2f2f2] rounded-full transition-colors" aria-label="Next day">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        </button>
-      </div>
+    <div className="relative">
+      <Header
+        centerContent={
+          <div className="flex items-center justify-center gap-4 text-white">
+            <button onClick={handlePrevDay} className="p-1 text-white hover:bg-white/10 rounded-full transition-colors" aria-label="Previous day">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <button onClick={handleToday} className="px-3 py-1 text-sm font-medium text-white hover:bg-white/10 rounded-full transition-colors">{formatDateLabel(currentDate)}</button>
+            <button onClick={handleNextDay} className="p-1 text-white hover:bg-white/10 rounded-full transition-colors" aria-label="Next day">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+            </button>
+          </div>
+        }
+      />
+      <div className="min-h-screen bg-[#f2f2f2] pb-4 pt-14">
       {error && (
         <div className="px-4 pt-2">
           <div className="bg-white rounded-lg p-3 text-red-600 text-sm">
@@ -150,96 +156,97 @@ export default function DailyFood() {
 
             return (
                <div key={meal} className="bg-white rounded-lg">
-                 <button
-                    type="button"
-                    className="flex items-center justify-between w-full px-4 py-3 cursor-pointer bg-[#185ADB] rounded-t-lg text-left"
-                    onClick={() => toggleMeal(meal)}
-                    aria-expanded={!isCollapsed}
-                    aria-label={`${MEAL_LABELS[meal]} section`}
-                  >
-                   <div className="flex items-center gap-2">
-                     <span>{MEAL_ICONS[meal]}</span>
-                     <span className="font-bold text-white">{MEAL_LABELS[meal]}</span>
-                   </div>
-                   <div className="flex items-center gap-2">
-                     <span className="text-white text-sm">
-                       {totals.calories > 0 ? `${totals.calories} cal` : '0 cal'}
-                     </span>
-                     <svg
-                       xmlns="http://www.w3.org/2000/svg"
-                       className={`w-4 h-4 text-white transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                       fill="none"
-                       viewBox="0 0 24 24"
-                       stroke="currentColor"
-                     >
-                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                     </svg>
-                   </div>
-                  </button>
-
-                {!isCollapsed && (
-                  <div className="divide-y divide-[#e0e0e0]">
-                    {logs.length === 0 ? (
-                      <div className="px-4 py-3 text-sm text-[#757575]">
-                        0 calories
-                      </div>
-                    ) : (
-                      logs.map(log => (
-                        <div key={log.id} className="flex items-center justify-between px-4 py-3">
-                          <div className="flex-1 min-w-0 mr-3">
-                            <span className="font-medium text-sm" style={{ color: '#212121' }}>{log.food_name}</span>
-                            {log.brand && (
-                              <div className="text-xs text-[#757575] mt-0.5">{log.brand}</div>
-                            )}
-                            <div className="text-xs text-[#757575] mt-0.5">
-                              {formatCalories(log.calories)} cal · P:{log.protein_g}g C:{log.carbs_g}g F:{log.fat_g}g
-                            </div>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setDeleteLogId(log.id)
-                            }}
-                            className="text-[#757575] hover:text-red-600 transition-colors shrink-0 p-1"
-                            aria-label={`Delete ${log.food_name}`}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        navigate(`/food/log?meal=${meal}`)
-                      }}
-                      className="w-full py-3 mt-1 text-sm font-medium text-[#185ADB] border-t border-[#e0e0e0] hover:bg-[#f2f2f2] transition-colors rounded-b-lg"
-                    >
-                      + Add Food
-                    </button>
+                <button
+                   type="button"
+                   className="flex items-center justify-between w-full px-4 py-3 cursor-pointer bg-[#185ADB] rounded-t-lg text-left"
+                   onClick={() => toggleMeal(meal)}
+                   aria-expanded={!isCollapsed}
+                   aria-label={`${MEAL_LABELS[meal]} section`}
+                 >
+                  <div className="flex items-center gap-2">
+                    <span>{MEAL_ICONS[meal]}</span>
+                    <span className="font-bold text-white">{MEAL_LABELS[meal]}</span>
                   </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white text-sm">
+                      {totals.calories > 0 ? `${totals.calories} cal` : '0 cal'}
+                    </span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`w-4 h-4 text-white transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                 </button>
 
-      <Modal
-        isOpen={deleteLogId !== null}
-        onClose={() => setDeleteLogId(null)}
-        title="Delete Food Log"
-        submitLabel="Delete"
-        onSubmit={handleDeleteLog}
-        submitDisabled={isLoading}
-        submitLoading={isLoading}
-      >
-        <p className="text-sm" style={{ color: '#757575' }}>
-          Are you sure you want to delete this food log? This action cannot be undone.
-        </p>
-      </Modal>
+               {!isCollapsed && (
+                 <div className="divide-y divide-[#e0e0e0]">
+                   {logs.length === 0 ? (
+                     <div className="px-4 py-3 text-sm text-[#757575]">
+                       0 calories
+                     </div>
+                   ) : (
+                     logs.map(log => (
+                       <div key={log.id} className="flex items-center justify-between px-4 py-3">
+                         <div className="flex-1 min-w-0 mr-3">
+                           <span className="font-medium text-sm" style={{ color: '#212121' }}>{log.food_name}</span>
+                           {log.brand && (
+                             <div className="text-xs text-[#757575] mt-0.5">{log.brand}</div>
+                           )}
+                           <div className="text-xs text-[#757575] mt-0.5">
+                             {formatCalories(log.calories)} cal · P:{log.protein_g}g C:{log.carbs_g}g F:{log.fat_g}g
+                           </div>
+                         </div>
+                         <button
+                           onClick={(e) => {
+                             e.stopPropagation()
+                             setDeleteLogId(log.id)
+                           }}
+                           className="text-[#757575] hover:text-red-600 transition-colors shrink-0 p-1"
+                           aria-label={`Delete ${log.food_name}`}
+                         >
+                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                           </svg>
+                         </button>
+                       </div>
+                     ))
+                   )}
+                   <button
+                     onClick={(e) => {
+                       e.stopPropagation()
+                       navigate(`/food/log?meal=${meal}`)
+                     }}
+                     className="w-full py-3 mt-1 text-sm font-medium text-[#185ADB] border-t border-[#e0e0e0] hover:bg-[#f2f2f2] transition-colors rounded-b-lg"
+                   >
+                     + Add Food
+                   </button>
+                 </div>
+               )}
+             </div>
+           )
+         })}
+       </div>
+     </div>
+
+     <Modal
+       isOpen={deleteLogId !== null}
+       onClose={() => setDeleteLogId(null)}
+       title="Delete Food Log"
+       submitLabel="Delete"
+       onSubmit={handleDeleteLog}
+       submitDisabled={isLoading}
+       submitLoading={isLoading}
+     >
+       <p className="text-sm" style={{ color: '#757575' }}>
+         Are you sure you want to delete this food log? This action cannot be undone.
+       </p>
+     </Modal>
+      </div>
     </div>
   )
 }
