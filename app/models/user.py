@@ -25,6 +25,7 @@ class User(UserMixin, db.Model):
     activity_level = db.Column(db.String(20))  # sedentary, light, moderate, active, very active
     daily_calorie_goal = db.Column(db.Integer, default=2000)
     weight_goal_lbs = db.Column(db.Float, nullable=True)
+    weekly_goal = db.Column(db.String(20), default='maintain')  # maintain, lose_0_5, lose_1, lose_1_5, lose_2
     profile_photo_path = db.Column(db.String(256), nullable=True)
     
     # Relationships
