@@ -6,6 +6,40 @@ import Loading from '@/components/common/Loading'
 import Modal from '@/components/common/Modal'
 import CropModal from '@/components/common/CropModal'
 
+const ACTIVITY_LEVELS = [
+  { value: 'sedentary', label: 'Sedentary', description: 'Little or no exercise, desk job' },
+  { value: 'light', label: 'Light', description: 'Light exercise 1-3 days/week' },
+  { value: 'moderate', label: 'Moderate', description: 'Moderate exercise 3-5 days/week' },
+  { value: 'active', label: 'Active', description: 'Hard exercise 6-7 days/week' },
+  { value: 'very active', label: 'Very Active', description: 'Very hard exercise, physical job, or training twice a day' },
+]
+
+const WEEKLY_GOALS = [
+  { value: 'maintain', label: 'Maintain' },
+  { value: 'lose_0_5', label: 'Lose 0.5 lb/wk' },
+  { value: 'lose_1', label: 'Lose 1 lb/wk' },
+  { value: 'lose_1_5', label: 'Lose 1.5 lb/wk' },
+  { value: 'lose_2', label: 'Lose 2 lb/wk' },
+]
+
+// Convert cm to feet/inches
+const cmToFtIn = (cm: number): { ft: number; in: number } => {
+  const totalInches = cm / 2.54
+  const ft = Math.floor(totalInches / 12)
+  const inches = Math.round(totalInches % 12)
+  return { ft, in: inches }
+}
+
+// Convert feet/inches to cm
+const ftInToCm = (ft: number, inches: number): number => {
+  return (ft * 12 + inches) * 2.54
+}
+
+// Convert lbs to kg
+const lbsToKg = (lbs: number): number => {
+  return lbs / 2.20462
+}
+
 function Profile() {
   const { setTitle } = usePageTitle()
   const { user, isLoading, checkAuth, logout } = useAuthStore()
@@ -15,6 +49,19 @@ function Profile() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [cropModalOpen, setCropModalOpen] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+
+  // Profile edit state
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [birthDateModalOpen, setBirthDateModalOpen] = useState(false)
+  const [birthDate, setBirthDate] = useState('')
+  const [editForm, setEditForm] = useState({
+    gender: '',
+    heightFt: '',
+    heightIn: '',
+    weight: '',
+    activityLevel: '',
+    weeklyGoal: '',
+  })
 
   useEffect(() => { setTitle('More') }, [setTitle])
 
@@ -58,6 +105,68 @@ function Profile() {
   const openGoalModal = () => {
     setGoalValue(user?.weight_goal_lbs?.toString() || '')
     setGoalModalOpen(true)
+  }
+
+  const openEditModal = () => {
+    const ftIn = cmToFtIn(user?.height || 0)
+    setEditForm({
+      gender: user?.gender || '',
+      heightFt: ftIn.ft.toString(),
+      heightIn: ftIn.in.toString(),
+      weight: user?.weight ? (user.weight / 0.453592).toFixed(1).toString() : '',
+      activityLevel: user?.activity_level || '',
+      weeklyGoal: user?.weekly_goal || 'maintain',
+    })
+    setEditModalOpen(true)
+  }
+
+  const handleSaveProfile = async () => {
+    setSaving(true)
+    try {
+      const heightCm = ftInToCm(
+        parseInt(editForm.heightFt) || 0,
+        parseInt(editForm.heightIn) || 0
+      )
+      const weightKg = lbsToKg(parseFloat(editForm.weight) || 0)
+
+      const updated = await authApi.updateProfile({
+        gender: editForm.gender || undefined,
+        height: heightCm || undefined,
+        weight: weightKg || undefined,
+        activity_level: editForm.activityLevel || undefined,
+        weekly_goal: editForm.weeklyGoal || 'maintain',
+      })
+
+      if (updated) {
+        await checkAuth()
+        setEditModalOpen(false)
+      }
+    } catch {
+      alert('Failed to save profile. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const openBirthDateModal = () => {
+    setBirthDateModalOpen(true)
+  }
+
+  const handleSaveBirthDate = async () => {
+    if (!birthDate) return
+    setSaving(true)
+    try {
+      const updated = await authApi.updateProfile({ birthdate: birthDate })
+      if (updated) {
+        await checkAuth()
+        setBirthDateModalOpen(false)
+        setBirthDate('')
+      }
+    } catch {
+      alert('Failed to save birthdate. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (isLoading) {
@@ -128,6 +237,85 @@ function Profile() {
             )}
           </div>
           <span className="text-base font-medium">{user?.email || ''}</span>
+        </div>
+      </div>
+
+      {/* Profile Info Section */}
+      <div className="bg-white rounded-lg mt-4 mx-4 overflow-hidden">
+        <div className="bg-[#185ADB] px-4 py-3 flex items-center justify-between">
+          <span className="text-white text-base font-medium">Profile Info</span>
+          <button
+            type="button"
+            onClick={openEditModal}
+            className="text-white hover:opacity-80"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between py-2">
+            <span className="text-base" style={{ color: '#757575' }}>Age</span>
+            <button
+              type="button"
+              onClick={openBirthDateModal}
+              className="text-base font-medium"
+              style={{ color: '#185ADB' }}
+            >
+              {user?.age != null ? `${user.age}` : 'Not set'}
+            </button>
+          </div>
+          <div className="h-px bg-[#e0e0e0] my-2" />
+          <div className="flex items-center justify-between py-2">
+            <span className="text-base" style={{ color: '#757575' }}>Gender</span>
+            <span className="text-base">{user?.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : 'Not set'}</span>
+          </div>
+          <div className="h-px bg-[#e0e0e0] my-2" />
+          <div className="flex items-center justify-between py-2">
+            <span className="text-base" style={{ color: '#757575' }}>Height</span>
+            <span className="text-base">{user?.height ? `${cmToFtIn(user.height).ft}' ${cmToFtIn(user.height).in}"` : 'Not set'}</span>
+          </div>
+          <div className="h-px bg-[#e0e0e0] my-2" />
+          <div className="flex items-center justify-between py-2">
+            <span className="text-base" style={{ color: '#757575' }}>Weight</span>
+            <span className="text-base">{user?.weight ? `${(user.weight / 0.453592).toFixed(1)} lbs` : 'Not set'}</span>
+          </div>
+          <div className="h-px bg-[#e0e0e0] my-2" />
+          <div className="flex items-center justify-between py-2">
+            <span className="text-base" style={{ color: '#757575' }}>Activity Level</span>
+            <span className="text-base">{user?.activity_level ? user.activity_level.charAt(0).toUpperCase() + user.activity_level.slice(1) : 'Not set'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Nutrition Section */}
+      <div className="bg-white rounded-lg mt-4 mx-4 overflow-hidden">
+        <div className="bg-[#185ADB] px-4 py-3">
+          <span className="text-white text-base font-medium">Nutrition</span>
+        </div>
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between py-2">
+            <span className="text-base" style={{ color: '#757575' }}>Weekly Goal</span>
+            <span className="text-base">
+              {WEEKLY_GOALS.find(g => g.value === user?.weekly_goal)?.label || 'Maintain'}
+            </span>
+          </div>
+          <div className="h-px bg-[#e0e0e0] my-2" />
+          <div className="flex items-center justify-between py-2">
+            <span className="text-base" style={{ color: '#757575' }}>BMR</span>
+            <span className="text-base">{user?.bmr ? `${user.bmr.toLocaleString()} kcal/day` : '—'}</span>
+          </div>
+          <div className="h-px bg-[#e0e0e0] my-2" />
+          <div className="flex items-center justify-between py-2">
+            <span className="text-base" style={{ color: '#757575' }}>TDEE</span>
+            <span className="text-base">{user?.tdee ? `${user.tdee.toLocaleString()} kcal/day` : '—'}</span>
+          </div>
+          <div className="h-px bg-[#e0e0e0] my-2" />
+          <div className="flex items-center justify-between py-2">
+            <span className="text-base" style={{ color: '#757575' }}>Calorie Goal</span>
+            <span className="text-base font-bold">{user?.daily_calorie_goal ? `${user.daily_calorie_goal.toLocaleString()} kcal/day` : '—'}</span>
+          </div>
         </div>
       </div>
 
@@ -245,6 +433,105 @@ function Profile() {
           onChange={(e) => setGoalValue(e.target.value)}
           step="0.1"
           min="0"
+        />
+      </Modal>
+
+      {/* Edit Profile Modal */}
+      <Modal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="Edit Profile"
+        submitLabel="Save"
+        onSubmit={handleSaveProfile}
+        submitLoading={saving}
+        submitDisabled={!editForm.gender || !editForm.heightFt || !editForm.weight || !editForm.activityLevel}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm" style={{ color: '#757575' }}>Gender</label>
+            <select
+              className="w-full border rounded-lg px-4 py-3 text-base outline-none mt-1"
+              style={{ borderColor: '#e0e0e0' }}
+              value={editForm.gender}
+              onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+            >
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-sm" style={{ color: '#757575' }}>Height</label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="number"
+                className="w-1/3 border rounded-lg px-4 py-3 text-base outline-none"
+                style={{ borderColor: '#e0e0e0' }}
+                placeholder="Ft"
+                value={editForm.heightFt}
+                onChange={(e) => setEditForm({ ...editForm, heightFt: e.target.value })}
+                min="1"
+                max="9"
+              />
+              <input
+                type="number"
+                className="w-1/3 border rounded-lg px-4 py-3 text-base outline-none"
+                style={{ borderColor: '#e0e0e0' }}
+                placeholder="In"
+                value={editForm.heightIn}
+                onChange={(e) => setEditForm({ ...editForm, heightIn: e.target.value })}
+                min="0"
+                max="11"
+              />
+              <span className="text-base flex items-center" style={{ color: '#757575' }}>ft/in</span>
+            </div>
+          </div>
+          <div>
+            <label className="text-sm" style={{ color: '#757575' }}>Weight</label>
+            <input
+              type="number"
+              className="w-full border rounded-lg px-4 py-3 text-base outline-none mt-1"
+              style={{ borderColor: '#e0e0e0' }}
+              placeholder="lbs"
+              value={editForm.weight}
+              onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
+              step="0.1"
+              min="0"
+            />
+          </div>
+          <div>
+            <label className="text-sm" style={{ color: '#757575' }}>Activity Level</label>
+            <select
+              className="w-full border rounded-lg px-4 py-3 text-base outline-none mt-1"
+              style={{ borderColor: '#e0e0e0' }}
+              value={editForm.activityLevel}
+              onChange={(e) => setEditForm({ ...editForm, activityLevel: e.target.value })}
+            >
+              <option value="">Select activity level</option>
+              {ACTIVITY_LEVELS.map(level => (
+                <option key={level.value} value={level.value}>{level.label} - {level.description}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Birth Date Modal */}
+      <Modal
+        isOpen={birthDateModalOpen}
+        onClose={() => setBirthDateModalOpen(false)}
+        title="Set Birth Date"
+        submitLabel="Save"
+        onSubmit={handleSaveBirthDate}
+        submitLoading={saving}
+        submitDisabled={!birthDate}
+      >
+        <input
+          type="date"
+          className="w-full border rounded-lg px-4 py-3 text-base outline-none"
+          style={{ borderColor: '#e0e0e0' }}
+          value={birthDate}
+          onChange={(e) => setBirthDate(e.target.value)}
         />
       </Modal>
 

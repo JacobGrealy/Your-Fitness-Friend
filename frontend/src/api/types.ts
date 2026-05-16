@@ -25,6 +25,7 @@ export interface UserProfile {
   tdee?: number
   created_at?: string
   profile_photo_path?: string
+  birthdate?: string
 }
 
 export interface ApiResponse<T> {
