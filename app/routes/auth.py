@@ -1,3 +1,4 @@
+from datetime import datetime
 from functools import wraps
 
 from flask import Blueprint, request, jsonify, session, redirect, url_for, send_file, current_app
@@ -7,6 +8,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app import db
 from app.models.user import User
 from app.utils.bmr_calculator import calculate_bmr_and_macros
+from app.utils.nutrition_service import calculate_calorie_goal, recalculate_user_calories
 from app.config import Config
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -169,7 +171,6 @@ def profile():
         tdee = None
 
         if all([current_user.age, current_user.gender, current_user.height, current_user.weight, current_user.activity_level]):
-            from app.utils.nutrition_service import calculate_calorie_goal
             result = calculate_calorie_goal(
                 age=current_user.age,
                 gender=current_user.gender,
@@ -224,7 +225,6 @@ def profile():
         if 'weight_goal_lbs' in data:
             current_user.weight_goal_lbs = data['weight_goal_lbs']
         if 'birthdate' in data:
-            from datetime import datetime
             birthdate_str = data['birthdate']
             try:
                 birth = datetime.strptime(birthdate_str, '%Y-%m-%d')
@@ -240,7 +240,6 @@ def profile():
         calorie_goal = current_user.daily_calorie_goal
 
         if fields_changed and all([current_user.age, current_user.gender, current_user.height, current_user.weight, current_user.activity_level]):
-            from app.utils.nutrition_service import recalculate_user_calories
             result = recalculate_user_calories(
                 current_user,
                 weekly_goal=data.get('weekly_goal', current_user.weekly_goal or 'maintain'),
@@ -257,6 +256,7 @@ def profile():
             'user': {
                 'id': current_user.id,
                 'username': current_user.username,
+                'email': current_user.email,
                 'age': current_user.age,
                 'gender': current_user.gender,
                 'height': current_user.height,
