@@ -195,6 +195,7 @@ def profile():
             'weight_goal_lbs': current_user.weight_goal_lbs,
             'profile_photo_path': current_user.profile_photo_path,
             'weekly_goal': current_user.weekly_goal or 'maintain',
+            'daily_calorie_goal': current_user.daily_calorie_goal,
             'bmr': bmr,
             'tdee': tdee,
         }
