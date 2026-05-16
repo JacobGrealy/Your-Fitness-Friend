@@ -10,6 +10,12 @@ const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
+  birthdate: z.string().optional(),
+  gender: z.string().optional(),
+  heightFt: z.string().optional(),
+  heightIn: z.string().optional(),
+  weight: z.string().optional(),
+  activityLevel: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
@@ -33,7 +39,25 @@ function RegisterForm() {
   const onSubmit = async (data: RegisterForm) => {
     setLocalError(null)
     try {
-      await registerUser(data.email, data.password, data.name)
+      const payload: Record<string, any> = {
+        email: data.email,
+        password: data.password,
+        name: data.name,
+      }
+
+      // Add profile fields if provided
+      if (data.birthdate) payload.birthdate = data.birthdate
+      if (data.gender) payload.gender = data.gender
+      if (data.heightFt && data.heightIn) {
+        const heightCm = (parseInt(data.heightFt) * 12 + parseInt(data.heightIn)) * 2.54
+        payload.height = heightCm
+      }
+      if (data.weight) {
+        payload.weight = parseFloat(data.weight) / 2.20462
+      }
+      if (data.activityLevel) payload.activity_level = data.activityLevel
+
+      await registerUser(data.email, data.password, data.name, payload)
       setLocalError(null)
       navigate('/auth/login')
     } catch (err) {
@@ -122,6 +146,90 @@ function RegisterForm() {
                 <span className="label-text-alt text-error">{errors.confirmPassword.message}</span>
               </label>
             )}
+          </div>
+
+          {/* Profile Fields */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Your Profile (optional)</h3>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Birth Date</span>
+              </label>
+              <input
+                type="date"
+                className="input input-bordered w-full"
+                {...register('birthdate')}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Gender</span>
+              </label>
+              <select className="select select-bordered" {...register('gender')}>
+                <option value="">Select gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Height (ft)</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered w-full"
+                  {...register('heightFt')}
+                  min="1"
+                  max="9"
+                  placeholder="5"
+                />
+              </div>
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Height (in)</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered w-full"
+                  {...register('heightIn')}
+                  min="0"
+                  max="11"
+                  placeholder="74"
+                />
+              </div>
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Weight (lbs)</span>
+              </label>
+              <input
+                type="number"
+                className="input input-bordered w-full"
+                {...register('weight')}
+                step="0.1"
+                min="0"
+                placeholder="180"
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Activity Level</span>
+              </label>
+              <select className="select select-bordered" {...register('activityLevel')}>
+                <option value="">Select activity level</option>
+                <option value="sedentary">Sedentary - Little or no exercise, desk job</option>
+                <option value="light">Light - Light exercise 1-3 days/week</option>
+                <option value="moderate">Moderate - Moderate exercise 3-5 days/week</option>
+                <option value="active">Active - Hard exercise 6-7 days/week</option>
+                <option value="very active">Very Active - Very hard exercise, physical job</option>
+              </select>
+            </div>
           </div>
 
           <button
