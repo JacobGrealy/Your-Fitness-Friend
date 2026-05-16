@@ -4,6 +4,7 @@ from flask_login import login_required, current_user
 from app import db
 from app.models.weight_log import WeightLog
 from app.utils.weight_calculator import calculate_weight_trend, calculate_weight_change
+from app.utils.nutrition_service import recalculate_from_weight_log
 from app.config import Config
 import os
 import uuid
@@ -98,7 +99,18 @@ def create_log():
     
     db.session.add(log)
     db.session.commit()
-    
+
+    # Recalculate calorie goal using the new weight
+    try:
+        weekly_goal = current_user.weekly_goal or 'maintain'
+        result = recalculate_from_weight_log(current_user, weekly_goal)
+        if result:
+            current_user.daily_calorie_goal = result['calorie_goal']
+            db.session.commit()
+    except Exception:
+        # Silently fail - calorie recalculation shouldn't break weight logging
+        pass
+
     return jsonify({
         'id': log.id,
         'weight_lbs': log.weight,
