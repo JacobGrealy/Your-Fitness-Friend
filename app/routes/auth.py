@@ -165,6 +165,23 @@ def get_current_user():
 def profile():
     """Get or update user profile."""
     if request.method == 'GET':
+        bmr = None
+        tdee = None
+
+        if all([current_user.age, current_user.gender, current_user.height, current_user.weight, current_user.activity_level]):
+            from app.utils.nutrition_service import calculate_calorie_goal
+            result = calculate_calorie_goal(
+                age=current_user.age,
+                gender=current_user.gender,
+                height_cm=current_user.height,
+                weight_kg=current_user.weight,
+                activity_level=current_user.activity_level,
+                weekly_goal=current_user.weekly_goal or 'maintain',
+            )
+            if result:
+                bmr = result['bmr']
+                tdee = result['tdee']
+
         user = {
             'id': current_user.id,
             'username': current_user.username,
@@ -175,29 +192,66 @@ def profile():
             'weight': current_user.weight,
             'activity_level': current_user.activity_level,
             'weight_goal_lbs': current_user.weight_goal_lbs,
-            'profile_photo_path': current_user.profile_photo_path
+            'profile_photo_path': current_user.profile_photo_path,
+            'weekly_goal': current_user.weekly_goal or 'maintain',
+            'bmr': bmr,
+            'tdee': tdee,
         }
         return jsonify(user)
-    
+
     elif request.method == 'PUT':
         data = request.get_json()
-        
-        # Update allowed fields
+
+        fields_changed = False
         if 'age' in data:
             current_user.age = data['age']
+            fields_changed = True
         if 'gender' in data:
             current_user.gender = data['gender']
+            fields_changed = True
         if 'height' in data:
             current_user.height = data['height']
+            fields_changed = True
         if 'weight' in data:
             current_user.weight = data['weight']
+            fields_changed = True
         if 'activity_level' in data:
             current_user.activity_level = data['activity_level']
+            fields_changed = True
+        if 'weekly_goal' in data:
+            current_user.weekly_goal = data['weekly_goal']
+            fields_changed = True
         if 'weight_goal_lbs' in data:
             current_user.weight_goal_lbs = data['weight_goal_lbs']
-        
+        if 'birthdate' in data:
+            from datetime import datetime
+            birthdate_str = data['birthdate']
+            try:
+                birth = datetime.strptime(birthdate_str, '%Y-%m-%d')
+                today = datetime.utcnow()
+                age = today.year - birth.year - ((today.month, today.day) < (birth.month, birth.day))
+                current_user.age = age
+                fields_changed = True
+            except (ValueError, TypeError):
+                pass
+
+        bmr = None
+        tdee = None
+        calorie_goal = current_user.daily_calorie_goal
+
+        if fields_changed and all([current_user.age, current_user.gender, current_user.height, current_user.weight, current_user.activity_level]):
+            from app.utils.nutrition_service import recalculate_user_calories
+            result = recalculate_user_calories(
+                current_user,
+                weekly_goal=data.get('weekly_goal', current_user.weekly_goal or 'maintain'),
+            )
+            if result:
+                bmr = result['bmr']
+                tdee = result['tdee']
+                calorie_goal = result['calorie_goal']
+
         db.session.commit()
-        
+
         return jsonify({
             'message': 'Profile updated successfully',
             'user': {
@@ -208,7 +262,11 @@ def profile():
                 'height': current_user.height,
                 'weight': current_user.weight,
                 'activity_level': current_user.activity_level,
-                'weight_goal_lbs': current_user.weight_goal_lbs
+                'weight_goal_lbs': current_user.weight_goal_lbs,
+                'weekly_goal': current_user.weekly_goal or 'maintain',
+                'bmr': bmr,
+                'tdee': tdee,
+                'calorie_goal': calorie_goal,
             }
         })
 
