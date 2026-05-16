@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { authApi } from '@/api/auth'
+import { weightApi } from '@/api/weight'
 import Loading from '@/components/common/Loading'
 import Modal from '@/components/common/Modal'
 import CropModal from '@/components/common/CropModal'
@@ -56,16 +57,33 @@ function Profile() {
   const [birthDate, setBirthDate] = useState('')
   const [weeklyGoalModalOpen, setWeeklyGoalModalOpen] = useState(false)
   const [selectedWeeklyGoal, setSelectedWeeklyGoal] = useState('')
+  const [latestWeightLog, setLatestWeightLog] = useState<{ weight: number; date: string } | null>(null)
   const [editForm, setEditForm] = useState({
     gender: '',
     heightFt: '',
     heightIn: '',
-    weight: '',
     activityLevel: '',
     weeklyGoal: '',
   })
 
   useEffect(() => { setTitle('More') }, [setTitle])
+
+  useEffect(() => {
+    const fetchLatestWeight = async () => {
+      try {
+        const logs = await weightApi.getLogs()
+        if (logs && logs.length > 0) {
+          setLatestWeightLog({
+            weight: logs[0].weight,
+            date: logs[0].recorded_at?.split?.('T')?.[0] || '',
+          })
+        }
+      } catch {
+        // Silently fail - weight display is not critical
+      }
+    }
+    fetchLatestWeight()
+  }, [])
 
   const handleFileSelect = useCallback((_file: File) => {
     setCropModalOpen(true)
@@ -115,7 +133,6 @@ function Profile() {
       gender: user?.gender || '',
       heightFt: ftIn.ft.toString(),
       heightIn: ftIn.in.toString(),
-      weight: user?.weight ? (user.weight / 0.453592).toFixed(1).toString() : '',
       activityLevel: user?.activity_level || '',
       weeklyGoal: user?.weekly_goal || 'maintain',
     })
@@ -129,12 +146,10 @@ function Profile() {
         parseInt(editForm.heightFt) || 0,
         parseInt(editForm.heightIn) || 0
       )
-      const weightKg = lbsToKg(parseFloat(editForm.weight) || 0)
 
       const updated = await authApi.updateProfile({
         gender: editForm.gender || undefined,
         height: heightCm || undefined,
-        weight: weightKg || undefined,
         activity_level: editForm.activityLevel || undefined,
         weekly_goal: editForm.weeklyGoal || 'maintain',
       })
@@ -304,7 +319,9 @@ function Profile() {
           <div className="h-px bg-[#e0e0e0] my-2" />
           <div className="flex items-center justify-between py-2">
             <span className="text-base" style={{ color: '#757575' }}>Weight</span>
-            <span className="text-base">{user?.weight ? `${(user.weight * 2.20462).toFixed(1)} lbs` : 'Not set'}</span>
+            <span className="text-base">
+              {latestWeightLog ? `${latestWeightLog.weight.toFixed(1)} lbs` : user?.weight ? `${(user.weight * 2.20462).toFixed(1)} lbs` : 'Not set'}
+            </span>
           </div>
           <div className="h-px bg-[#e0e0e0] my-2" />
           <div className="flex items-center justify-between py-2">
@@ -488,7 +505,7 @@ function Profile() {
         submitLabel="Save"
         onSubmit={handleSaveProfile}
         submitLoading={saving}
-        submitDisabled={!editForm.gender || !editForm.heightFt || !editForm.weight || !editForm.activityLevel}
+        submitDisabled={!editForm.gender || !editForm.heightFt || !editForm.activityLevel}
       >
         <div className="space-y-4">
           <div>
@@ -529,19 +546,6 @@ function Profile() {
               />
               <span className="text-base flex items-center" style={{ color: '#757575' }}>ft/in</span>
             </div>
-          </div>
-          <div>
-            <label className="text-sm" style={{ color: '#757575' }}>Weight</label>
-            <input
-              type="number"
-              className="w-full border rounded-lg px-4 py-3 text-base outline-none mt-1"
-              style={{ borderColor: '#e0e0e0' }}
-              placeholder="lbs"
-              value={editForm.weight}
-              onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
-              step="0.1"
-              min="0"
-            />
           </div>
           <div>
             <label className="text-sm" style={{ color: '#757575' }}>Activity Level</label>
