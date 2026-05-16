@@ -274,12 +274,14 @@ function Profile() {
           <div className="h-px bg-[#e0e0e0] my-2" />
           <div className="flex items-center justify-between py-2">
             <span className="text-base" style={{ color: '#757575' }}>Height</span>
-            <span className="text-base">{user?.height ? `${cmToFtIn(user.height).ft}' ${cmToFtIn(user.height).in}"` : 'Not set'}</span>
+            <span className="text-base">
+              {user?.height ? (() => { const ftIn = cmToFtIn(user.height); return `${ftIn.ft}' ${ftIn.in}"`; })() : 'Not set'}
+            </span>
           </div>
           <div className="h-px bg-[#e0e0e0] my-2" />
           <div className="flex items-center justify-between py-2">
             <span className="text-base" style={{ color: '#757575' }}>Weight</span>
-            <span className="text-base">{user?.weight ? `${(user.weight / 0.453592).toFixed(1)} lbs` : 'Not set'}</span>
+            <span className="text-base">{user?.weight ? `${(user.weight * 2.20462).toFixed(1)} lbs` : 'Not set'}</span>
           </div>
           <div className="h-px bg-[#e0e0e0] my-2" />
           <div className="flex items-center justify-between py-2">
