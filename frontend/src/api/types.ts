@@ -20,6 +20,9 @@ export interface UserProfile {
   weight_goal_lbs?: number
   activity_level?: string
   daily_calorie_goal?: number
+  weekly_goal?: string
+  bmr?: number
+  tdee?: number
   created_at?: string
   profile_photo_path?: string
 }
