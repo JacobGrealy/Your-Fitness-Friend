@@ -320,29 +320,6 @@ function Profile() {
           <span className="text-white text-base font-medium">Nutrition</span>
         </div>
         <div className="px-4 py-4">
-          <button
-            type="button"
-            className="w-full flex items-center justify-between py-2"
-            onClick={openWeeklyGoalModal}
-          >
-            <span className="text-base" style={{ color: '#757575' }}>Weekly Goal</span>
-            <div className="flex items-center gap-2">
-              <span className="text-base">
-                {WEEKLY_GOALS.find(g => g.value === user?.weekly_goal)?.label || 'Maintain'}
-              </span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </button>
-          <div className="h-px bg-[#e0e0e0] my-2" />
           <div className="flex items-center justify-between py-2">
             <span className="text-base" style={{ color: '#757575' }}>BMR</span>
             <span className="text-base">{user?.bmr ? `${user.bmr.toLocaleString()} kcal/day` : '—'}</span>
@@ -351,11 +328,6 @@ function Profile() {
           <div className="flex items-center justify-between py-2">
             <span className="text-base" style={{ color: '#757575' }}>TDEE</span>
             <span className="text-base">{user?.tdee ? `${user.tdee.toLocaleString()} kcal/day` : '—'}</span>
-          </div>
-          <div className="h-px bg-[#e0e0e0] my-2" />
-          <div className="flex items-center justify-between py-2">
-            <span className="text-base" style={{ color: '#757575' }}>Calorie Goal</span>
-            <span className="text-base font-bold">{user?.daily_calorie_goal ? `${user.daily_calorie_goal.toLocaleString()} kcal/day` : '—'}</span>
           </div>
         </div>
       </div>
@@ -390,6 +362,37 @@ function Profile() {
               </svg>
             </div>
           </button>
+          <div className="h-px bg-[#e0e0e0] mx-4" />
+          {/* Weekly Goal row */}
+          <button
+            type="button"
+            className="w-full flex items-center justify-between px-4 py-4"
+            style={{ color: '#212121' }}
+            onClick={openWeeklyGoalModal}
+          >
+            <span className="text-base">Weekly Goal</span>
+            <div className="flex items-center gap-2">
+              <span className="text-base" style={{ color: '#757575' }}>
+                {WEEKLY_GOALS.find(g => g.value === user?.weekly_goal)?.label || 'Maintain'}
+              </span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </button>
+          <div className="h-px bg-[#e0e0e0] mx-4" />
+          {/* Calorie Goal row */}
+          <div className="flex items-center justify-between px-4 py-4">
+            <span className="text-base">Calorie Goal</span>
+            <span className="text-base font-bold">{user?.daily_calorie_goal ? `${user.daily_calorie_goal.toLocaleString()} kcal/day` : '—'}</span>
+          </div>
         </div>
         <div className="h-px bg-[#e0e0e0] mx-4" />
       </div>
