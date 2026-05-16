@@ -1,7 +1,6 @@
 """Nutrition service for calculating BMR, TDEE, and calorie goals."""
 
 from app import db
-from app.models.user import User
 from app.models.weight_log import WeightLog
 from app.utils.bmr_calculator import calculate_bmr, calculate_tdee
 
