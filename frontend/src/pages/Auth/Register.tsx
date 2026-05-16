@@ -198,7 +198,7 @@ function RegisterForm() {
                   {...register('heightIn')}
                   min="0"
                   max="11"
-                  placeholder="74"
+                  placeholder="0"
                 />
               </div>
             </div>

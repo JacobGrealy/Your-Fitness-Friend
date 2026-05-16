@@ -7,6 +7,11 @@ export interface RegisterData {
   email: string
   password: string
   name: string
+  birthdate?: string
+  gender?: string
+  height?: number
+  weight?: number
+  activity_level?: string
 }
 
 export interface UserProfile {
