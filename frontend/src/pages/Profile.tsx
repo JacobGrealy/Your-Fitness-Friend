@@ -54,6 +54,8 @@ function Profile() {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [birthDateModalOpen, setBirthDateModalOpen] = useState(false)
   const [birthDate, setBirthDate] = useState('')
+  const [weeklyGoalModalOpen, setWeeklyGoalModalOpen] = useState(false)
+  const [selectedWeeklyGoal, setSelectedWeeklyGoal] = useState('')
   const [editForm, setEditForm] = useState({
     gender: '',
     heightFt: '',
@@ -150,6 +152,27 @@ function Profile() {
 
   const openBirthDateModal = () => {
     setBirthDateModalOpen(true)
+  }
+
+  const openWeeklyGoalModal = () => {
+    setSelectedWeeklyGoal(user?.weekly_goal || 'maintain')
+    setWeeklyGoalModalOpen(true)
+  }
+
+  const handleSaveWeeklyGoal = async () => {
+    if (!selectedWeeklyGoal) return
+    setSaving(true)
+    try {
+      const updated = await authApi.updateProfile({ weekly_goal: selectedWeeklyGoal })
+      if (updated) {
+        await checkAuth()
+        setWeeklyGoalModalOpen(false)
+      }
+    } catch {
+      alert('Failed to save weekly goal. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleSaveBirthDate = async () => {
@@ -297,12 +320,28 @@ function Profile() {
           <span className="text-white text-base font-medium">Nutrition</span>
         </div>
         <div className="px-4 py-4">
-          <div className="flex items-center justify-between py-2">
+          <button
+            type="button"
+            className="w-full flex items-center justify-between py-2"
+            onClick={openWeeklyGoalModal}
+          >
             <span className="text-base" style={{ color: '#757575' }}>Weekly Goal</span>
-            <span className="text-base">
-              {WEEKLY_GOALS.find(g => g.value === user?.weekly_goal)?.label || 'Maintain'}
-            </span>
-          </div>
+            <div className="flex items-center gap-2">
+              <span className="text-base">
+                {WEEKLY_GOALS.find(g => g.value === user?.weekly_goal)?.label || 'Maintain'}
+              </span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </button>
           <div className="h-px bg-[#e0e0e0] my-2" />
           <div className="flex items-center justify-between py-2">
             <span className="text-base" style={{ color: '#757575' }}>BMR</span>
@@ -535,6 +574,28 @@ function Profile() {
           value={birthDate}
           onChange={(e) => setBirthDate(e.target.value)}
         />
+      </Modal>
+
+      {/* Weekly Goal Modal */}
+      <Modal
+        isOpen={weeklyGoalModalOpen}
+        onClose={() => setWeeklyGoalModalOpen(false)}
+        title="Set Weekly Goal"
+        submitLabel="Save"
+        onSubmit={handleSaveWeeklyGoal}
+        submitLoading={saving}
+        submitDisabled={!selectedWeeklyGoal}
+      >
+        <select
+          className="w-full border rounded-lg px-4 py-3 text-base outline-none"
+          style={{ borderColor: '#e0e0e0' }}
+          value={selectedWeeklyGoal}
+          onChange={(e) => setSelectedWeeklyGoal(e.target.value)}
+        >
+          {WEEKLY_GOALS.map(goal => (
+            <option key={goal.value} value={goal.value}>{goal.label}</option>
+          ))}
+        </select>
       </Modal>
 
       {/* Profile Photo Crop Modal */}
