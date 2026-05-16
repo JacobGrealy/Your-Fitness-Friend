@@ -1,5 +1,6 @@
 """Nutrition service for calculating BMR, TDEE, and calorie goals."""
 
+from app import db
 from app.models.user import User
 from app.models.weight_log import WeightLog
 from app.utils.bmr_calculator import calculate_bmr, calculate_tdee
@@ -69,6 +70,8 @@ def recalculate_user_calories(user, weekly_goal='maintain'):
 
     if result:
         user.daily_calorie_goal = result['calorie_goal']
+        db.session.add(user)
+        db.session.commit()
 
     return result
 
