@@ -108,8 +108,8 @@ def create_log():
             current_user.daily_calorie_goal = result['calorie_goal']
             db.session.commit()
     except Exception:
-        # Silently fail - calorie recalculation shouldn't break weight logging
-        pass
+        # Calorie recalculation shouldn't break weight logging
+        current_app.logger.exception('Failed to recalculate calorie goal after weight log')
 
     return jsonify({
         'id': log.id,
