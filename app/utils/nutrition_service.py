@@ -38,6 +38,9 @@ def calculate_calorie_goal(age, gender, height_cm, weight_kg, activity_level, we
     adjustment = WEEKLY_GOAL_ADJUSTMENTS.get(weekly_goal, 0)
     calorie_goal = tdee + adjustment
 
+    # Round to nearest 50
+    calorie_goal = round(calorie_goal / 50) * 50
+
     # Enforce minimum calories
     calorie_goal = max(calorie_goal, MIN_CALORIES)
 
