@@ -8,6 +8,7 @@ interface HeaderProps {
   leftContent?: React.ReactNode
   centerContent?: React.ReactNode
   rightContent?: React.ReactNode
+  className?: string
 }
 
 export default function Header({
@@ -17,6 +18,7 @@ export default function Header({
   leftContent,
   centerContent,
   rightContent,
+  className,
 }: HeaderProps) {
   const { title: contextTitle, headerRightContent: contextRight, centerContent: contextCenter } = usePageTitle()
   const navigate = useNavigate()
@@ -30,7 +32,7 @@ export default function Header({
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#185ADB] shadow-md">
+    <header className={`fixed top-0 left-0 right-0 z-50 bg-[#185ADB] shadow-md ${className ?? ''}`}>
       <div className="flex items-center justify-between w-full px-4 py-2 max-w-4xl mx-auto min-h-[48px]">
         <div className="flex items-center gap-2">
           {leftContent ?? (
