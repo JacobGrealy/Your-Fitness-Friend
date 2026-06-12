@@ -114,6 +114,7 @@ def create_food():
     fat_g = data.get('fat_g', 0.0)
     brand = data.get('brand')
     barcode_id = data.get('barcode_id')
+    serving_size = data.get('serving_size')
     
     if not name or calories is None:
         return jsonify({'error': 'name and calories are required'}), 400
@@ -142,6 +143,7 @@ def create_food():
             food.protein_g = protein_g
             food.carbs_g = carbs_g
             food.fat_g = fat_g
+            food.serving_size = serving_size
             food.brand = brand
             food.barcode_id = barcode_id
     else:
@@ -152,6 +154,7 @@ def create_food():
             protein_g=protein_g,
             carbs_g=carbs_g,
             fat_g=fat_g,
+            serving_size=serving_size,
             brand=brand,
             barcode_id=barcode_id
         )
@@ -167,6 +170,7 @@ def create_food():
         'protein_g': food.protein_g,
         'carbs_g': food.carbs_g,
         'fat_g': food.fat_g,
+        'serving_size': food.serving_size,
         'brand': food.brand,
         'barcode_id': food.barcode_id
     }), 201
