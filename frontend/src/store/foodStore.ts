@@ -18,7 +18,7 @@ interface FoodState {
   fetchDailyTotals: (date?: string) => Promise<void>
   fetchMacroGoals: () => Promise<void>
   createFood: (data: FoodCreate) => Promise<Food>
-  logFood: (data: FoodLogCreate) => Promise<void>
+  logFood: (data: FoodLogCreate) => Promise<FoodLog | void>
   updateFoodLog: (id: string, data: Partial<FoodLogCreate>) => Promise<void>
   deleteFood: (id: string) => Promise<void>
   deleteFoodLog: (id: string) => Promise<void>
@@ -128,6 +128,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const today = new Date().toISOString().split('T')[0]
+      const logDate = data.date || today
 
       if (data.food_id) {
         const food = get().foods.find(f => String(f.id) === data.food_id)
@@ -137,53 +138,70 @@ export const useFoodStore = create<FoodState>((set, get) => ({
           const totalProtein = food.protein_g * quantity
           const totalCarbs = food.carbs_g * quantity
           const totalFat = food.fat_g * quantity
-          await foodApi.logFood({
+          const result = await foodApi.logFood({
             food_id: data.food_id,
             food_name: food.name,
             calories: totalCalories,
             protein_g: totalProtein,
             carbs_g: totalCarbs,
             fat_g: totalFat,
-            date: today,
+            date: logDate,
             meal_type: data.meal_type,
+            number_of_servings: data.number_of_servings,
             serving_size: data.serving_size,
             brand: data.brand,
             barcode_id: data.barcode_id,
+            photo_url: data.photo_url,
           })
+          get().fetchFoodLogs()
+          get().fetchDailyTotals()
+          useUIStore.getState().showToast('Food logged successfully', 'success')
+          set({ isLoading: false })
+          return result
         } else {
-          await foodApi.logFood({
+          const result = await foodApi.logFood({
             food_id: data.food_id,
             food_name: data.food_name!,
             calories: data.calories!,
             protein_g: data.protein_g,
             carbs_g: data.carbs_g,
             fat_g: data.fat_g,
-            date: today,
+            date: logDate,
             meal_type: data.meal_type,
+            number_of_servings: data.number_of_servings,
             serving_size: data.serving_size,
             brand: data.brand,
             barcode_id: data.barcode_id,
+            photo_url: data.photo_url,
           })
+          get().fetchFoodLogs()
+          get().fetchDailyTotals()
+          useUIStore.getState().showToast('Food logged successfully', 'success')
+          set({ isLoading: false })
+          return result
         }
       } else {
-        await foodApi.logFood({
+        const result = await foodApi.logFood({
           food_id: data.food_id,
           food_name: data.food_name!,
           calories: data.calories!,
           protein_g: data.protein_g,
           carbs_g: data.carbs_g,
           fat_g: data.fat_g,
-          date: today,
+          date: logDate,
           meal_type: data.meal_type,
+          number_of_servings: data.number_of_servings,
           serving_size: data.serving_size,
           brand: data.brand,
           barcode_id: data.barcode_id,
+          photo_url: data.photo_url,
         })
+        get().fetchFoodLogs()
+        get().fetchDailyTotals()
+        useUIStore.getState().showToast('Food logged successfully', 'success')
+        set({ isLoading: false })
+        return result
       }
-      get().fetchFoodLogs()
-      get().fetchDailyTotals()
-      useUIStore.getState().showToast('Food logged successfully', 'success')
-      set({ isLoading: false })
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to log food',
