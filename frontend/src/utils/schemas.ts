@@ -112,7 +112,7 @@ export const logFoodSchema = z.object({
 })
 
 export const quickAddFoodSchema = z.object({
-  name: z.string().optional(),
+  food_name: z.string().optional(),
   calories: z.coerce.number()
     .refine((val) => !Number.isNaN(val), { message: 'Expected number, received nan' })
     .pipe(z.number().positive('Calories must be a positive number')),
@@ -128,9 +128,14 @@ export const quickAddFoodSchema = z.object({
     .refine((val) => !Number.isNaN(val), { message: 'Expected number, received nan' })
     .pipe(z.number().nonnegative('Fat must be a non-negative number'))
     .optional(),
+  number_of_servings: z.coerce.number()
+    .refine((val) => !Number.isNaN(val), { message: 'Expected number, received nan' })
+    .pipe(z.number().positive('Number of servings must be positive'))
+    .optional(),
+  serving_size: z.string().optional(),
   brand: z.string().max(100, 'Brand must be at most 100 characters').optional(),
   barcode_id: z.string().max(100, 'Barcode ID must be at most 100 characters').optional(),
-  serving_size: z.string().optional(),
+  date: z.string().optional(),
   meal_type: z.union([
     z.literal('breakfast'),
     z.literal('lunch'),
