@@ -4,11 +4,9 @@ import { mealsAiLogApi } from '@/api/mealsAiLog'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import Loading from '@/components/common/Loading'
 import type { FoodPhotoLogEntry, FoodPhotoMessage } from '@/types/foodPhotoLog'
-import { MEAL_TYPES } from '@/utils/constants'
+import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
 import { isMealType } from '@/utils/meal'
 import { useFoodStore } from '@/store/foodStore'
-
-const MEAL_LABELS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'] as const
 
 type Step = 'capture' | 'review' | 'loading'
 
@@ -255,8 +253,8 @@ export default function PhotoLog() {
                   onChange={(e) => setMealType(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-[#185ADB]"
                 >
-                  {MEAL_TYPES.map((type, i) => (
-                    <option key={type} value={type}>{MEAL_LABELS[i]}</option>
+                  {MEAL_TYPES.map(type => (
+                    <option key={type} value={type}>{MEAL_LABELS[type]}</option>
                   ))}
                 </select>
               </div>
@@ -333,8 +331,8 @@ export default function PhotoLog() {
                     onChange={(e) => handleEditEntry(index, 'meal_type', e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-[#212121] focus:outline-none focus:ring-2 focus:ring-[#185ADB]"
                   >
-                    {MEAL_TYPES.map((type, i) => (
-                      <option key={type} value={type}>{MEAL_LABELS[i]}</option>
+                    {MEAL_TYPES.map(type => (
+                      <option key={type} value={type}>{MEAL_LABELS[type]}</option>
                     ))}
                   </select>
 

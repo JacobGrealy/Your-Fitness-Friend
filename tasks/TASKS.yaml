@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-17T18:46
+  updated_at: 2026-10-17T18:49
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue:
-- FF-0039
+queue: []
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -1127,11 +1126,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T18:45
-  updated_at: 2026-10-17T18:45
-  completed_at: null
+  updated_at: 2026-10-17T18:49
+  completed_at: 2026-10-17T18:49
   waiting_on: null
   parent_id: null
   notes: '1) User Story: Nothing visible changes today - this is the bug that has not happened yet. The
@@ -1147,5 +1146,12 @@ intake:
     string> keyed by MEAL_TYPES, in the style Dashboard.tsx now uses after FF-0037, so a missing label
     is a type error rather than a silently wrong index. Note DailyFood.tsx and FoodLogSelect.tsx both
     keep their own MEAL_LABELS records already - align all of them on one exported map in utils/constants.ts
-    so there is a single home for these labels.'
+    so there is a single home for these labels.
+
+
+    Closed: MEAL_LABELS moved to utils/constants.ts as a Record<MealTypeKey,string> keyed by type; removed
+    five duplicated copies (PhotoLog''s positional array, plus Records in DailyFood, FoodLogSelect, EditFoodLog
+    and Dashboard). Side effect: FoodLogSelect/EditFoodLog used to say ''Snack'' and now say ''Snacks''
+    like every other screen, which needed the FF-0038 chip assertion updated. New tests/utils/mealLabels.test.ts
+    makes the map a contract (every MEAL_TYPES entry labelled, no extras).'
   comments: []

@@ -7,14 +7,7 @@ import type { FoodLogCreate, MealType } from '@/types'
 import { useFoodStore } from '@/store/foodStore'
 import Button from '@/components/common/Button'
 import Spinner from '@/components/common/Spinner'
-import { MEAL_TYPES } from '@/utils/constants'
-
-const MEAL_LABELS: Record<MealType, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snack: 'Snack',
-}
+import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
 
 export default function EditFoodLog() {
   const navigate = useNavigate()

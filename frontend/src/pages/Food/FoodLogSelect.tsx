@@ -5,18 +5,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useFoodStore } from '@/store/foodStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { Food, FoodLogCreate, MealType } from '@/types'
-import { MEAL_TYPES } from '@/utils/constants'
+import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
 import { quickAddFoodSchema } from '@/utils/schemas'
 import { isMealType } from '@/utils/meal'
 import Loading from '@/components/common/Loading'
 import { resolveReturnTo } from '@/utils/returnTo'
-
-const MEAL_LABELS: Record<MealType, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snack: 'Snack',
-}
 
 export default function FoodLogSelect() {
   const { setTitle } = usePageTitle()
