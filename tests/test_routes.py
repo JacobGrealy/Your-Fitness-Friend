@@ -98,6 +98,25 @@ class TestWeightRoutes:
         response = authenticated_client.get('/api/weight/logs')
         assert response.status_code == 200
 
+    def test_weight_photo_round_trip(self, authenticated_client, app, tmp_path):
+        app.config['UPLOAD_FOLDER'] = str(tmp_path / 'uploads')
+
+        upload = authenticated_client.post(
+            '/api/weight/photo',
+            data={'photo': (io.BytesIO(b'weight-image'), 'shot.jpg')},
+            content_type='multipart/form-data',
+        )
+        assert upload.status_code == 201
+        photo_url = upload.get_json()['photo_url']
+        assert photo_url.startswith('weight_photos/')
+
+        # The frontend builds ${origin}/api/weight/uploads/${photo_url}, so the
+        # stored relative path has to resolve. It used to nest again under
+        # weight_photos/ and 404.
+        served = authenticated_client.get(f'/api/weight/uploads/{photo_url}')
+        assert served.status_code == 200
+        assert served.data == b'weight-image'
+
 
 class TestExerciseRoutes:
     def test_saved_exercise_create(self, authenticated_client):

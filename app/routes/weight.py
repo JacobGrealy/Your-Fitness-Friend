@@ -210,6 +210,18 @@ def allowed_weight_file(filename):
     return extension in Config.ALLOWED_EXTENSIONS.get('meal_photos', set())
 
 
+def _uploads_root():
+    """Absolute path to the uploads directory.
+
+    Honours UPLOAD_FOLDER so tests can relocate it instead of writing into
+    app/uploads.
+    """
+    configured = current_app.config.get('UPLOAD_FOLDER')
+    if configured:
+        return os.path.abspath(configured)
+    return os.path.abspath(os.path.join(current_app.root_path, 'uploads'))
+
+
 @bp.route('/photo', methods=['POST'])
 @login_required
 def upload_photo():
@@ -223,7 +235,7 @@ def upload_photo():
 
     extension = file.filename.rsplit('.', 1)[1].lower()
     unique_filename = f"{uuid.uuid4().hex}.{extension}"
-    upload_folder = os.path.join(current_app.root_path, 'uploads', 'weight_photos')
+    upload_folder = os.path.join(_uploads_root(), 'weight_photos')
     os.makedirs(upload_folder, exist_ok=True)
     filepath = os.path.join(upload_folder, unique_filename)
     file.save(filepath)
@@ -235,11 +247,19 @@ def upload_photo():
 @bp.route('/uploads/<path:filename>')
 @login_required
 def serve_upload(filename):
-    """Serve an uploaded weight photo."""
-    upload_folder = os.path.join(current_app.root_path, 'uploads', 'weight_photos')
-    filepath = os.path.join(upload_folder, filename)
-    if os.path.exists(filepath):
-        return send_file(filepath)
+    """Serve an uploaded weight photo.
+
+    ``photo_url`` is stored relative to the uploads root (e.g.
+    ``weight_photos/<file>.jpg``), so resolve there first. The weight_photos
+    subfolder is tried second so a caller passing a bare filename still works.
+    """
+    uploads_root = _uploads_root()
+    for candidate in (
+        os.path.join(uploads_root, filename),
+        os.path.join(uploads_root, 'weight_photos', filename),
+    ):
+        if os.path.isfile(candidate):
+            return send_file(candidate)
     return jsonify({'error': 'File not found'}), 404
 
 
