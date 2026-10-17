@@ -445,3 +445,15 @@ Plus 5 component tests (today label, stepping, jump-to-today, no stepping into t
 future, both variants). Gates green.
 
 Next: FF-0020 — Quick Add bar replacing the Add Food bar.
+
+## Round 21 — 2026-10-17 — FF-0020 Quick Add bar — **already correct, cancelled**
+
+`FoodLogSelect` opened without a food id *is* the Quick Add bar: a ← Back control
+on the left, the title "Quick Add" in the middle, and a check submit on the right
+that stays inert until there are calories. No change needed; three tests now pin
+that shape (title, back navigates out, check disabled until there is something to
+log).
+
+The genuinely missing half of this pair is **FF-0021**: the check always navigates
+to `/food/log`, so finishing a quick add dumps you on the search screen instead of
+where you came from. That is next.
