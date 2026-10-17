@@ -1,12 +1,11 @@
 meta:
-  updated_at: 2026-10-17T17:48
+  updated_at: 2026-10-17T17:50
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
 - FF-0030
-- FF-0026
 - FF-0027
 - FF-0028
 - FF-0029
@@ -725,11 +724,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 3
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:50
+  completed_at: 2026-10-17T17:50
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want to know roughly when I will hit my target weight, based on
@@ -738,7 +737,12 @@ intake:
 
     2) Technical Details: compute ETA from the most recent weight and the logged trend (not a single week),
     render it under Distance to Goal, and return nothing rather than a fantasy date when the trend is
-    flat or moving the wrong way.'
+    flat or moving the wrong way.
+
+
+    Closed: ETA under Distance to Goal via src/utils/goalEta.ts - least-squares slope over the last 28
+    days (>=3 points, >=7 days) with the configured weekly goal as fallback, labelled by source; null
+    when already met, no goal, or >2 years out. 11 unit tests + 1 page test.'
   comments: []
 - id: FF-0027
   title: Then and Now comparison on the Progress page

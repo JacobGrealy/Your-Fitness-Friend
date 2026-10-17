@@ -256,3 +256,27 @@ The audit cost was one round; the three cancelled-here tickets would have cost
 three. Each keeps a test that pins the behaviour, so "already done" is evidence
 rather than an opinion, and `TODO.md` is no longer treated as a work list: the
 registry is.
+
+## 2026-10-17 — A goal date is projected from the trend, and withheld when unknown
+
+FF-0026 asks for an ETA under "Distance to Goal". Two ways to compute it, and the
+choice matters because a wrong date here is worse than no date — it is the number
+a user plans around.
+
+**The logged trend comes first** (`src/utils/goalEta.ts`): a least-squares slope
+over the last 28 days of weigh-ins, requiring at least three points across at
+least seven days. A single week's difference is noise (water, salt, time of day),
+which is why the ticket says "not a single week".
+
+**The configured weekly goal is the fallback**, used when the trend is flat
+(|rate| < 0.2 lb/week), too short, or moving away from the goal. The UI labels
+which source was used — "(your trend)" or "(your goal)" — because those are
+different claims.
+
+**Nothing is shown** when the goal is already met, when there is no goal weight,
+or when the projection is more than two years out. A date invented from a flat
+trend is confident nonsense; an empty space is honest.
+
+Computed on the client rather than in the API because the Progress page already
+holds every weigh-in it needs: another endpoint would be a round trip to
+recompute what is on screen.

@@ -8,6 +8,7 @@ import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
 import Modal from '@/components/common/Modal'
 import WeightChartWithGoal from '@/components/charts/WeightChartWithGoal'
+import { estimateGoalEta, formatEtaDate } from '@/utils/goalEta'
 
 export default function WeightHistory() {
   const { setTitle } = usePageTitle()
@@ -40,6 +41,15 @@ export default function WeightHistory() {
     ? Math.abs(currentWeight - goalWeight)
     : null
 
+  // Projected from the logged trend, falling back to the weekly goal; null when
+  // there is nothing honest to say (FF-0026).
+  const eta = estimateGoalEta({
+    currentWeight,
+    goalWeight,
+    logs: logs.map((log) => ({ weight: log.weight, recorded_at: log.recorded_at })),
+    weeklyGoal: user?.weekly_goal,
+  })
+
   const handleDelete = () => {
     if (deleteId) {
       deleteLog(deleteId)
@@ -68,6 +78,20 @@ export default function WeightHistory() {
               {distanceToGoal?.toFixed(1)} lbs
             </span>
           </div>
+          {eta && (
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#e0e0e0]">
+              <span className="text-sm font-medium" style={{ color: '#757575' }}>
+                On track for
+              </span>
+              <span className="text-sm font-bold text-right" style={{ color: '#212121' }}>
+                {formatEtaDate(eta.date)}
+                <span className="block text-xs font-normal" style={{ color: '#757575' }}>
+                  {Math.abs(eta.rateLbsPerWeek).toFixed(1)} lb/week
+                  {eta.source === 'goal' ? ' (your goal)' : ' (your trend)'}
+                </span>
+              </span>
+            </div>
+          )}
         </div>
       )}
 

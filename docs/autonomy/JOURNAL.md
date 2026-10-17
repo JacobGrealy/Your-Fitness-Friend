@@ -515,3 +515,22 @@ timelapse (FF-0028), serving amounts on diary rows (FF-0029) and the stale `/foo
 page (FF-0031).
 
 Next: FF-0026 — goal ETA on Progress.
+
+## Round 25 — 2026-10-17 — FF-0026 goal ETA on Progress
+
+The Progress page now shows "On track for <date>" under Distance to Goal, with
+the rate and which source it came from.
+
+`src/utils/goalEta.ts` projects from a least-squares slope over the last 28 days
+of weigh-ins (≥3 points, ≥7 days apart), falls back to the configured weekly goal
+when the trend is flat, short or moving the wrong way, and returns **null** when
+the goal is already met, no goal is set, or the projection is beyond two years —
+a date invented from a flat trend would be exactly the confident nonsense that
+makes a tracker untrustworthy.
+
+Verified: 11 unit tests (steady loss measured, too-few-points refused, old
+weigh-ins excluded, trend vs goal fallback, wrong-direction refusal, already-met,
+missing inputs, beyond-horizon, date formatting) plus a page test asserting the
+row renders. Gates green.
+
+Next: FF-0027 — Then and Now on Progress.
