@@ -775,3 +775,22 @@ Worth noting for anyone reading the board later: it is served over plain HTTP on
 `:5181` with no auth, which is the same posture as AweCraft's and was chosen
 deliberately. Adding it to `tailscale serve` behind HTTPS would be a one-line
 follow-up if that ever feels too loose.
+
+## Round 38 — 2026-10-17 — FF-0037 snacks were invisible on the home screen
+
+Owner-reported, and the cause was a one-letter plural: `Dashboard.tsx` ordered its
+meal groups by `['breakfast', 'lunch', 'dinner', 'snacks']` while the data says
+`'snack'`. `groupMealsByType` grouped correctly and then the filter threw the
+snack group away, so "Today's Meals" never listed it — and because the header
+figure is summed from the groups that render, the `kcal` next to the title was
+short by every snack too. Two symptoms, one cause, and the second one would have
+been easy to blame on the calorie maths.
+
+The order now comes from `MEAL_TYPES` in `utils/constants.ts`, which is the same
+constant the diary and the add flow use, so a meal type cannot be dropped from
+this screen again by a stray plural. `MEAL_TYPE_LABELS` keeps the display strings
+and now maps `snack → "Snacks"`, matching `MEAL_LABELS` in `DailyFood.tsx`.
+
+Verified the way that matters: the four new tests **fail on the unfixed file**
+(3 of 4, with the "no empty meals" case still passing as it should) and pass after
+it — a regression test that only passes both ways proves nothing. Gates green.
