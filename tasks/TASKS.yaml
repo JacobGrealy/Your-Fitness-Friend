@@ -1,12 +1,11 @@
 meta:
-  updated_at: 2026-10-17T17:43
+  updated_at: 2026-10-17T17:44
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
 - FF-0030
-- FF-0020
 - FF-0021
 - FF-0022
 - FF-0023
@@ -572,11 +571,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 3
-  status: open
+  status: cancelled
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:44
+  completed_at: 2026-10-17T17:44
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner the Quick Add bar should take over from the Add Food bar, with back
@@ -584,7 +583,12 @@ intake:
 
 
     2) Technical Details: make Quick Add a mode of the add flow with a back/check header, retire the duplicate
-    bar, and keep the check action wired to FF-0021''s redirect.'
+    bar, and keep the check action wired to FF-0021''s redirect.
+
+
+    CANCELLED - already satisfied. FoodLogSelect opened without a food id is the Quick Add bar: back control,
+    ''Quick Add'' title, check submit that is disabled until calories exist. Pinned by tests/pages/FoodLogSelect.quickaddbar.test.tsx
+    (3 tests). The missing half is FF-0021''s redirect target.'
   comments: []
 - id: FF-0021
   title: Redirect after Quick Add check
