@@ -605,3 +605,37 @@ that enters `/food` and asserts it settles on `/food/daily`. Gates green.
 That empties the queue of everything that can be done without you: what remains is
 FF-0008 (Tailscale Serve — Q1) and FF-0030 (camera scanner — Q3), both parked with
 measurements. Next round is the deploy + audit sweep.
+
+## Round 30 — 2026-10-17 — the queue is empty, AweFit 0.1.2 is published
+
+**Where the backlog stands.** 22 tickets merged, 7 cancelled as already
+implemented, 2 parked with reasons. Nothing is `open` or `in-progress`, so
+`tasks.py next` returns nothing — the queue the goal asked me to empty is empty.
+
+**The deliverable.** `releases/awefit.apk` is now **0.1.2 (versionCode 3)**, signed
+`CN=AweFit`, 3.6 MB, sha256 `20ffd9dc…`, and it contains everything merged since
+0.1.1: custom foods in the add menu, one-tap add on recent foods, the diary date
+control in both layouts, barcode lookup with an OpenFoodFacts fallback, an
+editable calorie goal, the goal ETA, Then and Now, the photo timelapse, serving
+amounts on diary rows and the removal of the duplicate diary page.
+
+**What I could not do, and why** — both need you, and both are written up in
+QUESTIONS.md with the exact commands:
+
+- **FF-0008 (HTTPS)** — Tailscale Serve is still disabled on the tailnet, and
+  turning it on is an admin-console switch.
+- **FF-0030 (camera scanner)** — the app's plain-HTTP origin is not a secure
+  context (`navigator.mediaDevices` is undefined there, measured), so it is
+  either HTTPS-then-jsQR or a native MLKit plugin, and either way it wants your
+  phone to verify.
+
+**One trap worth knowing before sideloading:** on the *running* server
+`/download/awefit.apk` returns `200` with the SPA's `index.html` — the catch-all
+serves the shell for unknown paths — so tapping the URL downloads an HTML file
+named `awefit.apk`. The APK is fine: `adb install -r releases/awefit.apk` works
+now, and the URL starts serving the real file after the Q2 restart. That is now
+in QUESTIONS.md, because a silent 200 here is exactly the kind of thing that
+wastes an evening.
+
+**Round-30 verification:** gates green (127 backend, 171 frontend, tsc, smoke,
+toolkit); `app/static` rebuilt from `master`; working tree clean and pushed.
