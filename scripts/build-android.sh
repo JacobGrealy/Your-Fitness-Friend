@@ -45,7 +45,13 @@ fi
 source "$SDK_ENV"
 
 # The server the app talks to is baked into the build at sync time.
-export ANDROID_SERVER_URL="${ANDROID_SERVER_URL:-http://100.84.29.20:5001}"
+#
+# Default is the Tailscale HTTPS name (FF-0008): stable, publicly trusted, and a
+# secure context — which is what the camera scanner needs. Keep this in step with
+# DEFAULT_SERVER_URL in frontend/capacitor.config.ts; this one wins because the
+# sync reads the exported value.
+DEFAULT_SERVER_URL="https://home-server-1.tail96ee52.ts.net"
+export ANDROID_SERVER_URL="${ANDROID_SERVER_URL:-$DEFAULT_SERVER_URL}"
 
 if [ "$BUMP" = 1 ]; then
     ./scripts/android-version.py bump || exit 1
@@ -53,6 +59,11 @@ fi
 version=$("./scripts/android-version.py" show) || exit 1
 echo "== AweFit: $version"
 echo "== server: $ANDROID_SERVER_URL"
+if [ "${ANDROID_SERVER_URL#http://}" != "$ANDROID_SERVER_URL" ]; then
+    echo "   WARNING: baking a cleartext http:// server." >&2
+    echo "            It works for LAN testing, but the origin will NOT be a secure" >&2
+    echo "            context, so the camera barcode scanner cannot open the camera." >&2
+fi
 
 if [ "$SYNC" = 1 ]; then
     echo "== web build + cap sync"
