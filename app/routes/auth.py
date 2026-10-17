@@ -81,7 +81,8 @@ def register():
         db.session.add(user)
         db.session.commit()
         
-        login_user(user)
+        session.permanent = True
+        login_user(user, remember=True)
         
         return jsonify({
             'message': 'Registration successful',
@@ -119,6 +120,9 @@ def login():
         user = User.query.filter_by(email=email).first()
         
         if user and user.check_password(password):
+            # Permanent so the cookie carries an Expires; remember_token as the
+            # backstop when the session cookie is lost (FF-0043).
+            session.permanent = True
             login_user(user, remember=remember)
             next_page = request.form.get('next')
             return jsonify({

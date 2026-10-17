@@ -412,3 +412,81 @@ class TestCalorieModel:
         # 2 lb/week is about a 1000 kcal/day deficit
         assert lose_two < maintain
         assert maintain - lose_two > 500
+
+
+class TestStayingSignedIn:
+    """FF-0043: the phone must not be asked for a password on every launch.
+
+    An Android WebView keeps *session* cookies in memory, so a cookie without an
+    expiry dies with the app process. Two cookies therefore have to outlive it:
+    the session cookie (made permanent) and Flask-Login's remember_token.
+    """
+
+    def _register(self, client):
+        """Create the account and leave the client anonymous.
+
+        Registering signs you in, and the login route short-circuits while
+        `current_user` is authenticated — so a login test that skipped the logout
+        would silently exercise the wrong branch and prove nothing.
+        """
+        response = client.post('/api/auth/register', json={
+            'email': 'stay@test.local',
+            'password': 'password123',
+            'name': 'Stay Signed In',
+        })
+        client.post('/api/auth/logout')
+        return response
+
+    def _cookies(self, response):
+        return '; '.join(response.headers.getlist('Set-Cookie'))
+
+    def test_login_asks_for_the_remember_cookie(self, client):
+        self._register(client)
+
+        response = client.post('/api/auth/login', json={
+            'email': 'stay@test.local',
+            'password': 'password123',
+            'remember': True,
+        })
+
+        cookies = self._cookies(response)
+        assert 'remember_token=' in cookies
+
+    def test_login_without_remember_sets_no_remember_cookie(self, client):
+        self._register(client)
+
+        response = client.post('/api/auth/login', json={
+            'email': 'stay@test.local',
+            'password': 'password123',
+        })
+
+        assert response.status_code == 200
+        # prove the login actually happened, or "no remember cookie" is vacuous
+        assert any(c.startswith('session=') for c in response.headers.getlist('Set-Cookie'))
+        assert 'remember_token=' not in self._cookies(response)
+
+    def test_the_session_cookie_carries_an_expiry(self, client):
+        self._register(client)
+
+        response = client.post('/api/auth/login', json={
+            'email': 'stay@test.local',
+            'password': 'password123',
+            'remember': True,
+        })
+
+        session_cookie = next(
+            (c for c in response.headers.getlist('Set-Cookie') if c.startswith('session=')), ''
+        )
+        assert session_cookie, 'no session cookie was set'
+        # a persistent cookie has Expires/Max-Age; a session cookie has neither
+        assert 'Expires=' in session_cookie or 'Max-Age=' in session_cookie
+
+    def test_registering_signs_you_in_for_good(self, client):
+        response = self._register(client)
+
+        cookies = self._cookies(response)
+        assert 'remember_token=' in cookies
+        session_cookie = next(
+            (c for c in response.headers.getlist('Set-Cookie') if c.startswith('session=')), ''
+        )
+        assert 'Expires=' in session_cookie or 'Max-Age=' in session_cookie

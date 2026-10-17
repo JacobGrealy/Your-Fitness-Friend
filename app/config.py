@@ -20,7 +20,16 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Session configuration
-    PERMANENT_SESSION_LIFETIME = timedelta(days=7)
+    #
+    # AweFit is a thin WebView client on one phone, so the session has to outlive
+    # the app process: an Android WebView keeps *session* cookies in memory only,
+    # which is why the login had to be retyped on every launch (FF-0043). The
+    # session cookie is therefore permanent (Expires), and Flask-Login's
+    # remember_token covers the case where the session cookie is dropped anyway.
+    PERMANENT_SESSION_LIFETIME = timedelta(days=30)
+    REMEMBER_COOKIE_DURATION = timedelta(days=365)
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = 'Lax' 
     # basic | strong — see app/__init__.py. Strong ties a session to the client
     # IP, which breaks mobile clients that switch networks.
     SESSION_PROTECTION = os.environ.get('SESSION_PROTECTION') or 'basic'
@@ -28,6 +37,9 @@ class Config:
     # cookie is silently dropped over plain HTTP, which looks like "login does
     # nothing" on the LAN address.
     SESSION_COOKIE_SECURE = (os.environ.get('SESSION_COOKIE_SECURE') or '').lower() in ('1', 'true', 'yes')
+    # The remember cookie must follow the same rule: Secure over HTTPS, plain
+    # HTTP for LAN development, or the token would never come back.
+    REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
     
     # Qwen Configuration - llama-swap endpoint backing all AI features
     # (exercise calorie estimation, meal photo analysis, AI food logging)

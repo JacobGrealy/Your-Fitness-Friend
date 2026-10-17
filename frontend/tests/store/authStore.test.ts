@@ -135,3 +135,17 @@ describe('authStore', () => {
     })
   })
 })
+
+// FF-0043: the client must ask for the remember cookie, or the phone has to be
+// re-authenticated on every launch because a WebView drops session cookies.
+describe('login asks to be remembered', () => {
+  it('passes remember=true to the API', async () => {
+    const login = authApi.login as jest.Mock
+    login.mockReset().mockResolvedValue({})
+    ;(authApi.getProfile as jest.Mock).mockResolvedValue({ id: 1, email: 'a@b.c' })
+
+    await useAuthStore.getState().login('a@b.c', 'password123')
+
+    expect(login).toHaveBeenCalledWith({ email: 'a@b.c', password: 'password123' }, true)
+  })
+})
