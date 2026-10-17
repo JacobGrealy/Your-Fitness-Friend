@@ -971,3 +971,43 @@ and a phone reboot.
 Removed the "one more restart" item from the Waiting-on-you list — it was asking
 the owner to do something already done — and recorded the state as verified on
 hardware rather than merely green in tests.
+
+## Round 46 — 2026-10-17 — FF-0044 one tap to update, and a native plugin that compiles
+
+The update banner existed but its button opened the APK in a Custom Tab, leaving
+the user to find the download, dismiss Chrome's "this type of file can harm your
+device" warning and open it. Now the button does the work: a local Capacitor
+plugin downloads the APK off the UI thread and fires Android's installer.
+
+The manifest already carried Capacitor's `FileProvider` and `file_paths.xml`
+declared a `<cache-path>`, so the app could already share a cached file — that
+removed half the native work. What was left: `ApkInstallerPlugin.java`
+(`@CapacitorPlugin`, download → ZIP-magic sanity check → `ACTION_VIEW` with
+`application/vnd.android.package-archive` and a FileProvider URI), the
+`REQUEST_INSTALL_PACKAGES` permission, registration in `MainActivity.onCreate`
+*before* `super`, and `installApkUpdate()` in `native.ts`.
+
+Deliberate choices:
+
+- **Check the install permission before downloading.** On Android 8+ a sideloaded
+  app cannot install without "install unknown apps" being granted; the plugin
+  detects that, opens the exact Settings screen, and rejects with a distinct code.
+  The UI turns that into one sentence instead of a mysterious no-op.
+- **Never dead-end.** Any other failure falls back to the Custom Tab path, which is
+  worse than one tap but far better than a button that does nothing.
+- **Verify the bytes.** A truncated body or an HTML error page would fail later
+  with a vague installer message, so the plugin checks the ZIP magic and the size
+  first and names the real problem.
+
+Verified here: 5 jest tests over the outcome matrix (native success, permission
+missing, other failure, plugin absent, plain browser), gates green, and **APK 0.1.4
+(versionCode 5) built** — which is itself the native check, since Gradle compiled
+the Java and merged the manifest. Confirmed inside the produced APK rather than
+from the build log: `ApkInstallerPlugin` is in `classes.dex`, the merged manifest
+carries `REQUEST_INSTALL_PACKAGES`, and the FileProvider authority is
+`dev.awefit.app.fileprovider`.
+
+**Not verified, and cannot be from here:** the download-to-installer flow on real
+hardware. That needs the phone, and there is a wrinkle worth knowing: the banner
+only appears when a *newer* build is published than the one installed, so testing
+it means running 0.1.4 while 0.1.5 exists.

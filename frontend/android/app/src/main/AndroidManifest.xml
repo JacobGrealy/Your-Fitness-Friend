@@ -32,4 +32,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required to hand a downloaded APK to the system installer (FF-0044). The
+         user still has to allow AweFit as an install source, and Android always
+         shows its own install dialog. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>
