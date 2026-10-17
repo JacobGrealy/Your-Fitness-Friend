@@ -267,3 +267,34 @@ feeds the page descending logs and asserts the chart receives them ascending
 chart rewrite, not by this round.
 
 Next: FF-0013 — the migration test that runs `flask db upgrade` on an empty DB.
+
+## Round 13 — 2026-10-17 — FF-0013 migration test (found a broken chain)
+
+Landed: `tests/test_migrations.py` — runs the real `flask db upgrade` CLI against
+a temp SQLite file, asserts the expected tables exist, that `alembic_version`
+equals the single head, that **every model table is created by a migration**, and
+that a second upgrade is a no-op.
+
+It immediately found what it was written to find: **a fresh install has been
+broken all along.** The initial migration `851f1e051e23` already creates
+`meal_photos`, and revision `22e3bf18ae2d` creates it again, so `upgrade head` on
+an empty database died with "table meal_photos already exists". The live database
+never noticed because it was already past that revision — precisely the blind
+spot the ticket described.
+
+Fix: the duplicate revision is kept (deleting it would break the live database's
+revision ancestry) and both halves are guarded with
+`sa.inspect(op.get_bind()).has_table('meal_photos')`, so they are no-ops when the
+table exists. Live history is untouched.
+
+A second trap found while writing the test: `FLASK_CONFIG=testing` sets
+`SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'`, which **overrides
+DATABASE_URL** — the first version of the test ran the whole migration chain in
+memory and asserted against an empty file. The test now uses
+`FLASK_CONFIG=production`, and the trap is written into AGENTS.md.
+
+Verified: 103 backend tests pass (4 new migration tests); the guarded revision
+still applies cleanly in sequence.
+
+Next: FF-0008's blocker is still Q1; the queue's next live item is FF-0014
+(barcode scanning), which needs a product-database decision first.

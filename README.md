@@ -46,13 +46,12 @@ The host address is DHCP-assigned and changes; check it rather than assuming.
 ## Tests
 
 ```bash
-./venv/bin/python -m pytest tests/      # 40 passed, 21 skipped
-cd frontend && npm test                 # 92 tests, all passing
+./venv/bin/python -m pytest tests/      # 103 passed, nothing skipped
+cd frontend && npm test                 # 108 tests, all passing
 cd frontend && npx tsc --noEmit         # type check
 ```
 
-The backend's skipped tests are expected — some are blocked on a SQLAlchemy
-version-detection quirk, others are marked "Requires session handling fix".
+Every test runs — there are no skipped placeholders left.
 
 ## Production
 

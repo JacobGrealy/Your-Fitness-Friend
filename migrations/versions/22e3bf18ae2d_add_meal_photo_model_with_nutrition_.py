@@ -4,6 +4,15 @@ Revision ID: 22e3bf18ae2d
 Revises: 8d631de69406
 Create Date: 2026-04-02 00:26:18.244558
 
+NOTE (FF-0013): the initial migration 851f1e051e23 already creates
+`meal_photos`, so this one has always failed on a *fresh* database with
+"table meal_photos already exists". The live database never noticed because it
+was past this revision already, which is exactly why a fresh `upgrade head`
+needed a test (tests/test_migrations.py).
+
+The revision is kept, not deleted — removing it would break the ancestry of the
+live database's alembic_version — and both halves are now guarded so they are
+no-ops when the table is already there.
 """
 from alembic import op
 import sqlalchemy as sa
@@ -17,7 +26,11 @@ depends_on = None
 
 
 def upgrade():
-    # Create meal_photos table with nutrition fields
+    # Idempotent: see the note above. A fresh install reaches this revision with
+    # the table already created by 851f1e051e23.
+    if sa.inspect(op.get_bind()).has_table('meal_photos'):
+        return
+
     op.create_table(
         'meal_photos',
         sa.Column('id', sa.Integer(), nullable=False),
@@ -36,5 +49,7 @@ def upgrade():
 
 
 def downgrade():
+    if not sa.inspect(op.get_bind()).has_table('meal_photos'):
+        return
     op.drop_index(op.f('ix_meal_photos_user_id'), table_name='meal_photos')
     op.drop_table('meal_photos')
