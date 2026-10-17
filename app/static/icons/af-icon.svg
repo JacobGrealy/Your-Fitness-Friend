@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!--
+    AweFit monogram — hand-drawn geometry, not <text>: the rasteriser
+    (sharp/libvips) has no font stack here, so a text glyph would vary per
+    machine or come out blank.
+  -->
+  <rect width="1024" height="1024" rx="224" fill="#185ADB"/>
+  <g transform="translate(-58.75,-3)" fill="#ffffff">
+    <!-- A: two outlined legs with horizontal tops plus a crossbar. Filled
+         polygons, not strokes: a butt cap is perpendicular to the leg, so two
+         stroked legs meet in a V notch at the apex. Everything here is
+         capital height 250 -> 780 with a 104 stem. -->
+    <polygon points="311.5,250 418.5,250 288.5,780 181.5,780"/>
+    <polygon points="401.5,250 508.5,250 638.5,780 531.5,780"/>
+    <rect x="300" y="540" width="220" height="104"/>
+    <!-- F: stem, top arm, middle arm -->
+    <rect x="680" y="250" width="104" height="530"/>
+    <rect x="680" y="250" width="280" height="104"/>
+    <rect x="680" y="496" width="220" height="104"/>
+  </g>
+</svg>

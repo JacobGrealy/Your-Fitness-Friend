@@ -72,3 +72,23 @@ success while `@capacitor/cli` and `@capacitor/android` were never installed, so
 
 Next: FF-0004 — the AF icon and splash (the generated launcher icons are still
 Capacitor's default), then FF-0005 signing, FF-0006 the release APK + LAN serve.
+
+## Round 4 — 2026-10-17 — FF-0004 AweFit icon, splash and the broken PWA
+
+Landed: the AF monogram as hand-drawn geometry (`frontend/assets/*.svg`), a
+rasteriser (`frontend/scripts/render-icons.mjs`, sharp), and
+`npx capacitor-assets generate --android` — 74 resources covering every mipmap,
+adaptive foreground/background and both splash variants. Verified visually at
+1024 px and in the built `ic_launcher.png`; `./gradlew assembleDebug` rebuilt
+clean in 12s with the new resources.
+
+Also repaired the PWA, which was broken three ways: `index.html` referenced
+`/vite.svg` and `/icons/icon-192x192.png` (neither existed), and
+`vite-plugin-pwa`'s `VitePWA` was imported but never registered. Now: real PNGs,
+`public/manifest.json`, title and manifest name **AweFit**. The dead
+`vite-plugin-pwa` dependency and import were removed rather than wired — a
+service worker over a bundle that is replaced on every deploy is a cache-staleness
+machine, and this app is a thin client anyway (DECISIONS.md).
+
+Next: FF-0005 — release keystore, signing config, keystore backup, and the
+versionCode bump that makes in-place updates possible.

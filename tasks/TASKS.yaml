@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-17T17:01
+  updated_at: 2026-10-17T17:06
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0004
 - FF-0005
 - FF-0006
 - FF-0007
@@ -124,11 +123,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:06
+  completed_at: 2026-10-17T17:06
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want AweFit to have its own AF icon on the launcher and a splash
@@ -138,7 +137,13 @@ intake:
     2) Technical Details: author an AF svg, keep it as the single source in frontend/public/icons, generate
     adaptive foreground/background + all mipmap densities and splash with @capacitor/assets. Also repairs
     the broken PWA: index.html references /vite.svg and /icons/icon-192x192.png which do not exist (only
-    .svg icons ship) and vite-plugin-pwa is installed but never wired into vite.config.ts behind VitePWA().'
+    .svg icons ship) and vite-plugin-pwa is installed but never wired into vite.config.ts behind VitePWA().
+
+
+    Closed: AF monogram as filled-polygon geometry in frontend/assets/*.svg (no font dependency), rendered
+    by frontend/scripts/render-icons.mjs (sharp) and expanded to 74 Android resources by capacitor-assets.
+    Verified visually + assembleDebug rebuilt in 12s. PWA repaired: real icons, public/manifest.json,
+    AweFit title; dead vite-plugin-pwa dep removed instead of wired (no service worker by choice).'
   comments: []
 - id: FF-0005
   title: Release signing + keystore backup

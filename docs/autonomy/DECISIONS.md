@@ -84,3 +84,36 @@ Consequences recorded now so a later round does not rediscover them:
 production" because their usual consumer is live-reload. A deliberately thin
 client loading the real app from the owner's server is the accepted v1 shape
 (see the entry above); the warning is about intent, not capability.
+
+## 2026-10-17 — Icon: hand-drawn glyph, no font
+
+The AF monogram is built from `<polygon>`/`<rect>` geometry, not `<text>`: sharp
+(libvips) has no guaranteed font stack on this host, so a text glyph would render
+differently on another machine — or silently render nothing at all — and the
+launcher icon is not something to discover broken on the device.
+
+The A is two outlined legs with **horizontal** tops plus a crossbar. A stroked
+apex was tried first and rejected twice: a joined path throws a miter spike, and
+two butt-capped strokes meet in a V notch because each cap is perpendicular to
+its own leg. Filled polygons give a flat apex and a clean counter.
+
+`frontend/assets/*.svg` are the only source. `node scripts/render-icons.mjs`
+rasterises them into `assets/*.png` (Capacitor's inputs) and `public/icons/*.png`
+(the web manifest's), then `npx capacitor-assets generate --android` writes the
+mipmaps and every splash density (74 files, 783 KB).
+
+## 2026-10-17 — PWA manifest by hand, and no service worker
+
+The web app's PWA was broken in three ways: `index.html` pointed at `/vite.svg`
+and `/icons/icon-192x192.png`, neither of which existed, and `vite-plugin-pwa`
+was a devDependency whose `VitePWA` import was never added to the plugin list.
+
+Fixed with a hand-written `public/manifest.json` and real PNG icons — **not** by
+wiring `vite-plugin-pwa`, which was then removed along with its unused import.
+
+Reason: the plugin's value is its service worker, and a service worker on a
+self-hosted app whose static bundle is replaced on every deploy is a machine for
+"why is my change not showing up". AweFit is a thin client that loads the app
+from the server anyway, so offline caching underneath it buys nothing and
+threatens cache-staleness bugs on a live app. The manifest alone gives the icon,
+name and standalone display that were actually missing.
