@@ -402,3 +402,22 @@ migration test now also proves a fresh install reaches this revision.
 
 Note: the column is live in the database but the *endpoint* that uses it is not
 running until the restart in Q2.
+
+## Round 19 — 2026-10-17 — FF-0018 one-tap add on recent foods
+
+Recent-food rows now have a trailing "+" that logs one serving immediately into
+the meal in question, with an "Added" confirmation on the row, instead of forcing
+a trip through the serving form (tapping the row still opens that form).
+
+The "currently selected meal" did not exist: the diary links to Add Food as
+`/food/log?meal=lunch`, and that parameter was **being ignored entirely**. It now
+drives the quick-add, and the tab-bar entry falls back to the time of day
+(`src/utils/meal.ts`, 6 unit tests). The same meal is passed on to the serving
+form, so both paths agree.
+
+Verified: 6 unit tests for the meal mapping plus 3 component tests (payload is
+exactly one serving of that food into the right meal, confirmation appears, the
+row still navigates). Gates green.
+
+Next: FF-0019 — the diary date selector, which the visual check in round 7 showed
+overlapping the brand and vanishing in landscape.
