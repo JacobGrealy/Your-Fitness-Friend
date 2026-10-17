@@ -374,3 +374,31 @@ Waiting on the owner — these block real work, not busywork:
 
 Next: FF-0017 — calorie goal setting on the More page (needs a migration, so
 `./scripts/backup.sh` first).
+
+## Round 18 — 2026-10-17 — FF-0017 calorie goal is editable
+
+`daily_calorie_goal` already existed on the model and the dashboard already read
+it; what was missing was a way to change it, and the honesty problem underneath:
+`PUT /api/auth/profile` recomputes the goal from BMR/TDEE on **any** profile
+change, so an editable value would have been silently overwritten the next time
+the user corrected their height.
+
+Landed: migration `d6dc0a74684b` adds `calorie_goal_manual` (default false — every
+existing row was derived), `recalculate_user_calories` leaves a manual goal alone
+while still returning BMR/TDEE, the profile PUT accepts `daily_calorie_goal`
+(validated 500–10,000 via constants in `app/config.py`) or
+`calorie_goal_manual: false` to hand control back, and the More page's Calorie
+Goal row opens an editor with a "use the calculated goal instead" reset. The row
+now shows "set by you" when the value is manual.
+
+Also fixed: the PUT answered `calorie_goal` while the GET answered
+`daily_calorie_goal`; it now returns both.
+
+Ran `./scripts/backup.sh` before the migration, per the invariant, and applied it
+to the live database (`a1b2c3d4e5f6 → d6dc0a74684b`). Verified: 9 new backend
+tests (flag exposed, manual persists through a later profile edit, reset
+recalculates, range and type rejection) and 3 new jest tests. Gates green — the
+migration test now also proves a fresh install reaches this revision.
+
+Note: the column is live in the database but the *endpoint* that uses it is not
+running until the restart in Q2.

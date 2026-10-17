@@ -1,12 +1,11 @@
 meta:
-  updated_at: 2026-10-17T17:34
+  updated_at: 2026-10-17T17:38
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
 - FF-0030
-- FF-0017
 - FF-0018
 - FF-0019
 - FF-0020
@@ -484,11 +483,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:38
+  completed_at: 2026-10-17T17:38
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want to set my calorie goal myself rather than only seeing a derived
@@ -497,7 +496,15 @@ intake:
 
     2) Technical Details: persist a daily calorie goal on the user profile (migration + model field +
     to_dict), expose it in the More page behind a form validated with the existing zod schemas, and make
-    the dashboard read the stored goal with the derived value as fallback.'
+    the dashboard read the stored goal with the derived value as fallback.
+
+
+    Closed: migration d6dc0a74684b adds users.calorie_goal_manual (default false); recalculate_user_calories
+    keeps a manual goal while still returning BMR/TDEE; profile PUT accepts daily_calorie_goal (500-10000,
+    constants in app/config.py) and calorie_goal_manual=false to reset; More page Calorie Goal row opens
+    an editor with a ''use calculated goal'' action and a ''set by you'' hint. PUT response key inconsistency
+    (calorie_goal vs daily_calorie_goal) fixed. 9 backend + 3 jest tests; backup taken before applying
+    the migration live.'
   comments: []
 - id: FF-0018
   title: Quick-add button on recent foods

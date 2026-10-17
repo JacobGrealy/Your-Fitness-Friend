@@ -313,3 +313,66 @@ class TestSpaFallback:
 
         assert response.status_code == 200
         assert response.mimetype == 'text/html'
+
+
+class TestManualCalorieGoal:
+    """FF-0017: a goal the user sets by hand must survive recalculation."""
+
+    def test_profile_exposes_the_manual_flag(self, authenticated_client):
+        response = authenticated_client.get('/api/auth/profile')
+
+        assert response.status_code == 200
+        assert 'calorie_goal_manual' in response.get_json()
+
+    def test_setting_a_goal_stores_it_and_flags_it_manual(self, authenticated_client):
+        response = authenticated_client.put('/api/auth/profile', json={'daily_calorie_goal': 2350})
+
+        assert response.status_code == 200
+        body = response.get_json()['user']
+        assert body['daily_calorie_goal'] == 2350
+        assert body['calorie_goal_manual'] is True
+
+        profile = authenticated_client.get('/api/auth/profile').get_json()
+        assert profile['daily_calorie_goal'] == 2350
+        assert profile['calorie_goal_manual'] is True
+
+    def test_a_manual_goal_survives_a_later_profile_edit(self, authenticated_client):
+        authenticated_client.put('/api/auth/profile', json={'daily_calorie_goal': 2350})
+
+        # A complete profile now recalculates from BMR/TDEE; the manual goal must
+        # not be clobbered by it.
+        response = authenticated_client.put('/api/auth/profile', json={
+            'age': 34, 'gender': 'male', 'height': 180, 'weight': 85,
+            'activity_level': 'moderate', 'weekly_goal': 'lose_1',
+        })
+
+        assert response.status_code == 200
+        body = response.get_json()['user']
+        assert body['daily_calorie_goal'] == 2350
+        assert body['calorie_goal_manual'] is True
+
+    def test_clearing_the_flag_hands_control_back_to_the_calculation(self, authenticated_client):
+        authenticated_client.put('/api/auth/profile', json={'daily_calorie_goal': 2350})
+
+        cleared = authenticated_client.put('/api/auth/profile', json={
+            'calorie_goal_manual': False,
+            'age': 34, 'gender': 'male', 'height': 180, 'weight': 85,
+            'activity_level': 'moderate', 'weekly_goal': 'lose_1',
+        })
+
+        assert cleared.status_code == 200
+        body = cleared.get_json()['user']
+        assert body['calorie_goal_manual'] is False
+        assert body['daily_calorie_goal'] != 2350
+
+    @pytest.mark.parametrize('value', [0, 499, 10001, 999999])
+    def test_out_of_range_goals_are_rejected(self, authenticated_client, value):
+        response = authenticated_client.put('/api/auth/profile', json={'daily_calorie_goal': value})
+
+        assert response.status_code == 400
+        assert 'between' in response.get_json()['error']
+
+    def test_non_numeric_goal_is_rejected(self, authenticated_client):
+        response = authenticated_client.put('/api/auth/profile', json={'daily_calorie_goal': 'lots'})
+
+        assert response.status_code == 400

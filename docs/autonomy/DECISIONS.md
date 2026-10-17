@@ -178,3 +178,25 @@ Parked rather than guessed: the MLKit route needs a device to verify (camera
 permission, the scanner sheet, Play Services availability, +APK size), and its
 alternatives are the kind of choice that should be made with the phone in hand.
 FF-0014's typed code keeps the feature usable meanwhile.
+
+## 2026-10-17 — A goal the user sets by hand must not be recalculated away
+
+`PUT /api/auth/profile` recalculates `daily_calorie_goal` from BMR/TDEE whenever
+any profile field changes and the profile is complete. Adding an editable goal on
+top of that would have made it a lie: set 2350 today, correct your height
+tomorrow, and the number silently changes.
+
+So the column gains a companion flag, `calorie_goal_manual` (migration
+`d6dc0a74684b`, default false — every existing row was derived, so false is
+correct). A manual goal survives recalculation; `recalculate_user_calories` still
+returns BMR/TDEE, which describe the body rather than the target. Sending
+`calorie_goal_manual: false` hands control back to the calculation, which is what
+the "use the calculated goal instead" action does.
+
+Range is 500–10,000 kcal, enforced server-side with the constants in
+`app/config.py`. Wide enough for a cut or a bulk, narrow enough that a stray
+`20000` is rejected instead of quietly becoming the daily target.
+
+Also fixed while here: the PUT answered `calorie_goal` while the GET answered
+`daily_calorie_goal`, so no client could compare the two payloads. The PUT now
+returns both keys.

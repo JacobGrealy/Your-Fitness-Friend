@@ -21,7 +21,7 @@ jest.mock('@/store/authStore', () => ({
       created_at: '2026-01-01T00:00:00Z',
     },
     logout: jest.fn(),
-    checkAuth: jest.fn(),
+    checkAuth: () => checkAuth(),
     updateUser: jest.fn(),
   }),
 }))
@@ -30,10 +30,13 @@ jest.mock('@/components/layout/PageTitleContext', () => ({
   usePageTitle: () => ({ setTitle: jest.fn(), setHeaderRightContent: jest.fn(), headerRightContent: null, centerContent: null }),
 }))
 
+const updateProfile = jest.fn()
+const checkAuth = jest.fn()
+
 jest.mock('@/api/auth', () => ({
   authApi: {
     getProfile: jest.fn().mockResolvedValue({}),
-    updateProfile: jest.fn(),
+    updateProfile: (...args: unknown[]) => updateProfile(...args),
     uploadProfilePhoto: jest.fn(),
     deleteProfilePhoto: jest.fn(),
   },
@@ -76,5 +79,54 @@ describe('More page rows (FF-0011)', () => {
     fireEvent.click(screen.getByText('Account'))
 
     await waitFor(() => expect(screen.getByText(/edit profile/i)).toBeInTheDocument())
+  })
+})
+
+describe('Calorie goal editing (FF-0017)', () => {
+  const renderPage = () =>
+    render(
+      <MemoryRouter>
+        <Profile />
+      </MemoryRouter>
+    )
+
+  beforeEach(() => {
+    updateProfile.mockReset().mockResolvedValue({})
+    checkAuth.mockReset().mockResolvedValue(undefined)
+  })
+
+  it('opens an editor from the Calorie Goal row', async () => {
+    renderPage()
+
+    fireEvent.click(screen.getByText('Calorie Goal'))
+
+    await waitFor(() => expect(screen.getByText('Daily Calorie Goal')).toBeInTheDocument())
+    expect(screen.getByPlaceholderText('e.g. 2200')).toHaveValue(2000)
+  })
+
+  it('saves a typed goal through the profile endpoint', async () => {
+    renderPage()
+
+    fireEvent.click(screen.getByText('Calorie Goal'))
+    await waitFor(() => expect(screen.getByPlaceholderText('e.g. 2200')).toBeInTheDocument())
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. 2200'), { target: { value: '2350' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() =>
+      expect(updateProfile).toHaveBeenCalledWith({ daily_calorie_goal: 2350 })
+    )
+    expect(checkAuth).toHaveBeenCalled()
+  })
+
+  it('refuses a goal outside the accepted range', async () => {
+    renderPage()
+
+    fireEvent.click(screen.getByText('Calorie Goal'))
+    await waitFor(() => expect(screen.getByPlaceholderText('e.g. 2200')).toBeInTheDocument())
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. 2200'), { target: { value: '12000' } })
+
+    expect(screen.getByRole('button', { name: /^save$/i })).toBeDisabled()
   })
 })

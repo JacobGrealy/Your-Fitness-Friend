@@ -9,7 +9,7 @@ from app import db
 from app.models.user import User
 from app.utils.bmr_calculator import calculate_bmr_and_macros
 from app.utils.nutrition_service import calculate_calorie_goal, recalculate_user_calories
-from app.config import Config
+from app.config import Config, CALORIE_GOAL_MIN, CALORIE_GOAL_MAX
 from werkzeug.security import generate_password_hash, check_password_hash
 
 bp = Blueprint('auth', __name__)
@@ -196,6 +196,7 @@ def profile():
             'profile_photo_path': current_user.profile_photo_path,
             'weekly_goal': current_user.weekly_goal or 'maintain',
             'daily_calorie_goal': current_user.daily_calorie_goal,
+            'calorie_goal_manual': bool(current_user.calorie_goal_manual),
             'bmr': bmr,
             'tdee': tdee,
         }
@@ -225,6 +226,25 @@ def profile():
             fields_changed = True
         if 'weight_goal_lbs' in data:
             current_user.weight_goal_lbs = data['weight_goal_lbs']
+        if 'daily_calorie_goal' in data:
+            raw_goal = data['daily_calorie_goal']
+            if raw_goal in (None, ''):
+                return jsonify({'error': 'daily_calorie_goal is required'}), 400
+            try:
+                goal = int(raw_goal)
+            except (TypeError, ValueError):
+                return jsonify({'error': 'daily_calorie_goal must be a whole number'}), 400
+            if not CALORIE_GOAL_MIN <= goal <= CALORIE_GOAL_MAX:
+                return jsonify({
+                    'error': 'daily_calorie_goal must be between %d and %d'
+                             % (CALORIE_GOAL_MIN, CALORIE_GOAL_MAX)
+                }), 400
+            current_user.daily_calorie_goal = goal
+            current_user.calorie_goal_manual = True
+        elif data.get('calorie_goal_manual') is False:
+            # Explicitly hand control back to the calculation.
+            current_user.calorie_goal_manual = False
+            fields_changed = True
         if 'birthdate' in data:
             birthdate_str = data['birthdate']
             try:
@@ -265,8 +285,11 @@ def profile():
                 'activity_level': current_user.activity_level,
                 'weight_goal_lbs': current_user.weight_goal_lbs,
                 'weekly_goal': current_user.weekly_goal or 'maintain',
+                'daily_calorie_goal': current_user.daily_calorie_goal,
+                'calorie_goal_manual': bool(current_user.calorie_goal_manual),
                 'bmr': bmr,
                 'tdee': tdee,
+                # Kept for the dashboard, which reads 'calorie_goal'.
                 'calorie_goal': calorie_goal,
             }
         })

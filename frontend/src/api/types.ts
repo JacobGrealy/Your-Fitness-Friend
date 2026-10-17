@@ -25,6 +25,8 @@ export interface UserProfile {
   weight_goal_lbs?: number
   activity_level?: string
   daily_calorie_goal?: number
+  /** True when the user set the calorie goal by hand (FF-0017) */
+  calorie_goal_manual?: boolean
   weekly_goal?: string
   bmr?: number
   tdee?: number
