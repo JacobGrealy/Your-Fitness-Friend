@@ -9,6 +9,7 @@ import EmptyState from '@/components/common/EmptyState'
 import Modal from '@/components/common/Modal'
 import WeightChartWithGoal from '@/components/charts/WeightChartWithGoal'
 import { estimateGoalEta, formatEtaDate } from '@/utils/goalEta'
+import ThenAndNow from '@/components/weight/ThenAndNow'
 
 export default function WeightHistory() {
   const { setTitle } = usePageTitle()
@@ -101,6 +102,11 @@ export default function WeightHistory() {
           <WeightChartWithGoal data={chartData} height={180} goal={goalWeight} />
         </div>
       )}
+
+      {/* Then and Now — collapsed by default, and silent without two photo days */}
+      <div className="mb-4">
+        <ThenAndNow logs={logs} />
+      </div>
 
       {/* Loading / Empty State */}
       {isLoading && logs.length === 0 ? (

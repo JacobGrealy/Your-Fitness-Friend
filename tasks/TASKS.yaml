@@ -1,12 +1,11 @@
 meta:
-  updated_at: 2026-10-17T17:50
+  updated_at: 2026-10-17T17:52
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
 - FF-0030
-- FF-0027
 - FF-0028
 - FF-0029
 - FF-0031
@@ -751,11 +750,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 3
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:52
+  completed_at: 2026-10-17T17:52
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want a starting-versus-current weight photo comparison on Progress,
@@ -763,7 +762,12 @@ intake:
 
 
     2) Technical Details: pick the earliest and latest weight logs that carry a photo, render side by
-    side with labels, collapsed by default, reusing the existing uploads URL resolution.'
+    side with labels, collapsed by default, reusing the existing uploads URL resolution.
+
+
+    Closed: collapsed Then and Now section under the weight trend comparing the earliest and latest photo-bearing
+    weigh-ins (photo-less entries skipped); renders nothing with <2 photo days or a same-day pair; lazy
+    images, real alt text, weight+date captions. 4 component tests.'
   comments: []
 - id: FF-0028
   title: Timelapse slideshow of weight photos

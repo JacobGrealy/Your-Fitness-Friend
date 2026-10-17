@@ -534,3 +534,20 @@ missing inputs, beyond-horizon, date formatting) plus a page test asserting the
 row renders. Gates green.
 
 Next: FF-0027 — Then and Now on Progress.
+
+## Round 26 — 2026-10-17 — FF-0027 Then and Now on Progress
+
+A collapsed "Then and Now" section under the weight trend compares the **earliest
+and latest weigh-ins that carry a photo** — entries without a photo are skipped,
+so the comparison is always photo-to-photo. It renders nothing at all with fewer
+than two photo days, or when both are the same day (two logs, no change to show),
+and the images are lazy so opening Progress does not pull the whole photo history.
+
+Each photo is captioned with its weight and date and has a real alt text
+("Then: 205.0 lbs on Sep 1, 2026") rather than being a decorative blob.
+
+Verified: 4 component tests (collapsed by default, opens on demand, picks the
+first/last photo day rather than the middle rows, explains itself for a screen
+reader, and stays silent without a real comparison). Gates green.
+
+Next: FF-0028 — timelapse slideshow of the weight photos.
