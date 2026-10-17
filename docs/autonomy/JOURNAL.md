@@ -50,3 +50,25 @@ recorded in DECISIONS.md with its consequences for FF-0005/FF-0007.
 
 Next: FF-0003 — Capacitor scaffold (`dev.awefit.app`, webDir `../app/static`,
 `server.url` from `ANDROID_SERVER_URL`, cleartext).
+
+## Round 3 — 2026-10-17 — FF-0003 Capacitor scaffold
+
+Landed: `frontend/capacitor.config.ts` (appId `dev.awefit.app`, appName AweFit,
+webDir `../app/static`, `server.url` from `ANDROID_SERVER_URL` defaulting to the
+Tailscale address, `cleartext` derived from the scheme) and the generated
+`frontend/android/` project, committed. npm scripts `android:sync`,
+`android:debug`, `android:open`.
+
+Verified end to end: `./gradlew assembleDebug` **BUILD SUCCESSFUL** in 12m51s
+(first run downloads Gradle 8.14.3 + AGP 8.13) and produced a 4.3 MB
+`app-debug.apk` — `package=dev.awefit.app versionCode=1 minSdk=24 targetSdk=36
+application-label='AweFit' uses-permission INTERNET`. That is the whole toolchain
+proven, not just present.
+
+Trap harvested into AGENTS.md: this shell exports `NODE_ENV=production` and npm
+therefore **omits devDependencies** — the first two `npm install` runs reported
+success while `@capacitor/cli` and `@capacitor/android` were never installed, so
+`npx cap` was missing. Fix: `NODE_ENV=development npm install --include=dev`.
+
+Next: FF-0004 — the AF icon and splash (the generated launcher icons are still
+Capacitor's default), then FF-0005 signing, FF-0006 the release APK + LAN serve.

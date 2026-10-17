@@ -49,6 +49,10 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
 ### Node.js (Frontend)
 - Use full path: `/home/angrygiant/.nvm/versions/node/v22.22.2/bin/node`
 - Use `npm` commands from within the `frontend/` directory
+- **This shell exports `NODE_ENV=production`**, and npm omits devDependencies
+  under it: `npm install` reports success while `@capacitor/cli`, jest and
+  typescript are never written to `node_modules`. Install with
+  `NODE_ENV=development npm install --include=dev`.
 - The npm test scripts pin `NODE_ENV=test`. If `NODE_ENV=production` is set in
   your environment and you invoke `jest` directly, React loads its production
   build and every DOM test fails with `act(...) is not supported in production
@@ -128,6 +132,24 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
   rejected with "could not find suitable inference handler" and the routes
   silently fall back (MET estimate, unauthored meal analysis), so AI quietly
   stops working instead of erroring.
+
+## Android — AweFit
+- **AweFit is a thin Capacitor client.** The WebView loads the real app from
+  `ANDROID_SERVER_URL` instead of a bundled copy, so the session cookie, CORS,
+  `/uploads` and relative photo URLs behave exactly as in a browser. The server
+  must be reachable; there is no offline mode. Rationale: DECISIONS.md.
+- App id `dev.awefit.app`, label `AweFit` — the id is permanent once installed.
+- Toolchain lives **outside the repo**: `./scripts/android-toolchain.sh`
+  installs Temurin JDK 21 + Android SDK 36 under `~/tools`, and writes
+  `~/tools/android-sdk/env.sh`. Source it before any Gradle work
+  (`JAVA_HOME`, `ANDROID_HOME`, `adb` on PATH). `--check` reports only.
+- Capacitor 8 ⇒ compileSdk/targetSdk 36, minSdk 24, AGP 8.13, Node 22+.
+- `cd frontend && npm run android:sync` builds the SPA and copies it into the
+  native project; `npm run android:debug` goes on to assemble a debug APK.
+  `frontend/android/` is committed; its `build/`, `local.properties` and copied
+  web assets are gitignored by Capacitor's own `.gitignore`.
+- The Android server URL is baked at sync time: change `ANDROID_SERVER_URL`
+  (default `http://100.84.29.20:5001`, the stable Tailscale address) and re-sync.
 
 ## Branching
 - When working on a feature or bug fix, create a feature branch (e.g., `feat/add-food-redesign` or `fix/diary-date-nav`)
