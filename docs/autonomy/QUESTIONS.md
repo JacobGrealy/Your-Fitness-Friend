@@ -96,8 +96,20 @@ Four things, all small; nothing else blocks the queue.
 3. **Verify the camera scanner on the phone** (FF-0030): the decode path is unit
    tested with a stubbed decoder, but holding a real barcode in front of a real
    lens is unverified from this host.
-4. **Verify the one-tap update on the phone** (FF-0044) once it is built: the
-   installer intent and the install-time permission flow cannot be exercised here.
+4. **Verify the one-tap update on the phone** (FF-0044, built as 0.1.4). Two
+   steps, because the banner only appears when a *newer* build is published than
+   the one installed:
+
+   1. Install **0.1.4** now: `http://192.168.0.224:5001/download/awefit.apk`.
+   2. Say the word and I publish **0.1.5** (a rebuild, no code change), which
+      lights up "Update available" on your 0.1.4 — then tap **Get it**. Expect:
+      one system prompt at most (the first time Android asks you to allow AweFit
+      as an install source), then the installer appears for versionCode 6.
+
+   Worth knowing: on the **0.1.3** you have now, that button deliberately falls
+   back to opening the browser — the APK carries the native plugin, the JS comes
+   from the server, so 0.1.3 has the new button without the plugin behind it. That
+   fallback is the designed behaviour, not a failure.
 
 ## Current state, for when you have a minute
 
