@@ -842,3 +842,21 @@ Two consequences worth recording:
   type without a name fails the suite instead of rendering `undefined`.
 
 Gates green — 194 frontend tests.
+
+## Round 41 — 2026-10-17 — FF-0040 delegation protocol, and an honest look at why it needed a ticket
+
+The owner asked why no subagents were being used for implementation. The answer
+was invariant 9, which put "anything that builds, runs gates or switches branches"
+in one lane — correct about *this* repo's shared state (`app/static` is one live
+build output, one database, one running server) and wrong to apply to
+*implementation* as a whole. Three rounds this session had read-only work that
+should have been fanned out: the TODO audit that found seven already-shipped
+tickets, the AweCraft board reconnaissance, and the hunt for hand-maintained lists
+drifting from `MEAL_TYPES`.
+
+Invariant 9 is now: **subagents take tickets end to end; the coordinator owns the
+merge, the deploy and the registry**, with the protocol written down — own branch
+cut from master, never merge or push, never write `app/static`, never touch the
+registry or the services, disjoint files per lane, and the measured reason
+concurrent gates are safe (the smoke gate binds a dynamically chosen port;
+`instance/` is per-worktree).
