@@ -570,3 +570,23 @@ plays and pauses under fake timers, and renders nothing with fewer than two
 photos). Gates green.
 
 Next: FF-0029 — serving amounts on diary rows.
+
+## Round 28 — 2026-10-17 — FF-0029 serving amounts on diary rows
+
+Diary rows now lead with how much was eaten — "2 × 170 g · 120 cal · P:17g …" —
+using `number_of_servings` and `serving_size`, which were already on
+`FoodLog.to_dict()` and simply were not rendered. `formatServing` handles the
+half-known cases ("2 servings", "1 scoop") and returns null when nothing is
+recorded, so a log without serving data looks exactly as it did before rather
+than gaining a stray separator.
+
+Process note: FF-0028 was first committed straight to `master` by mistake (the
+branch was never created). It had not been pushed, so it was replayed through a
+branch with `reset --soft` and merged properly — the history above shows the merge
+commit it should always have had.
+
+Verified: 4 unit tests for the formatter plus 2 that assert the diary row shows
+"2 × 170 g" and omits the serving cleanly when the log has none. Gates green —
+174 jest tests.
+
+Next: FF-0031 — the stale `/food` page that duplicates the diary.
