@@ -102,6 +102,12 @@ def create_app(config_name=None):
             return send_from_directory(static_path, 'index.html')
         @app.route('/<path:path>')
         def static_files(path):
+            # API paths must never fall through to the SPA shell: an
+            # unregistered endpoint should answer with a JSON 404 rather than
+            # 200 text/html, otherwise a client that expects JSON fails
+            # confusingly while trying to parse the page.
+            if path == 'api' or path.startswith('api/'):
+                return jsonify({'error': 'Not found'}), 404
             # Serve index.html for all non-file routes (SPA fallback)
             static_files_to_check = ['index.html', 'favicon.ico', 'manifest.json']
             if path in static_files_to_check:
