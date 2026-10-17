@@ -33,8 +33,9 @@ def create_app(config_name='default'):
 
     login_manager.unauthorized = unauthorized
 
-    # CORS configuration
-    cors_origins = app.config.get('CORS_ORIGINS', ['http://192.168.0.50:5173', 'http://localhost:5173'])
+    # CORS configuration (origins come from config.CORS_ORIGINS, which is
+    # driven by the CORS_ORIGINS environment variable)
+    cors_origins = app.config.get('CORS_ORIGINS') or []
     cors_supports_credentials = app.config.get('CORS_SUPPORTS_CREDENTIALS', True)
     CORS(app, origins=cors_origins, supports_credentials=cors_supports_credentials, methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allow_headers=['Content-Type', 'Authorization'], max_age=3600)
     
