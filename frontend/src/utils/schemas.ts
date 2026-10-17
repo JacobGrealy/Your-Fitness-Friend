@@ -143,3 +143,41 @@ export const quickAddFoodSchema = z.object({
     z.literal('snack'),
   ]),
 })
+
+/**
+ * Validation for editing an existing food log entry. Mirrors
+ * quickAddFoodSchema, but the name and date are required because the entry
+ * already exists and the date decides which diary day it belongs to.
+ */
+export const editFoodLogSchema = z.object({
+  food_name: z.string().min(1, 'Food name is required'),
+  calories: z.coerce.number()
+    .refine((val) => !Number.isNaN(val), { message: 'Expected number, received nan' })
+    .pipe(z.number().positive('Calories must be a positive number')),
+  protein_g: z.coerce.number()
+    .refine((val) => !Number.isNaN(val), { message: 'Expected number, received nan' })
+    .pipe(z.number().nonnegative('Protein must be a non-negative number'))
+    .optional(),
+  carbs_g: z.coerce.number()
+    .refine((val) => !Number.isNaN(val), { message: 'Expected number, received nan' })
+    .pipe(z.number().nonnegative('Carbs must be a non-negative number'))
+    .optional(),
+  fat_g: z.coerce.number()
+    .refine((val) => !Number.isNaN(val), { message: 'Expected number, received nan' })
+    .pipe(z.number().nonnegative('Fat must be a non-negative number'))
+    .optional(),
+  number_of_servings: z.coerce.number()
+    .refine((val) => !Number.isNaN(val), { message: 'Expected number, received nan' })
+    .pipe(z.number().positive('Number of servings must be positive'))
+    .optional(),
+  serving_size: z.string().max(255, 'Serving size must be at most 255 characters').optional(),
+  brand: z.string().max(100, 'Brand must be at most 100 characters').optional(),
+  barcode_id: z.string().max(100, 'Barcode ID must be at most 100 characters').optional(),
+  date: z.string().min(1, 'Date is required'),
+  meal_type: z.union([
+    z.literal('breakfast'),
+    z.literal('lunch'),
+    z.literal('dinner'),
+    z.literal('snack'),
+  ]),
+})

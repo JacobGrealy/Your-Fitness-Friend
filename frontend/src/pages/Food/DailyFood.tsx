@@ -32,6 +32,7 @@ function MealSection({
   onToggle,
   onDelete,
   onAddFood,
+  onEditLog,
 }: {
   meal: MealType
   logs: FoodLog[]
@@ -40,6 +41,7 @@ function MealSection({
   onToggle: () => void
   onDelete: (id: string) => void
   onAddFood: (meal: MealType) => void
+  onEditLog: (id: string) => void
 }) {
   return (
     <div className="bg-white rounded-lg">
@@ -77,7 +79,27 @@ function MealSection({
             </div>
           ) : (
             logs.map(log => (
-              <div key={log.id} className="flex items-center justify-between px-4 py-3">
+              <div
+                key={log.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onEditLog(log.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    onEditLog(log.id)
+                  }
+                }}
+                className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-[#fafafa] transition-colors"
+                aria-label={`Edit ${log.food_name}`}
+              >
+                {log.photo_url && (
+                  <img
+                    src={`/api/food/uploads/${log.photo_url}`}
+                    alt=""
+                    className="w-10 h-10 rounded object-cover shrink-0 mr-3"
+                  />
+                )}
                 <div className="flex-1 min-w-0 mr-3">
                   <span className="font-medium text-sm" style={{ color: '#212121' }}>{log.food_name}</span>
                   {log.brand && (
@@ -256,6 +278,7 @@ export default function DailyFood() {
                 onToggle={() => toggleMeal(meal)}
                 onDelete={(id) => setDeleteLogId(id)}
                 onAddFood={(m) => navigate(`/food/log?meal=${m}`)}
+                onEditLog={(id) => navigate(`/food/log/${id}/edit`)}
               />
             )
           })}

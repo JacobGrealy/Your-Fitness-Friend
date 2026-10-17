@@ -69,8 +69,10 @@ export default function EditFoodLog() {
       if (log) {
         let photoUrl: string | null = null
         if (log.photo_url) {
+          // photo_url is stored relative to the uploads root, e.g.
+          // "food_log_photos/<file>.jpg"
           const backendUrl = `${window.location.origin}/api`
-          photoUrl = `${backendUrl}/food/log-photos/${log.photo_url.split('/').pop()}`
+          photoUrl = `${backendUrl}/food/uploads/${log.photo_url}`
         }
         setInitialPhotoUrl(photoUrl)
         setValue('food_name', log.food_name)

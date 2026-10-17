@@ -39,6 +39,7 @@ export interface FoodLog {
   number_of_servings?: number
   photo_url?: string | null
   brand?: string
+  barcode_id?: string | null
   food_id?: string | null
   date: string
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'

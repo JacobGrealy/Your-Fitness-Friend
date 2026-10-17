@@ -20,6 +20,10 @@ interface FoodState {
   createFood: (data: FoodCreate) => Promise<Food>
   logFood: (data: FoodLogCreate) => Promise<FoodLog | void>
   updateFoodLog: (id: string, data: Partial<FoodLogCreate>) => Promise<void>
+  getFoodLogById: (id: string) => Promise<FoodLog | null>
+  uploadFoodLogPhoto: (id: string, file: File) => Promise<void>
+  deleteFoodLogPhoto: (id: string) => Promise<void>
+  uploadedPhotoUrl: string | null
   deleteFood: (id: string) => Promise<void>
   deleteFoodLog: (id: string) => Promise<void>
   setMacroGoals: (goals: MacroGoals) => Promise<void>
@@ -39,6 +43,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   macroGoals: null,
   isLoading: false,
   error: null,
+  uploadedPhotoUrl: null,
 
   fetchFoods: async (params?: FoodSearch) => {
     set({ isLoading: true, error: null })
@@ -221,6 +226,9 @@ export const useFoodStore = create<FoodState>((set, get) => ({
         ),
         isLoading: false,
       }))
+      // The date can change on edit, which moves the entry between diary days
+      get().fetchFoodLogs()
+      get().fetchDailyTotals()
       useUIStore.getState().showToast('Food log updated', 'success')
     } catch (error: any) {
       set({
@@ -228,6 +236,60 @@ export const useFoodStore = create<FoodState>((set, get) => ({
         isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to update food log', 'error')
+    }
+  },
+
+  getFoodLogById: async (id: string) => {
+    set({ isLoading: true, error: null })
+    try {
+      const log = await foodApi.getFoodLog(id)
+      set({ isLoading: false })
+      return log
+    } catch (error: any) {
+      const message = error.response?.data?.error
+        || error.response?.data?.message
+        || 'Failed to load food log'
+      set({ error: message, isLoading: false })
+      useUIStore.getState().showToast(message, 'error')
+      return null
+    }
+  },
+
+  uploadFoodLogPhoto: async (id: string, file: File) => {
+    try {
+      const { photo_url } = await foodApi.uploadFoodLogPhoto(id, file)
+      set(state => ({
+        uploadedPhotoUrl: photo_url,
+        foodLogs: state.foodLogs.map(log =>
+          String(log.id) === String(id) ? { ...log, photo_url } : log
+        ),
+      }))
+      useUIStore.getState().showToast('Photo uploaded', 'success')
+    } catch (error: any) {
+      const message = error.response?.data?.error
+        || error.response?.data?.message
+        || 'Failed to upload photo'
+      set({ error: message })
+      useUIStore.getState().showToast(message, 'error')
+    }
+  },
+
+  deleteFoodLogPhoto: async (id: string) => {
+    try {
+      await foodApi.deleteFoodLogPhoto(id)
+      set(state => ({
+        uploadedPhotoUrl: null,
+        foodLogs: state.foodLogs.map(log =>
+          String(log.id) === String(id) ? { ...log, photo_url: null } : log
+        ),
+      }))
+      useUIStore.getState().showToast('Photo removed', 'success')
+    } catch (error: any) {
+      const message = error.response?.data?.error
+        || error.response?.data?.message
+        || 'Failed to delete photo'
+      set({ error: message })
+      useUIStore.getState().showToast(message, 'error')
     }
   },
 

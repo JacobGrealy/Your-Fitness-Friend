@@ -15,12 +15,25 @@ export const foodApi = {
   // Food logs
   getFoodLogs: (params?: { date?: string }) =>
     api.get<any>('/food/log', { params }).then(res => res.data.logs || []),
+  getFoodLog: (id: string) =>
+    api.get<FoodLog>(`/food/log/${id}`).then(res => res.data),
   logFood: (data: FoodLogCreate) =>
     api.post<FoodLog>('/food/log', data).then(res => res.data),
   updateFoodLog: (id: string, data: Partial<FoodLogCreate>) =>
     api.put<FoodLog>(`/food/log/${id}`, data).then(res => res.data),
   deleteFoodLog: (id: string) =>
     api.delete(`/food/log/${id}`).then(res => res.data),
+  uploadFoodLogPhoto: (id: string, file: File) => {
+    const formData = new FormData()
+    formData.append('photo', file)
+    return api.post<{ id: number; photo_url: string }>(
+      `/food/log/${id}/photo`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    ).then(res => res.data)
+  },
+  deleteFoodLogPhoto: (id: string) =>
+    api.delete(`/food/log/${id}/photo`).then(res => res.data),
 
   // Daily totals
   getDailyTotals: (date?: string) =>
