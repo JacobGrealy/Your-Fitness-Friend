@@ -322,3 +322,13 @@ saved, second scan is local, 404/503/400, auth required, plus the client's own
 parsing and kJ→kcal fallback) and 4 jest tests.
 
 Next: FF-0030 needs the phone; FF-0015 is the next queue item that does not.
+
+## Round 15 — 2026-10-17 — FF-0015 "photo log first" — **already correct, cancelled**
+
+`FABModal` already lists Log Food Photo first and renders `options.map(...)` in
+array order, so nothing needed moving. Locked with a test that asserts the whole
+order (`Log Food Photo, Log Food, Log Weight, Log Exercise`) plus the close-before
+-navigate behaviour, so a later reorder cannot quietly put the slowest path back
+on top again.
+
+Next: FF-0016 — the Custom Foods screen is unreachable from the UI.

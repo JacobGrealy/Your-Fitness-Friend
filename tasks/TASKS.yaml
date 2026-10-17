@@ -1,12 +1,11 @@
 meta:
-  updated_at: 2026-10-17T17:31
+  updated_at: 2026-10-17T17:32
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
 - FF-0030
-- FF-0015
 - FF-0016
 - FF-0017
 - FF-0018
@@ -434,11 +433,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: cancelled
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:32
+  completed_at: 2026-10-17T17:32
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner the photo shortcut is the fastest way to log a meal and should be
@@ -446,7 +445,11 @@ intake:
 
 
     2) Technical Details: reorder the entries in the FAB/plus menu component and keep the icons consistent;
-    verify nothing else depends on the current index order.'
+    verify nothing else depends on the current index order.
+
+
+    CANCELLED - already satisfied. FABModal already lists Log Food Photo first and renders in array order;
+    locked with tests/components/layout/FABModal.test.tsx asserting the full order and close-before-navigate.'
   comments: []
 - id: FF-0016
   title: Make Custom Foods reachable from the FAB
