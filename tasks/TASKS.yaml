@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-17T18:26
+  updated_at: 2026-10-17T18:34
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0035
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -952,4 +953,61 @@ intake:
     Closed: queue list prints ''queue is empty'' instead of silence when there is nothing queued, and
     the self-test accepts either an FF id or that line (populated case still asserted against the sandbox
     fixture). Second instance of the empty-queue self-test class after FF-0032.'
+  comments: []
+- id: FF-0034
+  title: 'CLI parity: queue move and reorder'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-17T18:33
+  updated_at: 2026-10-17T18:34
+  completed_at: 2026-10-17T18:34
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: tasks_lib can reorder and move queue entries, but the CLI cannot - so a board
+    with drag-to-reorder would be able to do something the command line cannot, breaking the rule that
+    both go through the same mutation layer with the same reach.
+
+
+    2) Technical Details: expose `tasks.py queue move --id FF-NNNN --to <index|top|bottom>` and `queue
+    reorder FF-0002 FF-0001 ...` wrapping tasks_lib.queue_move / queue_reorder. Match AweCraft''s CLI
+    so the ported board has full parity. Cover with self-tests: move to top, move to a position, reorder
+    by list, and rejection of an id that is not queued.
+
+
+    Closed: queue move (1-based index, top/bottom/''after FF-0001'') and queue reorder (permutation-validated)
+    added to the CLI over the existing tasks_lib helpers, both with intended-state checks. 35 toolkit
+    self-tests; gates green.'
+  comments: []
+- id: FF-0035
+  title: Task board web UI, ported from AweCraft
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T18:33
+  updated_at: 2026-10-17T18:33
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The owner wants to see the work queue the way the AweCraft project shows it:
+    a live board with the queue line, open work by priority, blocked, and done, reachable from the phone
+    over the tailnet, without running CLI commands.
+
+
+    2) Technical Details: port AweCraft''s tasks/scripts/render.py (shared renderer: build_board/render_page,
+    also usable to save a static HTML file) and tasks/webui.py (stdlib ThreadingHTTPServer, port 5181
+    since AweCraft holds 5180, binds 0.0.0.0 with NO auth by the owner''s explicit choice, --daemon/--sandbox/--replace,
+    GET / + /healthz, POST /api/<action> for status/comment/add/queue add-move-remove-reorder/backlog
+    move-reorder, YAML loaded fresh per request). Adapt for FF-NNNN ids and flat tickets: drop the per-ticket
+    folder links and the /tasks/<id>/spec.html artifact routes, which have no equivalent here. Extend
+    the tooling gate with a sandboxed HTTP smoke (real requests against --sandbox, then re-read the copy
+    to prove writes landed). Document starting it in tasks/scripts/AGENTS.md, AGENTS.md and README.'
   comments: []

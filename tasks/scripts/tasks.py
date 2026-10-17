@@ -269,6 +269,74 @@ def cmd_comment(args):
     return 0
 
 
+def _queue_position(data, spec):
+    """Turn a human position ("top", "bottom", "2", "after FF-0003") into an index."""
+    queue = data.get("queue") or []
+    if not queue:
+        raise TaskError("the queue is empty")
+    text = str(spec).strip()
+    lowered = text.lower()
+    if lowered in ("top", "head", "start"):
+        return 0
+    if lowered in ("bottom", "end", "last"):
+        return len(queue) - 1
+    if lowered.startswith("after "):
+        anchor = lowered.split(None, 1)[1].strip().upper()
+        if anchor not in queue:
+            raise NotFound("%s is not in the queue" % anchor)
+        return queue.index(anchor) + 1
+    try:
+        index = int(text)
+    except (TypeError, ValueError):
+        raise TaskError(
+            "position must be an index, top, bottom, or 'after FF-0001'"
+        )
+    # 1-based on the command line (matches `queue list` output), 0-based inside.
+    if index < 1:
+        raise TaskError("positions are 1-based; use 'top' for the head of the queue")
+    return index - 1
+
+
+def _queue_move(args, path):
+    tid = args.id or args.id_flag
+    if not tid:
+        raise TaskError("queue move needs a ticket id")
+    with tasks_lib.registry_lock(path):
+        original_bytes, original = tasks_lib.read_registry(path)
+        data = tasks_lib.normalize(copy.deepcopy(original))
+        if tid not in (data.get("queue") or []):
+            raise NotFound("%s is not in the queue" % tid)
+        index = _queue_position(data, args.to)
+        changed = tasks_lib.queue_move(data, tid, index)
+
+        def intended(d):
+            queue = d.get("queue") or []
+            target = min(index, len(queue) - 1)
+            if queue[target] != tid:
+                raise TaskError("%s did not land at position %d" % (tid, target + 1))
+
+        summary = _commit(args, data, original_bytes, original, intended=intended)
+        print("%s %s -> position %d" % ("Moved" if changed else "Unchanged", tid, index + 1))
+        _print_summary(summary)
+    return 0
+
+
+def _queue_reorder(args, path):
+    with tasks_lib.registry_lock(path):
+        original_bytes, original = tasks_lib.read_registry(path)
+        data = tasks_lib.normalize(copy.deepcopy(original))
+        changed = tasks_lib.queue_reorder(data, args.ids)
+
+        def intended(d):
+            if list(d.get("queue") or []) != list(args.ids):
+                raise TaskError("queue order did not stick")
+
+        summary = _commit(args, data, original_bytes, original, intended=intended)
+        print("%s queue -> %s" % ("Reordered" if changed else "Unchanged", " ".join(args.ids)))
+        _print_summary(summary)
+    return 0
+
+
 def cmd_queue(args):
     path = _path(args)
     if args.queue_cmd == "list":
@@ -284,6 +352,10 @@ def cmd_queue(args):
             title = item.get("title") if item else "(missing)"
             print("%2d  %s  [%s]  %s" % (pos, tid, st, title))
         return 0
+    if args.queue_cmd == "move":
+        return _queue_move(args, path)
+    if args.queue_cmd == "reorder":
+        return _queue_reorder(args, path)
     with tasks_lib.registry_lock(path):
         original_bytes, original = tasks_lib.read_registry(path)
         data = tasks_lib.normalize(copy.deepcopy(original))
@@ -453,6 +525,17 @@ def main(argv=None):
     qr.set_defaults(fn=cmd_queue)
     ql = qsub.add_parser("list", help="print the queue")
     ql.set_defaults(fn=cmd_queue)
+    qm = qsub.add_parser("move", help="move a queued ticket to a position")
+    qm.add_argument("id", nargs="?", default=None)
+    qm.add_argument("--id", dest="id_flag", default=None,
+                    help="same as the positional id; both forms are accepted")
+    qm.add_argument("--to", required=True,
+                    help="1-based position, top, bottom, or 'after FF-0001'")
+    qm.set_defaults(fn=cmd_queue)
+    qs = qsub.add_parser("reorder", help="replace the queue order with this list")
+    qs.add_argument("ids", nargs="+",
+                    help="every currently queued id, in the new order")
+    qs.set_defaults(fn=cmd_queue)
 
     p = sub.add_parser("next", help="print the next live queue item")
     p.set_defaults(fn=cmd_next)

@@ -104,6 +104,55 @@ def main():
         item = next((i for i in data["intake"] if i.get("id") == tid), None)
         check("completed_at cleared", item is not None and item.get("completed_at") is None)
 
+    print("\n-- queue move / reorder (FF-0034)")
+    if tid:
+        p = run_cli("add", "--title", "second self-test ticket", "--source", "agent",
+                    "--priority", "3", sandbox=sandbox)
+        m = re.search(r"\b(FF-\d{4,})\b", p.stdout)
+        tid2 = m.group(1) if m else None
+        check("second ticket added", tid2 is not None, p.stdout.strip())
+
+        if tid2:
+            run_cli("queue", "add", tid, "sandbox", sandbox=sandbox) if False else None
+            run_cli("queue", "add", tid, sandbox=sandbox)
+            run_cli("queue", "add", tid2, sandbox=sandbox)
+
+            p = run_cli("queue", "move", tid2, "--to", "top", sandbox=sandbox)
+            check("queue move to top", p.returncode == 0, p.stderr)
+            queue = yaml.safe_load(sandbox.read_text()).get("queue") or []
+            check("moved ticket is at the head", queue[:1] == [tid2], str(queue))
+
+            p = run_cli("queue", "move", tid2, "--to", "2", sandbox=sandbox)
+            check("queue move to a 1-based position", p.returncode == 0, p.stderr)
+            queue = yaml.safe_load(sandbox.read_text()).get("queue") or []
+            check("ticket landed at position 2", queue[1:2] == [tid2], str(queue))
+
+            p = run_cli("queue", "move", tid2, "--to", "after %s" % tid, sandbox=sandbox)
+            check("queue move after an anchor", p.returncode == 0, p.stderr)
+            queue = yaml.safe_load(sandbox.read_text()).get("queue") or []
+            check("ticket follows its anchor", queue.index(tid2) == queue.index(tid) + 1, str(queue))
+
+            # reorder is a permutation of the *whole* queue, so reverse it
+            before = yaml.safe_load(sandbox.read_text()).get("queue") or []
+            reversed_ids = list(reversed(before))
+            p = run_cli("queue", "reorder", *reversed_ids, sandbox=sandbox)
+            check("queue reorder", p.returncode == 0, p.stderr)
+            queue = yaml.safe_load(sandbox.read_text()).get("queue") or []
+            check("reorder replaced the order", queue == reversed_ids, str(queue))
+
+            p = run_cli("queue", "reorder", tid2, sandbox=sandbox)
+            check("reorder that is not a permutation is rejected",
+                  p.returncode == 1 and "permutation" in p.stderr.lower(),
+                  "rc=%s %s" % (p.returncode, p.stderr.strip()[:120]))
+
+            p = run_cli("queue", "move", "FF-9999", "--to", "top", sandbox=sandbox)
+            check("moving an unqueued id is rejected",
+                  p.returncode == 1 and "not in the queue" in p.stderr.lower(),
+                  "rc=%s %s" % (p.returncode, p.stderr.strip()[:120]))
+
+            run_cli("queue", "remove", tid, sandbox=sandbox)
+            run_cli("queue", "remove", tid2, sandbox=sandbox)
+
     print("\n-- queue_top skips blocked tickets")
     if tid:
         # Put the ticket at the head of the queue, block it, and prove `next`
