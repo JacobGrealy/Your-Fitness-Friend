@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T19:42
+  updated_at: 2026-10-17T19:52
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1314,7 +1314,7 @@ intake:
   status: done
   labels: []
   created_at: 2026-10-17T19:15
-  updated_at: 2026-10-17T19:34
+  updated_at: 2026-10-17T19:52
   completed_at: 2026-10-17T19:34
   waiting_on: null
   parent_id: null
@@ -1349,7 +1349,12 @@ intake:
     jest tests. APK 0.1.4 (versionCode 5) built - Gradle compiled the Java and merged the manifest; verified
     inside the APK that the plugin is in classes.dex, the permission is present and the FileProvider authority
     is dev.awefit.app.fileprovider. Phone verification outstanding: banner needs a newer published build,
-    so run 0.1.4 while 0.1.5 exists.'
+    so run 0.1.4 while 0.1.5 exists.
+
+
+    VERIFIED ON HARDWARE 2026-10-17: owner installed 0.1.4, the 0.1.5 banner appeared, Get it downloaded
+    and installed inside the app without leaving for the browser. The JS came from the server and the
+    native plugin from the installed APK - the exact split that ships.'
   comments: []
 - id: FF-0045
   title: 'Correct the autonomy state doc: the restart happened, the drop-in did not'
@@ -1487,4 +1492,37 @@ intake:
     with the new sha256, /download/awefit.apk serves application/vnd.android.package-archive at the matching
     size, and ApkInstaller is still present in classes.dex. No restart needed - the route reads releases/version.json
     per request.'
+  comments: []
+- id: FF-0049
+  title: Record one-tap update verified on the phone, and document the shipping loop
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-17T19:51
+  updated_at: 2026-10-17T19:52
+  completed_at: 2026-10-17T19:52
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The owner installed 0.1.4, then tapped Get it on the 0.1.5 banner and the update
+    downloaded and installed inside the app. That is the on-device verification FF-0044 was waiting for,
+    and the docs still list it as outstanding.
+
+
+    2) Technical Details: docs/autonomy/QUESTIONS.md item 4 says the one-tap update needs verifying on
+    the phone; it is verified (owner, 2026-10-17: banner appeared on 0.1.4 for 0.1.5, tapped Get it, downloaded
+    and installed in-app without leaving for the browser). Remove item 4 and renumber, and refresh the
+    current-state block to 0.1.5 / versionCode 6 as installed. Also add the durable shipping loop to the
+    Android section of AGENTS.md, since the mechanism now has a verified end-to-end path worth stating
+    once: ./scripts/build-android.sh --bump publishes to releases/, /api/app/version reads releases/version.json
+    per request so the banner appears without a restart, and the installed client downloads and starts
+    the installer itself.
+
+
+    Closed: QUESTIONS.md item 4 removed and the list renumbered to three; current state now records 0.1.5/versionCode
+    6 installed and one-tap update verified on the phone. AGENTS.md gains the shipping loop under Android
+    (bump -> publish -> banner on next request -> client installs; publishing never installs by itself).'
   comments: []

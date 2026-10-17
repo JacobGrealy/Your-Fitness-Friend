@@ -85,7 +85,7 @@ real 3.8 MB file, not the SPA shell any more).
 
 ## Waiting on you
 
-Four things, all small; nothing else blocks the queue.
+Three things, all small; nothing else blocks the queue.
 
 1. **Install APK 0.1.3** — `http://192.168.0.224:5001/download/awefit.apk` on the
    phone (verified serving the real file), or `adb install -r releases/awefit.apk`.
@@ -96,20 +96,7 @@ Four things, all small; nothing else blocks the queue.
 3. **Verify the camera scanner on the phone** (FF-0030): the decode path is unit
    tested with a stubbed decoder, but holding a real barcode in front of a real
    lens is unverified from this host.
-4. **Verify the one-tap update on the phone** (FF-0044, built as 0.1.4). Two
-   steps, because the banner only appears when a *newer* build is published than
-   the one installed:
 
-   1. Install **0.1.4** now: `http://192.168.0.224:5001/download/awefit.apk`.
-   2. Say the word and I publish **0.1.5** (a rebuild, no code change), which
-      lights up "Update available" on your 0.1.4 — then tap **Get it**. Expect:
-      one system prompt at most (the first time Android asks you to allow AweFit
-      as an install source), then the installer appears for versionCode 6.
-
-   Worth knowing: on the **0.1.3** you have now, that button deliberately falls
-   back to opening the browser — the APK carries the native plugin, the JS comes
-   from the server, so 0.1.3 has the new button without the plugin behind it. That
-   fallback is the designed behaviour, not a failure.
 
 ## Current state, for when you have a minute
 
@@ -118,11 +105,14 @@ Four things, all small; nothing else blocks the queue.
   frontend, tsc, smoke, toolkit.
 - **Live server:** current with `master` as of the 19:18:38 EDT restart —
   `/api/app/version` and `/download/awefit.apk` answer correctly.
+- **One-tap update (FF-0044):** **verified on the phone** — the banner appeared on
+  0.1.4 for 0.1.5, Get it downloaded and installed inside the app without leaving
+  for the browser. Current published build: **0.1.5 (versionCode 6)**.
 - **Persistent login (FF-0043):** live and **verified on the phone** — the session
   cookie now carries a 30-day `Expires` and the remember token 365 days, so the app
   no longer asks for a password on launch.
-- **APK:** `releases/awefit.apk` — **0.1.3 (versionCode 4)**, signed `CN=AweFit`,
-  3.8 MB, sha256 `c86960d1…`, baked server
+- **APK:** `releases/awefit.apk` — **0.1.5 (versionCode 6)**, signed `CN=AweFit`,
+  3.7 MB, baked server
   `https://home-server-1.tail96ee52.ts.net` with `cleartext: false`. Install it to
   get the camera scanner and a working login.
 - **Web app:** `app/static` is rebuilt from `master` and identical to what the HTTPS

@@ -1029,3 +1029,21 @@ The interesting bit of the next step is which binary does the work: the installe
 0.1.4 runs the *current* JS from the server (button, fallbacks) but its own native
 plugin does the download and the install intent. So this exercises exactly the
 combination that will ship.
+
+## Round 48 — 2026-10-17 — FF-0049 one-tap update is confirmed on hardware
+
+The owner installed 0.1.4, saw the "Update available — 0.1.5" banner, tapped
+**Get it**, and it downloaded and installed inside the app — never handing over to
+the browser. That is the on-device half of FF-0044 that this host cannot exercise,
+so it is now recorded as verified rather than expected.
+
+Both readings matter: the *JS* running on the phone came from the server (the
+button, the fallback ladder, the permission message) while the *native plugin* that
+did the download and fired the installer came from the installed 0.1.4 APK — which
+is exactly the split that ships, so the pass is a genuine end-to-end one.
+
+The mechanism is now written down once, in `AGENTS.md` under Android: bump, publish,
+the banner appears on the next request because `/api/app/version` reads
+`releases/version.json` per request, and the client installs it itself. Publishing
+never installs anything by itself — Android's own dialog stays in the loop, which
+is the point.

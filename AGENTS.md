@@ -195,6 +195,13 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
   `frontend/capacitor.config.ts`. `build-android.sh` warns when the baked URL is
   cleartext `http://`, because such an origin is **not** a secure context and the
   camera scanner silently cannot work there.
+- **Shipping an update** (verified end to end 2026-10-17): run
+  `./scripts/build-android.sh --bump`. It publishes to `releases/`, and
+  `/api/app/version` reads `releases/version.json` **per request**, so installed
+  clients show the update banner on their next request — no backend restart. The
+  banner's Get it button then downloads the APK and starts Android's installer from
+  inside the app (`ApkInstallerPlugin`, FF-0044); publishing a build never installs
+  anything by itself.
 - `SESSION_COOKIE_SECURE=true` is set in `.env` for the HTTPS origin. The cookie
   is then only sent over `https://`, so a plain-HTTP LAN login stops working —
   that is the intended trade.
