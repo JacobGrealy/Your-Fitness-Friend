@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T19:34
+  updated_at: 2026-10-17T19:35
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1422,4 +1422,38 @@ intake:
     has the 30-day session and 365-day remember lifetimes; served bundle carries the remember payload)
     and dropped the stale ''one more restart'' item from the Waiting-on-you list. Recorded FF-0043 as
     verified on the phone.'
+  comments: []
+- id: FF-0047
+  title: Tell the owner the two-step that makes the one-tap update testable
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-17T19:34
+  updated_at: 2026-10-17T19:35
+  completed_at: 2026-10-17T19:35
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The one-tap update is built and published, and the owner needs to know the exact
+    two-step to see it work on their phone, because the banner only appears when a newer build is published
+    than the one installed.
+
+
+    2) Technical Details: docs/autonomy/QUESTIONS.md item 4 still says the feature must be verified "once
+    it is built". It is built: APK 0.1.4 (versionCode 5) with the native ApkInstaller plugin, and the
+    live /api/app/version already reports 0.1.4 because the route reads releases/version.json per request.
+    Note the ordering that makes it testable: an APK carries the plugin, the JS comes from the server,
+    so on the currently installed 0.1.3 the new button correctly falls back to the browser (plugin absent),
+    and one-tap only works from 0.1.4 onward. To exercise it they must run 0.1.4 while a NEWER build (0.1.5)
+    is published, otherwise the banner never renders. Rewrite item 4 with that two-step (install 0.1.4
+    now; coordinator publishes 0.1.5 on request; then tap Get it) and record that the fallback behaviour
+    on 0.1.3 is expected rather than a bug.
+
+
+    Closed: QUESTIONS.md item 4 now gives the two-step (install 0.1.4; coordinator publishes 0.1.5 on
+    request; tap Get it) and states that the browser fallback on 0.1.3 is designed behaviour, since the
+    native plugin only exists from 0.1.4 onward.'
   comments: []
