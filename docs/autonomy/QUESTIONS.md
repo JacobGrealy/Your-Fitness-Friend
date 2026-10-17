@@ -9,8 +9,9 @@ meantime, and what changes if you answer differently.
 ---
 
 _The eleven from the Android/autonomy planning round were all answered_ (see
-`DECISIONS.md`). The queue is now empty of everything that does not need you:
-22 tickets done, 7 cancelled as already-shipped, and only Q1/Q3's tickets parked.
+`DECISIONS.md`). Q1, Q3 and Q4 are resolved; **Q2 is half done** — the restart
+happened, the passwordless drop-in did not. What still needs you is listed under
+"Waiting on you" at the bottom of this file.
 
 ### Q1 — Tailscale Serve/HTTPS — **RESOLVED 2026-10-17**
 
@@ -23,37 +24,37 @@ You enabled Serve and set the operator. Verified from this host:
 
 FF-0008 is closed: **APK 0.1.3 (versionCode 4)** bakes that HTTPS origin.
 
-### Q2 — Two one-time commands from you: sudoers drop-in + a restart
+### Q2 — Sudoers drop-in + a restart — **restart done, drop-in still missing**
 
-`sudo` needs a password here, so the passwordless rule in
-`scripts/sudoers.d/fitnessfriend-agents` is still not installed and the running
-gunicorn is older than `master`. Backend work is therefore verified on a
-throwaway server and left "awaiting restart".
+**Done by you, 2026-10-17 18:32 EDT:** `sudo systemctl restart fitnessfriend`.
+Everything that was waiting on it is now live on the server — verified from this
+host after the restart:
+
+| Checked | Result |
+| --- | --- |
+| `GET /api/app/version` | 0.1.3 metadata, `versionCode 4`, `serverUrl https://…` |
+| `GET /download/awefit.apk` | `200`, `application/vnd.android.package-archive`, 3,813,445 bytes |
+| `GET /api/food/barcode/…` | `401` (route exists and requires auth) |
+| process environment | `SESSION_COOKIE_SECURE=true` |
+
+**Still outstanding:** the passwordless drop-in. Re-verified 2026-10-17:
+`/etc/sudoers.d/` contains **no** `fitnessfriend-agents` file, and `sudo -n -l`
+still answers *"interactive authentication is required"*. So the 18:32 restart was
+done by hand, and **every backend change still waits for you**:
 
 ```bash
-# 1. let the agent restart the two services without a password (one time)
 sudo install -m 0440 -o root -g root \
   /home/angrygiant/github_projects/FitnessFriend/scripts/sudoers.d/fitnessfriend-agents \
   /etc/sudoers.d/fitnessfriend-agents
 sudo visudo -c          # must print "parsed OK"
-
-# 2. pick up the pending backend changes
-sudo systemctl restart fitnessfriend
 ```
 
-After that, `/api/app/version` and `/download/awefit.apk` are live (they 404 on
-the running server today because it predates the blueprint), and later rounds can
-deploy backend changes themselves.
+That grants exactly two things without a password — `systemctl restart`/`status`
+for `fitnessfriend` and `fitness-frontend` — so later rounds can deploy backend
+work themselves instead of ending every merge with "awaiting restart".
 
-**Careful with the APK URL until then:** `/download/awefit.apk` on the live server
-answers **200 with the SPA's `index.html`**, not a 404 — the SPA catch-all serves
-the shell for any unknown path. Tapping it on the phone downloads a 3.7 KB HTML
-file named `awefit.apk`, which Android refuses to install. The APK itself is fine
-at `releases/awefit.apk`; install it with `adb install -r releases/awefit.apk`, or
-wait for the restart.
-
-**Assumed meanwhile:** every backend change is gated on the throwaway server in
-`scripts/gates.sh smoke` and reported as "awaiting restart" in the journal.
+**Assumed meanwhile:** every backend change is verified on the throwaway server in
+the gates' smoke step and reported as "awaiting restart" in the journal.
 
 ### Q3 — Camera barcode scanner — **RESOLVED, route 1 (FF-0030 shipped)**
 
@@ -69,37 +70,50 @@ here. The decode path is unit-tested with a stubbed decoder, but "hold a real
 barcode in front of a real lens" is unverified until you try it. If the frame rate
 or focus hunts, tell me and I will tune it.
 
-### Q4 — Nothing backend has reached the live server yet (still open)
+### Q4 — Nothing backend has reached the live server — **RESOLVED 2026-10-17**
 
-Every backend change since FF-0008 (`session_protection`, `/api/app/version`,
-`/download/awefit.apk`, the barcode endpoint) is merged and gated but **not
-running**: the deployed gunicorn predates them, and `sudo` needs your password.
-The one-time fix is Q2 above. Until then the app's update banner and barcode
-lookup 404 on the live server while passing the gates — re-checked over HTTPS after
-Serve came up: `/api/app/version` is still `404` there, and the same endpoint
-returns the correct 0.1.3 metadata on a throwaway server running `master`.
+The restart fixed it. `/api/app/version`, `/download/awefit.apk` and the barcode
+endpoint all answer correctly on the live server now, and `SESSION_COOKIE_SECURE`
+is in the running process's environment (see the table under Q2).
 
-**`SESSION_COOKIE_SECURE=true` is now in `.env`** and is also waiting on that
-restart. When it takes effect the session cookie stops being sent over plain
-`http://`, so **logging in at `http://192.168.0.224:5001` will stop working** — use
-the HTTPS address. That is the intended trade, not a bug; say so if you would
-rather I revert the flag.
-
+**One consequence to act on:** the Secure cookie means plain-HTTP clients can no
+longer log in. AweFit **0.1.3** talks to the HTTPS origin; **0.1.2** still speaks
+`http://100.84.29.20:5001` and will fail to log in. The APK is downloadable over
+the LAN at `http://192.168.0.224:5001/download/awefit.apk` (verified serving the
+real 3.8 MB file, not the SPA shell any more).
 ---
+
+## Waiting on you
+
+Five things, all small; nothing else blocks the queue.
+
+1. **Install APK 0.1.3** — `http://192.168.0.224:5001/download/awefit.apk` on the
+   phone (verified serving the real file), or `adb install -r releases/awefit.apk`.
+   Do this *first*: `SESSION_COOKIE_SECURE=true` is live, so 0.1.2 (plain HTTP) can
+   no longer log in.
+2. **One more restart** — FF-0043 (stay signed in across app restarts) merged after
+   the 18:32 restart, so it is not running yet.
+3. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
+   "awaiting restart".
+4. **Verify the camera scanner on the phone** (FF-0030): the decode path is unit
+   tested with a stubbed decoder, but holding a real barcode in front of a real
+   lens is unverified from this host.
+5. **Verify the one-tap update on the phone** (FF-0044) once it is built: the
+   installer intent and the install-time permission flow cannot be exercised here.
 
 ## Current state, for when you have a minute
 
-- **Queue:** empty — **no blocked tickets left**. 25 merged, 7 cancelled as already
-  implemented. Gates green: 127 backend, 171 frontend, tsc,
-  smoke, toolkit.
+- **Queue:** FF-0044 (one-tap in-app update) is the only open ticket. 36 done, 7
+  cancelled as already implemented, **0 blocked**. Gates green: 131 backend, 201
+  frontend, tsc, smoke, toolkit.
+- **Live server:** current with `master` as of the 18:32:16 EDT restart —
+  `/api/app/version` and `/download/awefit.apk` answer correctly. Backend work
+  merged *after* that restart is not running yet.
 - **APK:** `releases/awefit.apk` — **0.1.3 (versionCode 4)**, signed `CN=AweFit`,
-  3.8 MB, sha256 `c86960d1…`, baked server `https://home-server-1.tail96ee52.ts.net`
-  with `cleartext: false`. Install with `adb install -r releases/awefit.apk`.
-  **Install this one to get the camera scanner** — 0.1.2 still points at the
-  plain-HTTP address, where `getUserMedia` does not exist. The web download URL
-  starts working after the Q2 restart.
-- **Web app:** `app/static` is rebuilt from `master` and confirmed identical to
-  what the HTTPS origin serves (both `assets/index-C2pAnXw0.js`), so the browser and
-  an installed 0.1.3 show the current UI on reload. No restart needed for frontend
-  changes.
-- **Backend:** everything merged since FF-0008 is waiting on the Q2 restart.
+  3.8 MB, sha256 `c86960d1…`, baked server
+  `https://home-server-1.tail96ee52.ts.net` with `cleartext: false`. Install it to
+  get the camera scanner and a working login.
+- **Web app:** `app/static` is rebuilt from `master` and identical to what the HTTPS
+  origin serves, so an installed client shows the current UI on reload — frontend
+  changes need no restart and no reinstall.
+- **Board:** `http://<lan-ip>:5181/` — `python3 tasks/webui.py --daemon` starts it.

@@ -927,3 +927,28 @@ asks for it. 201 frontend tests, gates green.
 from FF-0008 and this change lands in the same restart: install **APK 0.1.3**
 (HTTPS) *before* restarting the backend, or the installed 0.1.2 — which points at
 plain `http://100.84.29.20:5001` — will no longer be able to log in at all.
+
+## Round 44 — 2026-10-17 — FF-0045 the state doc was telling the next session a lie
+
+`QUESTIONS.md` still opened with "nothing backend has reached the live server" and
+listed the restart as outstanding. It had been done — at 18:32:16 EDT, by the
+owner, by hand. So the first thing a new session reads was wrong in the direction
+that matters: it would have believed a whole class of merged work was undeployed.
+
+Verified rather than assumed, both halves:
+
+- **Restart: done.** `/api/app/version` returns the 0.1.3 metadata,
+  `/download/awefit.apk` returns `200` with `application/vnd.android.package-archive`
+  and 3,813,445 bytes, the barcode endpoint returns `401` (exists, needs auth), and
+  the running gunicorn's `/proc/<pid>/environ` contains `SESSION_COOKIE_SECURE=true`.
+- **Drop-in: not installed.** `/etc/sudoers.d/` has no `fitnessfriend-agents`, and
+  `sudo -n -l` still says *"interactive authentication is required"*.
+
+So Q2 is now honestly half-done rather than outstanding, Q4 is resolved with the
+evidence table, and the closing section became **"Waiting on you"** — five concrete
+items, ordered, starting with "install 0.1.3 first", because `SESSION_COOKIE_SECURE`
+going live means the installed 0.1.2 can no longer log in at all.
+
+Also corrected a stale claim I had left in that file: it said the APK URL returns
+the SPA shell and would keep doing so until the restart. That stopped being true
+when the restart happened.
