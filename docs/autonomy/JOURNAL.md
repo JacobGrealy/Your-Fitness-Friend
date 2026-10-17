@@ -133,3 +133,30 @@ Verified against the *running* production server, not a test double:
 
 Next: FF-0007 — WebView polish (safe areas with Capacitor 8's SystemBars,
 hardware back, status bar), then FF-0008 Tailscale HTTPS.
+
+## Round 7 — 2026-10-17 — FF-0007 WebView polish (safe areas, status bar, back)
+
+Landed: `viewport-fit=cover` in `index.html`; safe-area padding on the fixed
+header, the bottom nav, the sidebar and the main content offset, so nothing sits
+under the gesture bar or the notch (the three open mobile TODO bugs and the
+top-bar separation are in this change); a native-shell module (`src/native.ts`)
+that is a no-op on web and wires the hardware back button, the light status bar
+and the splash; Capacitor 8 `SystemBars` configured with `insetsHandling: 'css'`
++ `initialViewportFitValueHint: 'cover'`, and a splash that matches theme-color.
+The FAB sheet now claims the back press (`awefit:back`, cancelable) instead of
+letting back navigate away underneath an open sheet.
+
+Verified: `npx tsc --noEmit` clean, 97 jest tests pass (5 new for the back-button
+decision logic and the cancelable event), the built CSS contains all four
+`safe-area-inset-*` uses, and a Playwright pass against a **throwaway server on
+a copy of the database** (a registered `visual-check@example.test` user) confirms
+390×844 shows the bottom nav with the FAB and 844×390 shows the sidebar with its
+Add Log button — so navigation exists at both widths, which closes that TODO item
+as already-fixed rather than fixable.
+
+Found while looking (filed onto FF-0019 rather than fixed here): the diary's
+centred date control overlaps the "FitnessFriend" brand at 390 px, and in
+landscape the mobile header is hidden so **the diary date cannot be changed at
+all**. That is a layout bug in the date selector, not in the shell.
+
+Next: FF-0008 — Tailscale HTTPS, which also lets SESSION_COOKIE_SECURE be true.

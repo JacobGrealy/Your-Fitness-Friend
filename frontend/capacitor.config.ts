@@ -28,6 +28,23 @@ const config: CapacitorConfig = {
     // white between the splash and the first paint.
     backgroundColor: '#1a1a1a',
   },
+  plugins: {
+    // Capacitor 8 folds status-bar and edge-to-edge handling into SystemBars.
+    // 'css' keeps the native side honest about the insets *and* exposes them as
+    // --safe-area-inset-* variables; the viewport-fit hint stops the layout
+    // jumping on first paint, before the WebView reports the real value.
+    SystemBars: {
+      insetsHandling: 'css',
+      initialViewportFitValueHint: 'cover',
+    },
+    SplashScreen: {
+      launchShowDuration: 600,
+      launchAutoHide: true,
+      backgroundColor: '#1a1a1a',
+      androidScaleType: 'CENTER_CROP',
+      showSpinner: false,
+    },
+  },
   server: {
     url: serverUrl,
     // Android blocks cleartext HTTP from API 28 on; this only opens it for the
