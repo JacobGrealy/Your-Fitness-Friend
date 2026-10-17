@@ -85,15 +85,11 @@ real 3.8 MB file, not the SPA shell any more).
 
 ## Waiting on you
 
-Three things, all small; nothing else blocks the queue.
+Two things, both small; nothing else blocks the queue.
 
-1. **Install APK 0.1.3** — `http://192.168.0.224:5001/download/awefit.apk` on the
-   phone (verified serving the real file), or `adb install -r releases/awefit.apk`.
-   Do this *first*: `SESSION_COOKIE_SECURE=true` is live, so 0.1.2 (plain HTTP) can
-   no longer log in.
-2. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
-   "awaiting restart".
-3. **Verify the camera scanner on the phone** (FF-0030): the decode path is unit
+1. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
+   "awaiting restart", and only you can restart the service.
+2. **Verify the camera scanner on the phone** (FF-0030): the decode path is unit
    tested with a stubbed decoder, but holding a real barcode in front of a real
    lens is unverified from this host.
 
