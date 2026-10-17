@@ -38,3 +38,28 @@ and README documents the exact commands above.
 **When you have done it**, just say so and FF-0008 finishes in one round: serve,
 verify with curl, then rebuild the APK against `https://home-server-1.tail96ee52.ts.net`
 and confirm login survives.
+
+### Q2 — Two one-time commands from you: sudoers drop-in + a restart
+
+`sudo` needs a password here, so the passwordless rule in
+`scripts/sudoers.d/fitnessfriend-agents` is still not installed and the running
+gunicorn is older than `master`. Backend work is therefore verified on a
+throwaway server and left "awaiting restart".
+
+```bash
+# 1. let the agent restart the two services without a password (one time)
+sudo install -m 0440 -o root -g root \
+  /home/angrygiant/github_projects/FitnessFriend/scripts/sudoers.d/fitnessfriend-agents \
+  /etc/sudoers.d/fitnessfriend-agents
+sudo visudo -c          # must print "parsed OK"
+
+# 2. pick up the pending backend changes
+sudo systemctl restart fitnessfriend
+```
+
+After that, `/api/app/version` and `/download/awefit.apk` are live (they 404 on
+the running server today because it predates the blueprint), and later rounds can
+deploy backend changes themselves.
+
+**Assumed meanwhile:** every backend change is gated on the throwaway server in
+`scripts/gates.sh smoke` and reported as "awaiting restart" in the journal.

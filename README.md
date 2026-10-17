@@ -86,7 +86,12 @@ Tailscale — and has no offline mode.
 | What | Where |
 | --- | --- |
 | the APK | `http://<host>:5001/download/awefit.apk` |
-| metadata | `http://<host>:5001/download/version.json` |
+| metadata | `http://<host>:5001/api/app/version` |
+
+Builds are published to `releases/` at the repo root (gitignored) and served by
+a Flask route — **not** from `app/static/`, which `vite build` empties on every
+web build. The app itself polls `/api/app/version` and offers the download when
+the published `versionCode` is newer than the installed one.
 
 **Install / update on the phone:** open that URL, download, tap the file. Android
 asks once for permission to install unknown apps. An update installs *over* the

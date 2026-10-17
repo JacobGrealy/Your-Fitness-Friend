@@ -6,6 +6,8 @@ import { weightApi } from '@/api/weight'
 import Loading from '@/components/common/Loading'
 import Modal from '@/components/common/Modal'
 import CropModal from '@/components/common/CropModal'
+import { getAppRelease, type AppRelease } from '@/api/app'
+import { getRunningAppVersion, isUpdateAvailable, openExternalUrl } from '@/native'
 
 const ACTIVITY_LEVELS = [
   { value: 'sedentary', label: 'Sedentary', description: 'Little or no exercise, desk job' },
@@ -38,6 +40,28 @@ const ftInToCm = (ft: number, inches: number): number => {
 
 function Profile() {
   const { setTitle } = usePageTitle()
+
+  // AweFit update check: the APK is sideloaded, so nothing updates on its own.
+  // Compare the installed build's versionCode with whatever build-android.sh
+  // last published and offer the download when it is newer.
+  const [runningBuild, setRunningBuild] = useState<number | null>(null)
+  const [release, setRelease] = useState<AppRelease | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const running = await getRunningAppVersion()
+      const published = await getAppRelease()
+      if (cancelled) return
+      setRunningBuild(running?.build ?? null)
+      setRelease(published)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const updateAvailable = isUpdateAvailable(runningBuild, release?.versionCode)
   const { user, isLoading, checkAuth, logout } = useAuthStore()
   const [goalModalOpen, setGoalModalOpen] = useState(false)
   const [goalValue, setGoalValue] = useState('')
@@ -408,6 +432,34 @@ function Profile() {
         </div>
         <div className="h-px bg-[#e0e0e0] mx-4" />
       </div>
+
+      {/* Update banner — only inside the Android shell, only when a newer
+          build has been published, and never auto-installed (Android requires a
+          user tap to install a sideloaded APK). */}
+      {updateAvailable && release && (
+        <div className="bg-white rounded-lg mt-4 mx-4 overflow-hidden">
+          <div className="px-4 py-3" style={{ background: '#E8F0FE' }}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold" style={{ color: '#185ADB' }}>
+                  Update available — {release.versionName}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: '#757575' }}>
+                  Installed build {runningBuild} · newest {release.versionCode}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="px-3 py-2 rounded-lg text-sm font-semibold text-white flex-shrink-0"
+                style={{ background: '#185ADB' }}
+                onClick={() => void openExternalUrl(`${window.location.origin}${release.downloadPath}`)}
+              >
+                Get it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Settings section */}
       <div className="bg-white rounded-lg mt-4 mx-4 overflow-hidden">

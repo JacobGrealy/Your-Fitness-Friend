@@ -1,11 +1,10 @@
 meta:
-  updated_at: 2026-10-17T17:16
+  updated_at: 2026-10-17T17:20
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
-- FF-0009
 - FF-0010
 - FF-0011
 - FF-0012
@@ -267,11 +266,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:20
+  completed_at: 2026-10-17T17:20
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want the app to tell me a newer build exists and hand me the APK,
@@ -281,7 +280,15 @@ intake:
     2) Technical Details: GET /api/app/version returns versionCode, versionName and the download path;
     the More page shows an update banner when the running build is older; tapping downloads the APK for
     the Android installer (no silent install is possible for a sideloaded app). Compare against a Capacitor
-    App.getInfo() versionCode.'
+    App.getInfo() versionCode.
+
+
+    Closed: /api/app/version + /download/<file> (suffix-allowlisted, send_from_directory), native helpers
+    (App.getInfo, isUpdateAvailable, openExternalUrl via @capacitor/browser Custom Tab because an APK
+    link inside a WebView does nothing), More-page banner shown only when the published versionCode beats
+    the installed build. 9 backend tests, 3 jest tests. Found+fixed: FF-0006 published into app/static/download,
+    which vite build empties - releases now live in releases/ (gitignored) and the smoke gate asserts
+    both endpoints.'
   comments: []
 - id: FF-0010
   title: Profile crop modal asks for the file twice

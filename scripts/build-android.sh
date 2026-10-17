@@ -5,15 +5,16 @@
 #   ./scripts/build-android.sh --bump       # versionCode+1, versionName patch+1 first
 #   ./scripts/build-android.sh --no-sync    # skip the web build + cap sync
 #
-# Output: a signed APK copied to app/static/download/, which the running server
-# already serves — so the phone updates itself over the LAN with no cable:
+# Output: a signed APK copied to releases/ (NOT app/static, which vite build
+# empties on every web build) and served by the Flask download route, so the
+# phone updates itself over the LAN with no cable:
 #
 #   http://<host>:5001/download/awefit.apk        (Tailscale: 100.84.29.20)
 #
-# Also writes app/static/download/version.json for the in-app update check
+# Also writes releases/version.json for the in-app update check
 # (FF-0009) and prints the versionCode, sha256 and download URLs.
 #
-# The APK is NOT committed (app/static/download/ is gitignored): it is a build
+# The APK is NOT committed (releases/ is gitignored): it is a build
 # artifact, and a 4 MB binary in git for every build is not worth it.
 
 set -uo pipefail
@@ -81,7 +82,7 @@ signer=$(grep -m1 'certificate DN' /tmp/apksigner.$$ | sed 's/.*DN: //')
 rm -f /tmp/apksigner.$$
 
 # Publish where the server already looks.
-DEST_DIR="app/static/download"
+DEST_DIR="releases"
 mkdir -p "$DEST_DIR"
 version_name=$(echo "$version" | sed -n 's/.*versionName \([^ ]*\).*/\1/p')
 version_code=$(echo "$version" | sed -n 's/.*versionCode \([0-9]*\).*/\1/p')
@@ -115,7 +116,7 @@ echo "  size       : $(du -h "$DEST_DIR/awefit.apk" | cut -f1)"
 echo "  local      : http://127.0.0.1:5001/download/awefit.apk"
 [ -n "$ip_lan" ] && echo "  lan        : http://$ip_lan:5001/download/awefit.apk"
 [ -n "$ip_ts" ] && echo "  tailscale  : http://$ip_ts:5001/download/awefit.apk"
-echo "  metadata   : /download/version.json"
+echo "  metadata   : /api/app/version (also /download/version.json)"
 echo ""
 echo "On the phone: open the URL, download, and tap the file to install."
 echo "Android will refuse if versionCode does not exceed the installed one."
