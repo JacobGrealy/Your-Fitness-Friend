@@ -860,3 +860,35 @@ cut from master, never merge or push, never write `app/static`, never touch the
 registry or the services, disjoint files per lane, and the measured reason
 concurrent gates are safe (the smoke gate binds a dynamically chosen port;
 `instance/` is per-worktree).
+
+## Round 42 — 2026-10-17 — FF-0042 the photo screen stopped dropping food quietly
+
+Owner asked why I wasn't delegating; the answer led to three policy tickets
+(FF-0040, FF-0041) and a discovery about the harness: the plain `subagent` tool
+was missing because `~/.dsh/cordis.patch.yml` renames the shipped `tool-subagent`
+entry to `subagent_medium` and pins it to a different model, leaving only the three
+effort-level agents plus `subagent_fork` — and a fork is seeded with this session's
+whole transcript, which is why both fork attempts failed instantly with no output.
+Added a plain `subagent` instance (no `agentOptions`, so it inherits this model) to
+the patch. **It needs a dsh restart, which the owner deferred because another agent
+is using the harness** — so this round ran in-lane as an explicit, recorded
+exception to the delegation rule.
+
+The ticket itself came out of the earlier grep: `PhotoLog.handleAccept` shipped five
+`console.log` calls and, worse, `if (entry.id) { update } else { log "Skipping entry,
+no id" }`. A food with no id was **silently dropped** — accepted in the UI, never
+saved. For a tracking app that is the worst failure shape: invisible.
+
+Reading `app/routes/meals_ai_log.py` settled the ambiguity in the ticket: every
+analysed item is created and committed server-side and `format_log_entry` returns
+its id, so the skip branch was a guard for something that should not happen. That
+guard is now `saveAcceptedEntries` (`src/utils/photoLogEntries.ts`): an entry with
+an id is updated, one without is **created**. A duplicate row is a visible mistake
+the user can delete; a missing row is not.
+
+Also fixed while in there: Accept navigated to `/food`, which since FF-0031 is only
+a redirect — it goes straight to `/food/daily` now.
+
+Verified: 6 unit tests on the save path (update, create-when-no-id, empty-string id,
+mixed batch, empty review, propagated failure) — and a `console.` count of **0** in
+that file. Gates green; SPA rebuilt so the phone gets it on reload.

@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T18:54
+  updated_at: 2026-10-17T19:01
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1222,4 +1222,44 @@ intake:
     Closed: invariant 9 now says all implementation (code, scripts, tests) is delegated to a clean-context
     subagent; the coordinator investigates, files, briefs, reviews, merges, deploys and owns the registry/journal.
     Briefs must stand alone because a subagent cannot see the coordinating conversation.'
+  comments: []
+- id: FF-0042
+  title: PhotoLog ships debug logs and silently skips analysed foods with no id
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T18:55
+  updated_at: 2026-10-17T19:01
+  completed_at: 2026-10-17T19:01
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The food-photo review screen ships debug chatter to the browser console, and
+    worse, when the user taps Accept any analysed entry that has no database id yet is silently skipped
+    - so a photo''s foods can appear accepted and simply not be saved, with no warning.
+
+
+    2) Technical Details: frontend/src/pages/Food/PhotoLog.tsx handleAccept (around line 142-169) logs
+    five console.log lines (146, 150, 152, 162, 165) plus a console.error(168), and its loop does `if
+    (entry.id) { await foodStore.updateFoodLog(...) } else { console.log(''[PhotoLog] Skipping entry,
+    no id:'', entry) }` - a silent no-op for entries the AI analysis returned without an id. Two things
+    to establish and fix: (a) determine whether /api/meals/ai-log (see app/routes, the meals_ai_log blueprint)
+    persists the analysed foods and returns ids - read the route and the store, do not guess; (b) if entries
+    can lack an id, create them (foodStore.logFood or the equivalent create call) instead of skipping,
+    and cover it with a test; if the API provably always returns ids, keep the update path but make the
+    no-id branch explicit and covered by a test rather than a console.log. Remove the console.log calls
+    entirely; keep error reporting through the existing setError UI path (and console.error only if you
+    can justify it). Acceptance: no console.log left in this file, an entry without an id is either created
+    or provably impossible with a test that proves it, tests pass, and ./scripts/gates.sh is green.
+
+
+    Closed: read app/routes/meals_ai_log.py - every analysed item is created+committed and format_log_entry
+    returns its id, so the skip branch guarded an impossible case. Extracted saveAcceptedEntries (frontend/src/utils/photoLogEntries.ts):
+    id -> update, no id -> create (duplicate row beats invisible loss). Removed all 5 console.log calls
+    and the console.error; Accept now navigates to /food/daily instead of /food (a redirect since FF-0031).
+    6 unit tests. Note: implementation ran in the coordinator lane this round because the plain subagent
+    tool needs a dsh restart the owner deferred.'
   comments: []
