@@ -82,7 +82,7 @@ def create_app(config_name=None):
         app.logger.info('Application startup')
     
     # Register blueprints
-    from app.routes import auth_bp, weight_bp, exercise_bp, food_bp, meals_bp, meals_ai_log_bp, user_bp, dashboard_bp, app_release_bp, download_bp
+    from app.routes import auth_bp, weight_bp, exercise_bp, food_bp, meals_bp, meals_ai_log_bp, user_bp, dashboard_bp, app_release_bp, download_bp, barcode_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(weight_bp, url_prefix='/api/weight')
     app.register_blueprint(exercise_bp, url_prefix='/api/exercise')
@@ -94,6 +94,7 @@ def create_app(config_name=None):
     app.register_blueprint(app_release_bp, url_prefix='/api/app')
     # Published APK + metadata; deliberately outside app/static (see app_release.py)
     app.register_blueprint(download_bp)
+    app.register_blueprint(barcode_bp, url_prefix='/api/food/barcode')
     
     @login_manager.user_loader
     def load_user(user_id):

@@ -298,3 +298,27 @@ still applies cleanly in sequence.
 
 Next: FF-0008's blocker is still Q1; the queue's next live item is FF-0014
 (barcode scanning), which needs a product-database decision first.
+
+## Round 14 — 2026-10-17 — FF-0014 barcode lookup (camera split to FF-0030)
+
+Landed: `GET /api/food/barcode/<code>` — validates the code, checks the user's own
+foods first, then OpenFoodFacts (`app/utils/openfoodfacts.py`, stdlib urllib, 6s
+timeout, no new dependency), and **caches a remote hit as a Food row** so a second
+scan is local and offline. Three failure modes are distinguished: 400 bad code,
+404 unknown product, 503 lookup unreachable (an unreachable third party must never
+look like a broken app). Products without usable energy data are rejected rather
+than stored as 0 kcal. Frontend: a "Barcode" button on Add Food, a
+`BarcodeLookupModal` that types a code and hands the found food to the same
+serving/meal screen a searched food goes to, with per-status error copy.
+
+**Split, not deferred:** the camera scanner became **FF-0030**, queued right after
+this. The lookup is testable here; the camera has to be judged on the phone, and
+the two candidate approaches (MLKit native sheet vs jsQR over getUserMedia) have
+very different APK and permission costs. Typed-code-first means the feature works
+today and the scanner has a destination to land in. Recorded in DECISIONS.md.
+
+Verified: 12 backend tests (local wins without touching the network, remote hit is
+saved, second scan is local, 404/503/400, auth required, plus the client's own
+parsing and kJ→kcal fallback) and 4 jest tests.
+
+Next: FF-0030 needs the phone; FF-0015 is the next queue item that does not.

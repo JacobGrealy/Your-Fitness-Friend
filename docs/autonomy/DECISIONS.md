@@ -117,3 +117,42 @@ self-hosted app whose static bundle is replaced on every deploy is a machine for
 from the server anyway, so offline caching underneath it buys nothing and
 threatens cache-staleness bugs on a live app. The manifest alone gives the icon,
 name and standalone display that were actually missing.
+
+## 2026-10-17 — Barcode lookup: local first, OpenFoodFacts second, cached
+
+**Lookup happens on the server, not in the WebView.** One HTTP client, one place
+for a user agent and a timeout, no dependence on a third party's CORS policy, and
+a phone that never has to hold an API key. The route is the only thing the app
+talks to.
+
+**Local foods win.** A barcode already in the user's own food list answers
+instantly and works offline. Only a miss goes to OpenFoodFacts, and a hit there is
+**saved as a Food row for that user**: the second scan is local, the product turns
+up in search, and the cache is the same table the rest of the app already reads.
+One row per (user, barcode), which keeps two users' copies independent.
+
+**Failure has three different meanings** and the client shows three different
+messages: 400 for a code that is not 6–14 digits, 404 for "we don't know this
+product" (try manual entry), 503 for "the lookup service is unreachable" (try
+again). A dead third party must not look like a broken app, so an unreachable
+OpenFoodFacts is never a 500.
+
+**A product with no usable energy data is rejected**, not stored. OpenFoodFacts is
+crowd-sourced: a 0 kcal row would silently log nothing and poison search results.
+"No calories" is treated as "not found".
+
+## 2026-10-17 — Camera scanning split out of FF-0014 into FF-0030
+
+The lookup and the camera are different risks. The lookup is testable here; the
+camera is not — a WebView scanner has to be judged on the actual phone, and the
+two candidate approaches differ a lot:
+
+- `@capacitor-mlkit/barcode-scanning`: a real native scanner sheet, reliable, but
+  adds MLKit to the APK and leans on Play Services.
+- `jsQR`/`zxing-js` over `getUserMedia`: keeps the APK small, but lives or dies on
+  Capacitor granting CAMERA to the WebView — which has to be verified on the
+  device, not assumed.
+
+Shipping a typed code first means the feature is usable now, FF-0030 has a
+decoded-code destination already built, and the camera decision gets made with a
+phone in hand.

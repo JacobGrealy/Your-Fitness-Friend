@@ -1,11 +1,11 @@
 meta:
-  updated_at: 2026-10-17T17:27
+  updated_at: 2026-10-17T17:30
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
-- FF-0014
+- FF-0030
 - FF-0015
 - FF-0016
 - FF-0017
@@ -405,11 +405,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:30
+  completed_at: 2026-10-17T17:30
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want to scan a product barcode and have the food log itself, instead
@@ -419,7 +419,13 @@ intake:
     2) Technical Details: camera capture already works through <input type=file capture=environment>,
     so start with a decode library or the Capacitor barcode plugin, map to the existing barcode_id column
     on FoodLog, and add a lookup path in the food routes. Needs a decision on the product database (local
-    table vs remote lookup) recorded in docs/autonomy/DECISIONS.md.'
+    table vs remote lookup) recorded in docs/autonomy/DECISIONS.md.
+
+
+    Closed (lookup half): GET /api/food/barcode/<code> with local-first then OpenFoodFacts, remote hits
+    cached as Food rows; 400/404/503 distinguished; no-energy products rejected. Frontend Barcode button
+    + BarcodeLookupModal routing to /food/log/select/<id>. 12 backend + 4 jest tests. Camera scanner split
+    out to FF-0030 (needs the device to judge).'
   comments: []
 - id: FF-0015
   title: Log Food Photo becomes the top option in the add menu
@@ -743,4 +749,30 @@ intake:
 
     2) Technical Details: render number_of_servings and serving_size from FoodLog.to_dict() in the diary
     row component; both fields already exist on the model, so this is frontend only.'
+  comments: []
+- id: FF-0030
+  title: Camera barcode scanner in AweFit
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T17:29
+  updated_at: 2026-10-17T17:29
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want to point the phone camera at a product barcode and have the
+    food log itself, instead of typing macros.
+
+
+    2) Technical Details: Builds on FF-0014''s GET /api/food/barcode/<code> lookup. Needs a camera path
+    inside the AweFit WebView: either @capacitor-mlkit/barcode-scanning (native scanner UI, adds MLKit
+    to the APK and Play Services on the device) or jsQR/zxing-js over getUserMedia (keeps the APK small
+    but depends on Capacitor granting CAMERA to the WebView, which must be verified on the device, not
+    guessed). Decide in DECISIONS.md before implementing, add the CAMERA permission and the permission-denied
+    path, and test on the phone: a scanner that cannot open the camera is worse than the typed code FF-0014
+    ships.'
   comments: []

@@ -12,6 +12,15 @@ export const foodApi = {
   deleteFood: (id: string) =>
     api.delete(`/food/${id}`).then(res => res.data),
 
+  // Barcode lookup: local foods first, OpenFoodFacts second (server side).
+  // 404 = unknown product, 503 = lookup service unreachable, 400 = bad code.
+  lookupBarcode: (code: string) =>
+    api
+      .get<{ food: Food; source: 'local' | 'openfoodfacts'; barcode: string }>(
+        `/food/barcode/${encodeURIComponent(code)}`
+      )
+      .then(res => res.data),
+
   // Food logs
   getFoodLogs: (params?: { date?: string }) =>
     api.get<any>('/food/log', { params }).then(res => res.data.logs || []),
