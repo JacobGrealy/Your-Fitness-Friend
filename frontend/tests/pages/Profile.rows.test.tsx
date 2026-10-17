@@ -19,6 +19,13 @@ jest.mock('@/store/authStore', () => ({
       username: 'someone@example.test',
       daily_calorie_goal: 2000,
       height: 180.34,
+      weight: 85,
+      age: 34,
+      gender: 'male',
+      activity_level: 'moderate',
+      weekly_goal: 'maintain',
+      bmr: 1790,
+      tdee: 2775,
       created_at: '2026-01-01T00:00:00Z',
     },
     logout: jest.fn(),
@@ -157,5 +164,34 @@ describe('Height on the profile (FF-0022)', () => {
 
     await waitFor(() => expect(screen.getByPlaceholderText('Ft')).toHaveValue(5))
     expect(screen.getByPlaceholderText('In')).toHaveValue(11)
+  })
+})
+
+// FF-0023 / FF-0024 / FF-0025: the calorie model (BMR, TDEE, weekly goal) is
+// entirely backend-driven and was already surfaced on this page. These pin the
+// three rows a regression would silently blank.
+describe('Calorie model rows (FF-0023/0024/0025)', () => {
+  const renderPage = () =>
+    render(
+      <MemoryRouter>
+        <Profile />
+      </MemoryRouter>
+    )
+
+  it('shows BMR and TDEE', () => {
+    renderPage()
+
+    expect(screen.getByText('1,790 kcal/day')).toBeInTheDocument()
+    expect(screen.getByText('2,775 kcal/day')).toBeInTheDocument()
+  })
+
+  it('offers the weekly goal choices', async () => {
+    renderPage()
+
+    fireEvent.click(screen.getByText('Weekly Goal'))
+
+    await waitFor(() => expect(screen.getAllByText('Lose 1 lb/wk').length).toBeGreaterThan(0))
+    expect(screen.getAllByText('Maintain').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Lose 2 lb/wk').length).toBeGreaterThan(0)
   })
 })

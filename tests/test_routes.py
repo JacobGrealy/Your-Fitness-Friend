@@ -376,3 +376,39 @@ class TestManualCalorieGoal:
         response = authenticated_client.put('/api/auth/profile', json={'daily_calorie_goal': 'lots'})
 
         assert response.status_code == 400
+
+
+class TestCalorieModel:
+    """FF-0023/0024: BMR, TDEE and a weekly goal that moves the daily target."""
+
+    PROFILE = {'age': 34, 'gender': 'male', 'height': 180, 'weight': 85,
+               'activity_level': 'moderate'}
+
+    def test_profile_reports_bmr_and_tdee_once_the_body_is_known(self, authenticated_client):
+        authenticated_client.put('/api/auth/profile', json=self.PROFILE)
+
+        body = authenticated_client.get('/api/auth/profile').get_json()
+
+        # Mifflin-St Jeor for a 34 y/o male, 180 cm, 85 kg:
+        # 10*85 + 6.25*180 - 5*34 + 5 = 1790 kcal; moderate activity ~1.55x
+        assert 1700 < body['bmr'] < 1900
+        assert body['tdee'] > body['bmr']
+
+    def test_bmr_and_tdee_are_absent_while_the_profile_is_incomplete(self, authenticated_client):
+        body = authenticated_client.get('/api/auth/profile').get_json()
+
+        assert body['bmr'] is None
+        assert body['tdee'] is None
+
+    def test_a_loss_goal_lowers_the_daily_target(self, authenticated_client):
+        maintain = authenticated_client.put(
+            '/api/auth/profile', json={**self.PROFILE, 'weekly_goal': 'maintain'}
+        ).get_json()['user']['daily_calorie_goal']
+
+        lose_two = authenticated_client.put(
+            '/api/auth/profile', json={**self.PROFILE, 'weekly_goal': 'lose_2'}
+        ).get_json()['user']['daily_calorie_goal']
+
+        # 2 lb/week is about a 1000 kcal/day deficit
+        assert lose_two < maintain
+        assert maintain - lose_two > 500
