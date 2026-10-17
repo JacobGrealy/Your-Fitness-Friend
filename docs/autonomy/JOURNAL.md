@@ -477,3 +477,18 @@ One FF-0018 assertion needed updating because `navigate` now takes a second
 argument. Gates green — 138 jest tests.
 
 Next: FF-0022 — a height field on the profile (migration, so back up first).
+
+## Round 23 — 2026-10-17 — FF-0022 height field — **already correct, cancelled**
+
+Height is present end to end: the model column, the registration payload
+(ft/in → cm), the Profile Info row (shown as `5' 11"`), and the edit sheet's two
+inputs converted back to centimetres. Nothing to add; two tests now pin the
+display and the editor so a regression in the cm↔ft/in conversion shows up here
+rather than on the phone.
+
+That is the third "already done" item in the queue (after the chart order and the
+add-menu order). They were filed from a `TODO.md` that had drifted from the code,
+which is the cost of keeping the inbox outside the repo — the registry is now the
+only place a task is worked from.
+
+Next: FF-0023 — daily calorie expenditure from height, weight and activity.

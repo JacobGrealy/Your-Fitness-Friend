@@ -18,6 +18,7 @@ jest.mock('@/store/authStore', () => ({
       email: 'someone@example.test',
       username: 'someone@example.test',
       daily_calorie_goal: 2000,
+      height: 180.34,
       created_at: '2026-01-01T00:00:00Z',
     },
     logout: jest.fn(),
@@ -128,5 +129,33 @@ describe('Calorie goal editing (FF-0017)', () => {
     fireEvent.change(screen.getByPlaceholderText('e.g. 2200'), { target: { value: '12000' } })
 
     expect(screen.getByRole('button', { name: /^save$/i })).toBeDisabled()
+  })
+})
+
+// FF-0022 asked for a height field on the profile. It was already there end to
+// end (model column, registration payload, cm <-> ft/in conversion, display and
+// edit), so this pins the two halves a regression would break first.
+describe('Height on the profile (FF-0022)', () => {
+  const renderPage = () =>
+    render(
+      <MemoryRouter>
+        <Profile />
+      </MemoryRouter>
+    )
+
+  it('shows the stored height as feet and inches', () => {
+    renderPage()
+
+    expect(screen.getByText('Height')).toBeInTheDocument()
+    expect(screen.getByText(`5' 11"`)).toBeInTheDocument()
+  })
+
+  it('can be edited from the profile sheet', async () => {
+    renderPage()
+
+    fireEvent.click(screen.getByText('Account'))
+
+    await waitFor(() => expect(screen.getByPlaceholderText('Ft')).toHaveValue(5))
+    expect(screen.getByPlaceholderText('In')).toHaveValue(11)
   })
 })

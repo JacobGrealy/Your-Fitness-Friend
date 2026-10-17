@@ -1,12 +1,11 @@
 meta:
-  updated_at: 2026-10-17T17:46
+  updated_at: 2026-10-17T17:47
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
 - FF-0030
-- FF-0022
 - FF-0023
 - FF-0024
 - FF-0025
@@ -622,18 +621,24 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: cancelled
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:47
+  completed_at: 2026-10-17T17:47
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want my height on my profile so calorie maths can use it.
 
 
     2) Technical Details: migration + model column (float, cm or inches consistent with weight units),
-    profile form field with zod validation, and inclusion in the profile API payload and to_dict.'
+    profile form field with zod validation, and inclusion in the profile API payload and to_dict.
+
+
+    CANCELLED - already implemented end to end: User.height (cm), registration ft/in conversion, Profile
+    Info row rendering 5'' 11", and the edit sheet''s Ft/In inputs converting back to cm. Pinned by 2
+    tests in tests/pages/Profile.rows.test.tsx. Third drifted-TODO item this queue (see FF-0012, FF-0015,
+    FF-0020).'
   comments: []
 - id: FF-0023
   title: Daily calorie expenditure from height, weight and activity level
