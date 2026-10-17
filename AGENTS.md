@@ -59,8 +59,8 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
   builds of React` — 55 of 92 tests, which looks like mass breakage but is not.
 
 ## Testing
-- Backend: `./venv/bin/python -m pytest tests/` — 90 passed, nothing skipped.
-- Frontend: `cd frontend && npm test` — 92 tests. They live in `frontend/tests/`,
+- Backend: `./venv/bin/python -m pytest tests/` — 103 passed, nothing skipped.
+- Frontend: `cd frontend && npm test` — 108 tests. They live in `frontend/tests/`,
   not next to the sources in `src/`.
 - Type check: `cd frontend && npx tsc --noEmit`
 - The route tests stub `qwen_client` so the suite never calls the local model.
@@ -89,6 +89,14 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
 - Commit every migration. The database's `alembic_version` and the files in git
   must agree; a migration left uncommitted means a fresh `upgrade head` dies with
   "Can't locate revision".
+- `FLASK_CONFIG=testing` selects **`sqlite:///:memory:`** (TestingConfig), which
+  silently ignores `DATABASE_URL`. Any migration work against a real file must
+  use `FLASK_CONFIG=production` (or development) — otherwise the migration runs
+  in a throwaway in-memory database and looks successful while writing nothing.
+- A fresh install must build from migrations alone: `tests/test_migrations.py`
+  runs `flask db upgrade` on an empty file, checks the head revision, and fails
+  if a model has no migration. It caught a duplicate `meal_photos` creation that
+  had made every fresh install impossible.
 - **Snapshot before touching the live schema.** `./scripts/backup.sh` takes a
   verified copy in under a second; run it before any `flask db upgrade` against
   `instance/fitness_friend.db`. Restore steps are in README's "Backups" section.

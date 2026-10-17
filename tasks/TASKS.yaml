@@ -1,11 +1,10 @@
 meta:
-  updated_at: 2026-10-17T17:25
+  updated_at: 2026-10-17T17:27
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
-- FF-0013
 - FF-0014
 - FF-0015
 - FF-0016
@@ -376,11 +375,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:27
+  completed_at: 2026-10-17T17:27
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner a fresh checkout must be able to build the schema from migrations
@@ -390,7 +389,14 @@ intake:
     2) Technical Details: add tests/test_migrations.py that points DATABASE_URL at a temp sqlite file,
     runs flask db upgrade head, asserts the expected tables exist, and asserts alembic_version matches
     the single head; run it in scripts/gates.sh. AGENTS.md already warns that an uncommitted migration
-    breaks a fresh upgrade.'
+    breaks a fresh upgrade.
+
+
+    Closed: tests/test_migrations.py runs the real CLI on a temp file (tables, single head, model/migration
+    parity, idempotent upgrade). It found the chain was broken: 851f1e051e23 already creates meal_photos
+    and 22e3bf18ae2d created it again, so every fresh install failed. Fixed by guarding the duplicate
+    revision with sa.inspect has_table (revision kept, live ancestry intact). Also: FLASK_CONFIG=testing
+    overrides DATABASE_URL with :memory: - documented in AGENTS.md.'
   comments: []
 - id: FF-0014
   title: Barcode scanning for food logging
