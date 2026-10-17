@@ -1,11 +1,10 @@
 meta:
-  updated_at: 2026-10-17T17:22
+  updated_at: 2026-10-17T17:23
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
-- FF-0011
 - FF-0012
 - FF-0013
 - FF-0014
@@ -324,11 +323,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:23
+  completed_at: 2026-10-17T17:23
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I should not be able to tap Account or Help and get nothing at all.
@@ -336,7 +335,12 @@ intake:
 
     2) Technical Details: the More page renders these rows without handlers; either route them (Account
     -> profile settings, Help -> a static help view) or mark them visibly disabled until built. Do not
-    leave a dead tap target.'
+    leave a dead tap target.
+
+
+    Closed: Account now opens the existing edit-profile sheet, Help opens a new Help & About sheet (running
+    version/build via getRunningAppVersion, server origin, logging pointers, sideload-update note). 2
+    new jest tests.'
   comments: []
 - id: FF-0012
   title: Progress weight chart x-axis is reversed

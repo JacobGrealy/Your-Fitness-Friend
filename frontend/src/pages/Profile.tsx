@@ -45,6 +45,7 @@ function Profile() {
   // Compare the installed build's versionCode with whatever build-android.sh
   // last published and offer the download when it is newer.
   const [runningBuild, setRunningBuild] = useState<number | null>(null)
+  const [runningVersion, setRunningVersion] = useState<string | null>(null)
   const [release, setRelease] = useState<AppRelease | null>(null)
 
   useEffect(() => {
@@ -54,6 +55,7 @@ function Profile() {
       const published = await getAppRelease()
       if (cancelled) return
       setRunningBuild(running?.build ?? null)
+      setRunningVersion(running?.version ?? null)
       setRelease(published)
     })()
     return () => {
@@ -69,6 +71,7 @@ function Profile() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [cropModalOpen, setCropModalOpen] = useState(false)
   const [cropFile, setCropFile] = useState<File | null>(null)
+  const [helpModalOpen, setHelpModalOpen] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   // Profile edit state
@@ -474,9 +477,11 @@ function Profile() {
           <span className="text-white text-base font-medium">Settings</span>
         </div>
         <div>
-          {/* Account row */}
+          {/* Account row — opens the same edit sheet as the pencil in the
+              Profile Info header. It used to be a dead tap target. */}
           <button
             type="button"
+            onClick={openEditModal}
             className="w-full flex items-center justify-between px-4 py-4"
             style={{ color: '#212121' }}
           >
@@ -496,6 +501,7 @@ function Profile() {
           {/* Help row */}
           <button
             type="button"
+            onClick={() => setHelpModalOpen(true)}
             className="w-full flex items-center justify-between px-4 py-4"
             style={{ color: '#212121' }}
           >
@@ -657,6 +663,41 @@ function Profile() {
             <option key={goal.value} value={goal.value}>{goal.label}</option>
           ))}
         </select>
+      </Modal>
+
+      {/* Help & About */}
+      <Modal
+        isOpen={helpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
+        title="Help & About"
+        submitLabel="Close"
+        onSubmit={() => setHelpModalOpen(false)}
+      >
+        <div className="space-y-4 text-sm" style={{ color: '#212121' }}>
+          <div>
+            <p className="font-semibold">AweFit</p>
+            <p style={{ color: '#757575' }}>
+              {runningVersion ? `Version ${runningVersion}` : 'Web version'}
+              {runningBuild !== null && ` · build ${runningBuild}`}
+            </p>
+            <p style={{ color: '#757575' }}>{window.location.origin}</p>
+          </div>
+          <div>
+            <p className="font-semibold mb-1">Logging food</p>
+            <ul className="list-disc pl-5 space-y-1" style={{ color: '#757575' }}>
+              <li>The + button in the tab bar opens the log menu.</li>
+              <li>Photo Log reads a meal photo and estimates it for you.</li>
+              <li>Tap any diary row to edit that entry.</li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-semibold mb-1">Updating the Android app</p>
+            <p style={{ color: '#757575' }}>
+              Installs are sideloaded, so nothing updates itself. When a newer
+              build is published an update banner appears on this page.
+            </p>
+          </div>
+        </div>
       </Modal>
 
       {/* Profile Photo Crop Modal */}
