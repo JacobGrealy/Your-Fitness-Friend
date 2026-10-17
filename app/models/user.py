@@ -2,6 +2,8 @@ from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
+import sqlalchemy as sa
+
 from app import db
 
 
@@ -24,6 +26,10 @@ class User(UserMixin, db.Model):
     weight = db.Column(db.Float)  # current weight in kg
     activity_level = db.Column(db.String(20))  # sedentary, light, moderate, active, very active
     daily_calorie_goal = db.Column(db.Integer, default=2000)
+    # True once the user sets the goal themselves: recalculation must then leave
+    # it alone, or "set my own goal" would be undone by the next profile edit.
+    calorie_goal_manual = db.Column(db.Boolean, nullable=False, default=False,
+                                    server_default=sa.false())
     weight_goal_lbs = db.Column(db.Float, nullable=True)
     weekly_goal = db.Column(db.String(20), nullable=True, default='maintain')  # maintain, lose_0_5, lose_1, lose_1_5, lose_2
     profile_photo_path = db.Column(db.String(256), nullable=True)

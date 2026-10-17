@@ -71,9 +71,12 @@ def recalculate_user_calories(user, weekly_goal='maintain'):
     )
 
     if result:
-        user.daily_calorie_goal = result['calorie_goal']
-        db.session.add(user)
-        db.session.commit()
+        # A goal the user set by hand survives every recalculation: BMR/TDEE are
+        # still returned (they describe the body), but the target is theirs.
+        if not getattr(user, 'calorie_goal_manual', False):
+            user.daily_calorie_goal = result['calorie_goal']
+            db.session.add(user)
+            db.session.commit()
 
     return result
 

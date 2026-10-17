@@ -2,6 +2,13 @@ import os
 from datetime import timedelta
 
 
+# Defaults for an explicit calorie goal. The range is wide enough to be useful
+# (an aggressive cut through a big bulk) and narrow enough that a typo like 20000
+# is rejected instead of quietly becoming the daily target.
+CALORIE_GOAL_MIN = 500
+CALORIE_GOAL_MAX = 10000
+
+
 class Config:
     """Base configuration class."""
     

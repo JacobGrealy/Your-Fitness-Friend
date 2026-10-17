@@ -72,6 +72,8 @@ function Profile() {
   const [cropModalOpen, setCropModalOpen] = useState(false)
   const [cropFile, setCropFile] = useState<File | null>(null)
   const [helpModalOpen, setHelpModalOpen] = useState(false)
+  const [calorieGoalOpen, setCalorieGoalOpen] = useState(false)
+  const [calorieGoalValue, setCalorieGoalValue] = useState('')
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   // Profile edit state
@@ -144,6 +146,40 @@ function Profile() {
       }
     } catch (err) {
       alert('Failed to save weight goal. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const openCalorieGoalModal = () => {
+    setCalorieGoalValue(user?.daily_calorie_goal ? String(user.daily_calorie_goal) : '')
+    setCalorieGoalOpen(true)
+  }
+
+  const handleSaveCalorieGoal = async () => {
+    const goal = parseInt(calorieGoalValue, 10)
+    if (isNaN(goal) || goal < 500 || goal > 10000) return
+    setSaving(true)
+    try {
+      await authApi.updateProfile({ daily_calorie_goal: goal })
+      await checkAuth()
+      setCalorieGoalOpen(false)
+    } catch {
+      alert('Failed to save calorie goal. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleUseCalculatedGoal = async () => {
+    setSaving(true)
+    try {
+      // Clearing the flag hands control back to BMR/TDEE; the PUT recalculates.
+      await authApi.updateProfile({ calorie_goal_manual: false })
+      await checkAuth()
+      setCalorieGoalOpen(false)
+    } catch {
+      alert('Failed to reset the calorie goal. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -434,11 +470,35 @@ function Profile() {
             </div>
           </button>
           <div className="h-px bg-[#e0e0e0] mx-4" />
-          {/* Calorie Goal row */}
-          <div className="flex items-center justify-between px-4 py-4">
-            <span className="text-base">Calorie Goal</span>
-            <span className="text-base font-bold">{user?.daily_calorie_goal ? `${user.daily_calorie_goal.toLocaleString()} kcal/day` : '—'}</span>
-          </div>
+          {/* Calorie Goal row — editable since FF-0017 */}
+          <button
+            type="button"
+            onClick={openCalorieGoalModal}
+            className="w-full flex items-center justify-between px-4 py-4 text-left"
+            style={{ color: '#212121' }}
+          >
+            <span className="text-base">
+              Calorie Goal
+              {user?.calorie_goal_manual && (
+                <span className="block text-xs" style={{ color: '#757575' }}>set by you</span>
+              )}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-base font-bold">
+                {user?.daily_calorie_goal ? `${user.daily_calorie_goal.toLocaleString()} kcal/day` : '—'}
+              </span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </button>
         </div>
         <div className="h-px bg-[#e0e0e0] mx-4" />
       </div>
@@ -663,6 +723,50 @@ function Profile() {
             <option key={goal.value} value={goal.value}>{goal.label}</option>
           ))}
         </select>
+      </Modal>
+
+      {/* Calorie Goal Modal — FF-0017 */}
+      <Modal
+        isOpen={calorieGoalOpen}
+        onClose={() => setCalorieGoalOpen(false)}
+        title="Daily Calorie Goal"
+        submitLabel="Save"
+        onSubmit={handleSaveCalorieGoal}
+        submitLoading={saving}
+        submitDisabled={(() => {
+          const goal = parseInt(calorieGoalValue, 10)
+          return isNaN(goal) || goal < 500 || goal > 10000
+        })()}
+      >
+        <div className="space-y-3">
+          <input
+            type="number"
+            inputMode="numeric"
+            className="w-full border rounded-lg px-4 py-3 text-base outline-none"
+            style={{ borderColor: '#e0e0e0' }}
+            placeholder="e.g. 2200"
+            value={calorieGoalValue}
+            onChange={(e) => setCalorieGoalValue(e.target.value)}
+            min="500"
+            max="10000"
+            step="10"
+          />
+          <p className="text-xs" style={{ color: '#757575' }}>
+            Between 500 and 10,000 kcal. A goal you set here stays put — changing
+            your height, weight or activity will not overwrite it.
+          </p>
+          {user?.calorie_goal_manual && (
+            <button
+              type="button"
+              onClick={() => void handleUseCalculatedGoal()}
+              disabled={saving}
+              className="text-sm underline disabled:opacity-50"
+              style={{ color: '#185ADB' }}
+            >
+              Use the calculated goal instead
+            </button>
+          )}
+        </div>
       </Modal>
 
       {/* Help & About */}
