@@ -7,6 +7,7 @@ import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { Food, FoodLogCreate, MealType } from '@/types'
 import { MEAL_TYPES } from '@/utils/constants'
 import { quickAddFoodSchema } from '@/utils/schemas'
+import { isMealType } from '@/utils/meal'
 import Loading from '@/components/common/Loading'
 import { resolveReturnTo } from '@/utils/returnTo'
 
@@ -27,6 +28,10 @@ export default function FoodLogSelect() {
 
   const [selectedFood, setSelectedFood] = useState<Food | null>(null)
   const [isQuickAdd, setIsQuickAdd] = useState(false)
+  // ?meal= comes from whichever meal section opened the flow; anything else
+  // (or nothing) falls back to breakfast as before (FF-0038).
+  const mealFromUrl = searchParams.get('meal')
+  const initialMealType: MealType = isMealType(mealFromUrl) ? mealFromUrl : 'breakfast'
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
@@ -48,7 +53,7 @@ export default function FoodLogSelect() {
       brand: '',
       barcode_id: '',
       date: new Date().toISOString().split('T')[0],
-      meal_type: 'breakfast',
+      meal_type: initialMealType,
     },
   })
 

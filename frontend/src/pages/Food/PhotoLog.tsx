@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { mealsAiLogApi } from '@/api/mealsAiLog'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import Loading from '@/components/common/Loading'
 import type { FoodPhotoLogEntry, FoodPhotoMessage } from '@/types/foodPhotoLog'
 import { MEAL_TYPES } from '@/utils/constants'
+import { isMealType } from '@/utils/meal'
 import { useFoodStore } from '@/store/foodStore'
 
 const MEAL_LABELS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'] as const
@@ -23,7 +24,11 @@ export default function PhotoLog() {
   const [step, setStep] = useState<Step>('capture')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [mealType, setMealType] = useState<string>('lunch')
+  // Opened from the diary's Add Food screen with the meal the user was looking at;
+  // the photo's analysis is filed under that meal rather than a default (FF-0038).
+  const [searchParams] = useSearchParams()
+  const mealFromUrl = searchParams.get('meal')
+  const [mealType, setMealType] = useState<string>(isMealType(mealFromUrl) ? mealFromUrl : 'lunch')
   const [logEntries, setLogEntries] = useState<FoodPhotoLogEntry[]>([])
   const [messages, setMessages] = useState<FoodPhotoMessage[]>([])
   const [userMessage, setUserMessage] = useState('')
