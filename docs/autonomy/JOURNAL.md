@@ -639,3 +639,18 @@ wastes an evening.
 
 **Round-30 verification:** gates green (127 backend, 171 frontend, tsc, smoke,
 toolkit); `app/static` rebuilt from `master`; working tree clean and pushed.
+
+## Round 31 — 2026-10-17 — FF-0032 the toolkit refused to celebrate an empty queue
+
+The final gates run went red on `tooling` — not on the app, on the toolkit's own
+self-test: it asserted that `tasks.py next` against the **live** registry always
+names an FF id, and the queue is now empty. So the gate that guards the loop broke
+exactly when the loop succeeded.
+
+Relaxed to accept either a live id or the documented "queue has no live items"
+message. The populated case is still asserted, against the sandbox fixture that
+always has items — the check was not weakened, just made honest about which of two
+correct answers it will see.
+
+Lesson for the registry: self-tests that assert on *live* state inherit that
+state's shape, and the empty queue is a shape the code is designed to reach.

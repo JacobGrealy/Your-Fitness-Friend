@@ -57,7 +57,12 @@ def main():
     print("\n-- read commands (sandbox: %s)" % sandbox)
     p = run_cli("next", sandbox=sandbox)
     check("next exits 0", p.returncode == 0, p.stderr)
-    check("next names a queue id", "next: FF-" in p.stdout, p.stdout.strip())
+    # An empty queue is the goal state, not a failure: the loop is supposed to
+    # work the backlog to empty. Either answer is correct against the live file;
+    # the populated case is asserted against the sandbox fixture further down.
+    check("next names a queue id or reports empty",
+          "next: FF-" in p.stdout or "queue has no live items" in p.stdout,
+          p.stdout.strip())
 
     p = run_cli("queue", "list", sandbox=sandbox)
     check("queue list non-empty", "FF-" in p.stdout, p.stdout[:120])

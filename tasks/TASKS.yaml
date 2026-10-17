@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T17:58
+  updated_at: 2026-10-17T18:01
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -880,4 +880,33 @@ intake:
     Closed: deleted src/pages/Food/Food.tsx (a duplicate diary that hosted only the Custom Foods button
     FF-0016 relocated); /food now redirects to /food/daily with replace so old bookmarks work. Router
     test asserts the landing path.'
+  comments: []
+- id: FF-0032
+  title: Toolkit self-test fails when the queue is empty
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-17T18:01
+  updated_at: 2026-10-17T18:01
+  completed_at: 2026-10-17T18:01
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The toolkit''s own self-test fails once the backlog is worked to empty ("next
+    names a queue id: (queue has no live items)"), which makes ./scripts/gates.sh tooling red on a perfectly
+    healthy repo - exactly the state the autonomy loop is supposed to reach.
+
+
+    2) Technical Details: tasks/scripts/test_tasks.py asserts the live TASKS.yaml always yields an open
+    queue item. An empty queue is a success state, not a regression: accept either a live FF id or the
+    documented empty-queue message ("queue has no live items"), and keep asserting the populated case
+    through the sandbox fixture (which always has items) so the real assertion is not weakened.
+
+
+    Closed: the live-registry assertion in test_tasks.py now accepts ''queue has no live items'' as well
+    as an FF id; the populated case stays asserted against the sandbox fixture. The tooling gate was red
+    on a healthy repo because the queue had been worked to empty.'
   comments: []
