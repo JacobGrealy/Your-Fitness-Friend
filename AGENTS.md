@@ -59,8 +59,8 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
   builds of React` — 55 of 92 tests, which looks like mass breakage but is not.
 
 ## Testing
-- Backend: `./venv/bin/python -m pytest tests/` — 103 passed, nothing skipped.
-- Frontend: `cd frontend && npm test` — 108 tests. They live in `frontend/tests/`,
+- Backend: `./venv/bin/python -m pytest tests/` — 127 passed, nothing skipped.
+- Frontend: `cd frontend && npm test` — 171 tests. They live in `frontend/tests/`,
   not next to the sources in `src/`.
 - Type check: `cd frontend && npx tsc --noEmit`
 - The route tests stub `qwen_client` so the suite never calls the local model.

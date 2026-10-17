@@ -8,8 +8,9 @@ meantime, and what changes if you answer differently.
 
 ---
 
-_No questions are open right now._ The eleven from the Android/autonomy planning
-round were all answered (see `DECISIONS.md` for how each was recorded).
+_The eleven from the Android/autonomy planning round were all answered_ (see
+`DECISIONS.md`). The queue is now empty of everything that does not need you:
+22 tickets done, 7 cancelled as already-shipped, and only Q1/Q3's tickets parked.
 
 ### Q1 — Tailscale Serve/HTTPS is disabled on the tailnet (FF-0008, blocked)
 
@@ -61,6 +62,13 @@ After that, `/api/app/version` and `/download/awefit.apk` are live (they 404 on
 the running server today because it predates the blueprint), and later rounds can
 deploy backend changes themselves.
 
+**Careful with the APK URL until then:** `/download/awefit.apk` on the live server
+answers **200 with the SPA's `index.html`**, not a 404 — the SPA catch-all serves
+the shell for any unknown path. Tapping it on the phone downloads a 3.7 KB HTML
+file named `awefit.apk`, which Android refuses to install. The APK itself is fine
+at `releases/awefit.apk`; install it with `adb install -r releases/awefit.apk`, or
+wait for the restart.
+
 **Assumed meanwhile:** every backend change is gated on the throwaway server in
 `scripts/gates.sh smoke` and reported as "awaiting restart" in the journal.
 
@@ -93,3 +101,18 @@ Every backend change since FF-0008 (`session_protection`, `/api/app/version`,
 running**: the deployed gunicorn predates them, and `sudo` needs your password.
 The one-time fix is Q2 above. Until then the app's update banner and barcode
 lookup will 404 on the live server while passing the gates.
+
+---
+
+## Current state, for when you have a minute
+
+- **Queue:** empty. 22 tickets merged, 7 cancelled as already implemented, 2 parked
+  (FF-0008 on Q1, FF-0030 on Q3). Gates green: 127 backend, 171 frontend, tsc,
+  smoke, toolkit.
+- **APK:** `releases/awefit.apk` — **0.1.2 (versionCode 3)**, signed `CN=AweFit`,
+  3.6 MB. `adb install -r releases/awefit.apk` works today. The web download URL
+  starts working after the Q2 restart.
+- **Web app:** `app/static` is rebuilt from `master`, so the browser and the
+  installed APK show the current UI the moment the page reloads. No restart needed
+  for frontend changes.
+- **Backend:** everything merged since FF-0008 is waiting on the Q2 restart.
