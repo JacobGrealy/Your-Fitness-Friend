@@ -892,3 +892,38 @@ a redirect — it goes straight to `/food/daily` now.
 Verified: 6 unit tests on the save path (update, create-when-no-id, empty-string id,
 mixed batch, empty review, propagated failure) — and a `console.` count of **0** in
 that file. Gates green; SPA rebuilt so the phone gets it on reload.
+
+## Round 43 — 2026-10-17 — FF-0043 why the phone kept asking for a password
+
+Two independent causes, both real:
+
+1. **The session cookie was a *session* cookie.** `session.permanent` was never
+   set anywhere in `app/`, so Flask emitted no `Expires`/`Max-Age`, and an Android
+   WebView keeps session cookies in memory only — kill the app and the login dies
+   with the process. `PERMANENT_SESSION_LIFETIME` existed (7 days) but was
+   unreachable code without `permanent`.
+2. **"Remember me" was never asked for.** The login route has honoured a `remember`
+   flag for a long time, but `authApi.login` posted credentials only, so
+   `remember=False` always and Flask-Login never issued a `remember_token`.
+
+Fixed: `session.permanent = True` on login *and* on the auto-login after
+registering; the client now sends `remember: true`; the session lifetime goes from
+7 to 30 days and the remember cookie to 365, with `REMEMBER_COOKIE_SECURE` tied to
+`SESSION_COOKIE_SECURE` so the token is Secure over HTTPS and still works on plain
+HTTP for LAN testing.
+
+**A test caught a test, not the app.** My first version registered (which signs you
+in) and then POSTed to `/login` — which short-circuits on
+`current_user.is_authenticated` and never reaches `login_user`, so it asserted
+against the wrong branch and failed for a bogus reason. The helper now logs out and
+returns the register response, and the "no remember cookie" case also asserts the
+session cookie exists, so it cannot pass vacuously.
+
+Verified: 4 backend tests (remember cookie on/off, `Expires`/`Max-Age` on the
+session cookie, and the same for registration) plus 1 frontend test that the client
+asks for it. 201 frontend tests, gates green.
+
+**Deploy order matters here.** `.env` still carries `SESSION_COOKIE_SECURE=true`
+from FF-0008 and this change lands in the same restart: install **APK 0.1.3**
+(HTTPS) *before* restarting the backend, or the installed 0.1.2 — which points at
+plain `http://100.84.29.20:5001` — will no longer be able to log in at all.

@@ -2,8 +2,11 @@ import api from './client'
 import { LoginCredentials, RegisterData, UserProfile } from './types'
 
 export const authApi = {
-  login: async (credentials: LoginCredentials) => {
-    const response = await api.post('/auth/login', credentials)
+  login: async (credentials: LoginCredentials, remember = true) => {
+    // remember -> Flask-Login's remember_token. Without it the phone has to be
+    // re-authenticated every launch, because an Android WebView drops session
+    // cookies when the app process dies (FF-0043).
+    const response = await api.post('/auth/login', { ...credentials, remember })
     return response.data
   },
 

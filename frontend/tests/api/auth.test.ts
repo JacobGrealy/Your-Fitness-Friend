@@ -31,7 +31,12 @@ describe('authApi', () => {
 
       const result = await authApi.login({ email: 'test@example.com', password: 'password123' })
 
-      expect(mockPost).toHaveBeenCalledWith('/auth/login', { email: 'test@example.com', password: 'password123' })
+      // remember defaults to true so the phone stays signed in (FF-0043)
+      expect(mockPost).toHaveBeenCalledWith('/auth/login', {
+        email: 'test@example.com',
+        password: 'password123',
+        remember: true,
+      })
       expect(result).toEqual(mockResponse.data)
     })
   })
