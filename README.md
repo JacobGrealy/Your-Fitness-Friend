@@ -87,10 +87,11 @@ git have to agree or a fresh `upgrade head` fails.
 
 ## Backups
 
-`scripts/backup.sh` snapshots the two things that cannot be rebuilt from the repo:
-the database and `app/uploads/`, plus `.env` (which holds `SECRET_KEY`, so a
-restore is otherwise incomplete). It runs daily at 03:15 from the user crontab and
-keeps the last 14 snapshots.
+`scripts/backup.sh` snapshots everything that cannot be rebuilt from the repo:
+the database, `app/uploads/`, `.env` (which holds `SECRET_KEY`, so a restore is
+otherwise incomplete) and the **AweFit release keystore** (lose it and no APK can
+ever be installed over the one on the phone again). It runs daily at 03:15 from
+the user crontab and keeps the last 14 snapshots.
 
 ```bash
 ./scripts/backup.sh          # run one now
@@ -105,6 +106,7 @@ db/fitness_friend-<stamp>.db.gz   gzipped, integrity-checked snapshots
 uploads/<stamp>/                  hardlinked rsync snapshots of the photos
 uploads/latest -> <stamp>         points at the newest
 env/.env                          copy of .env, mode 600
+keys/                             AweFit signing keystore + properties, mode 700
 ```
 
 The database is copied with SQLite's online backup API rather than `cp`, so a
@@ -124,6 +126,14 @@ sudo systemctl start fitnessfriend
 
 ```bash
 rsync -a --delete backups/uploads/latest/ app/uploads/
+```
+
+**Restore the signing key** (only needed if `~/.android-keys/` is lost):
+
+```bash
+mkdir -p ~/.android-keys && chmod 700 ~/.android-keys
+install -m 600 backups/keys/awefit-release.jks ~/.android-keys/
+install -m 600 backups/keys/keystore.properties frontend/android/keystore.properties
 ```
 
 These copies live on the same disk, so they cover mistakes, not disk failure.

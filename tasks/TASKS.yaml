@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-17T17:06
+  updated_at: 2026-10-17T17:09
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0005
 - FF-0006
 - FF-0007
 - FF-0008
@@ -152,11 +151,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:09
+  completed_at: 2026-10-17T17:09
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want each new build to install OVER the app already on my phone,
@@ -166,7 +165,13 @@ intake:
     2) Technical Details: create a release keystore OUTSIDE the repo, reference it via a gitignored keystore.properties,
     add signingConfigs to android/app/build.gradle, and a version bump helper (versionCode must strictly
     increase or Android refuses the install). Extend scripts/backup.sh to snapshot the keystore: losing
-    it makes in-place updates impossible forever. appId dev.awefit.app is permanent once installed.'
+    it makes in-place updates impossible forever. appId dev.awefit.app is permanent once installed.
+
+
+    Closed: keystore at ~/.android-keys/awefit-release.jks (RSA 4096, 10000 days) via gitignored keystore.properties;
+    signingConfigs.release wired with an unsigned fallback; scripts/android-version.py show|bump|set-code;
+    backup.sh snapshots the keystore to backups/keys (mode 700) and README documents the restore. Verified
+    apksigner: v2 verified, CN=AweFit, versionCode 1 / 0.1.0.'
   comments: []
 - id: FF-0006
   title: Signed APK build + LAN update distribution

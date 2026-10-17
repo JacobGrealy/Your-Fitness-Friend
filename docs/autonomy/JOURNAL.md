@@ -92,3 +92,23 @@ machine, and this app is a thin client anyway (DECISIONS.md).
 
 Next: FF-0005 — release keystore, signing config, keystore backup, and the
 versionCode bump that makes in-place updates possible.
+
+## Round 5 — 2026-10-17 — FF-0005 release signing
+
+Landed: a 4096-bit RSA release keystore at `~/.android-keys/awefit-release.jks`
+(10,000-day validity — a key that expires stops future updates), addressed from
+the gitignored `frontend/android/keystore.properties`; `signingConfigs.release`
+in `app/build.gradle` that degrades to an unsigned build when no keystore exists;
+`scripts/android-version.py` (`show` / `bump` / `set-code`) because a stale
+`versionCode` fails as `INSTALL_FAILED_VERSION_DOWNGRADE` *after* a successful
+build and download; and `scripts/backup.sh` now snapshots the keystore plus the
+properties file into `backups/keys/` (mode 700), with the restore command
+documented in README.
+
+Verified: `./gradlew assembleRelease` → BUILD SUCCESSFUL, 3.6 MB APK,
+`apksigner verify --print-certs`: v2 scheme verified, signer
+`CN=AweFit, ...`, `package=dev.awefit.app versionCode=1 versionName=0.1.0`.
+`./scripts/backup.sh` reports `keystore: 16K (mode 700)`.
+
+Next: FF-0006 — build script producing the signed APK, served over the LAN at
+`/download/awefit.apk` so the phone can update without a cable.

@@ -7,8 +7,9 @@
 #      in flight cannot produce a torn copy, then integrity-checked
 #   2. app/uploads/                - rsync hardlink snapshots; only changed
 #      photos cost space
-# plus .env, which holds SECRET_KEY and the model config, so a restore is
-# actually complete.
+# plus .env, which holds SECRET_KEY and the model config, and the AweFit
+# release keystore, which cannot be regenerated without orphaning every
+# installed APK — so a restore is actually complete.
 #
 # Local only: this protects against mistakes, not disk failure. Copies live on
 # the same filesystem, so mirror backups/ off the box periodically.
@@ -25,6 +26,9 @@ APP_DIR="/home/angrygiant/github_projects/FitnessFriend"
 DB="$APP_DIR/instance/fitness_friend.db"
 UPLOADS="$APP_DIR/app/uploads"
 ENV_FILE="$APP_DIR/.env"
+# AweFit signing key — outside the repo on purpose (see frontend/android/.gitignore)
+KEYSTORE_DIR="$HOME/.android-keys"
+KEYSTORE_PROPS="$APP_DIR/frontend/android/keystore.properties"
 BACKUP_ROOT="$APP_DIR/backups"
 PYTHON="$APP_DIR/venv/bin/python"
 KEEP="${KEEP:-14}"
@@ -32,6 +36,7 @@ KEEP="${KEEP:-14}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 DB_DIR="$BACKUP_ROOT/db"
 ENV_DIR="$BACKUP_ROOT/env"
+KEYS_DIR="$BACKUP_ROOT/keys"
 UPLOADS_DIR="$BACKUP_ROOT/uploads"
 
 if [ ! -f "$DB" ]; then
@@ -103,6 +108,22 @@ echo "  uploads    : $(du -sh "$DEST" | cut -f1) (hardlinked snapshot $STAMP)"
 if [ -f "$ENV_FILE" ]; then
     install -m 600 "$ENV_FILE" "$ENV_DIR/.env"
     echo "  .env       : copied (mode 600)"
+fi
+
+# 3b. AweFit release keystore ----------------------------------------------
+# Not rebuildable and not in the repo: lose it and no APK can ever be installed
+# over the one on the phone again (Android treats a new key as a different app).
+# The alias password lives in the keystore, and the properties file points at it.
+if [ -d "$KEYSTORE_DIR" ]; then
+    install -d -m 700 "$KEYS_DIR"
+    rsync -a --delete "$KEYSTORE_DIR"/ "$KEYS_DIR"/
+    chmod -R go-rwx "$KEYS_DIR"
+    if [ -f "$KEYSTORE_PROPS" ]; then
+        install -m 600 "$KEYSTORE_PROPS" "$KEYS_DIR/keystore.properties"
+    fi
+    echo "  keystore   : $(du -sh "$KEYS_DIR" | cut -f1) (mode 700)"
+else
+    echo "  keystore   : not present (skipped)"
 fi
 
 # 4. Retention -------------------------------------------------------------
