@@ -60,7 +60,7 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
 
 ## Testing
 - Backend: `./venv/bin/python -m pytest tests/` — 127 passed, nothing skipped.
-- Frontend: `cd frontend && npm test` — 171 tests. They live in `frontend/tests/`,
+- Frontend: `cd frontend && npm test` — 178 tests. They live in `frontend/tests/`,
   not next to the sources in `src/`.
 - Type check: `cd frontend && npx tsc --noEmit`
 - The route tests stub `qwen_client` so the suite never calls the local model.
