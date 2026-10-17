@@ -156,3 +156,25 @@ two candidate approaches differ a lot:
 Shipping a typed code first means the feature is usable now, FF-0030 has a
 decoded-code destination already built, and the camera decision gets made with a
 phone in hand.
+
+## 2026-10-17 — Camera scanning needs HTTPS (or a native plugin), so FF-0030 is parked
+
+Measured, not assumed — a headless Chromium probe against the two addresses the
+app actually uses:
+
+| Origin | `isSecureContext` | `navigator.mediaDevices` |
+| --- | --- | --- |
+| `http://127.0.0.1:5001` | true (localhost is exempt) | present |
+| `http://192.168.0.224:5001` | **false** | **undefined** |
+
+AweFit loads the server by its LAN/Tailscale address, so a `getUserMedia` +
+`jsQR` scanner would find `navigator.mediaDevices === undefined` and could never
+open the camera — and testing it on `localhost` would hide that completely. That
+makes the HTTPS work (FF-0008, blocked on the Tailscale Serve switch) a
+**prerequisite** for the web-style scanner, and the native MLKit plugin the only
+option that works over plain HTTP.
+
+Parked rather than guessed: the MLKit route needs a device to verify (camera
+permission, the scanner sheet, Play Services availability, +APK size), and its
+alternatives are the kind of choice that should be made with the phone in hand.
+FF-0014's typed code keeps the feature usable meanwhile.

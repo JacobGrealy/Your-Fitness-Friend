@@ -63,3 +63,33 @@ deploy backend changes themselves.
 
 **Assumed meanwhile:** every backend change is gated on the throwaway server in
 `scripts/gates.sh smoke` and reported as "awaiting restart" in the journal.
+
+### Q3 — Camera barcode scanner: which route, and can you test it? (FF-0030, blocked)
+
+I measured the blocker rather than guessing: over `http://192.168.0.224:5001`
+the browser reports `isSecureContext: false` and `navigator.mediaDevices` is
+**undefined**, so a JavaScript scanner cannot open the camera at all on the
+address AweFit uses. Only `http://127.0.0.1:5001` (localhost) has the API, which
+would have hidden the problem during testing.
+
+Two routes, both needing a decision and your phone:
+
+1. **Wait for HTTPS (Q1), then scan in the WebView** with jsQR. No new native
+   code, tiny APK — but nothing works until Tailscale Serve is enabled.
+2. **Native MLKit scanner** (`@capacitor-mlkit/barcode-scanning`). Works over
+   plain HTTP today, gives a proper camera sheet, costs a few MB of APK and a
+   Play Services dependency, and I cannot verify the permission flow without
+   installing it on your phone.
+
+**My assumption meanwhile:** FF-0030 stays parked and the typed barcode from
+FF-0014 is the supported path. Tell me which route you prefer, and whether you
+can install a test APK (`./scripts/build-android.sh --bump`) so the camera path
+gets verified on real hardware instead of assumed.
+
+### Q4 — Nothing backend has reached the live server yet
+
+Every backend change since FF-0008 (`session_protection`, `/api/app/version`,
+`/download/awefit.apk`, the barcode endpoint) is merged and gated but **not
+running**: the deployed gunicorn predates them, and `sudo` needs your password.
+The one-time fix is Q2 above. Until then the app's update banner and barcode
+lookup will 404 on the live server while passing the gates.

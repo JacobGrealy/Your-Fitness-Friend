@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T17:30
+  updated_at: 2026-10-17T17:31
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -757,10 +757,10 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: blocked
   labels: []
   created_at: 2026-10-17T17:29
-  updated_at: 2026-10-17T17:29
+  updated_at: 2026-10-17T17:31
   completed_at: null
   waiting_on: null
   parent_id: null
@@ -774,5 +774,12 @@ intake:
     but depends on Capacitor granting CAMERA to the WebView, which must be verified on the device, not
     guessed). Decide in DECISIONS.md before implementing, add the CAMERA permission and the permission-denied
     path, and test on the phone: a scanner that cannot open the camera is worse than the typed code FF-0014
-    ships.'
+    ships.
+
+
+    BLOCKED (Q3 in QUESTIONS.md): measured that http://192.168.0.224:5001 is not a secure context in Chromium
+    (isSecureContext false, navigator.mediaDevices undefined), and localhost hides it - so a getUserMedia/jsQR
+    scanner cannot work on the address AweFit loads. Needs either FF-0008 HTTPS first, or the native MLKit
+    plugin, which needs a device to verify (permission flow, scanner sheet, Play Services, APK size).
+    Typed barcode from FF-0014 is the supported path meanwhile.'
   comments: []
