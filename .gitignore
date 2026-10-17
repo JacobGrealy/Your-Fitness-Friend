@@ -70,6 +70,10 @@ app/uploads/
 # Local backups written by scripts/backup.sh
 backups/
 
+# Published AweFit builds (scripts/build-android.sh). Deliberately outside
+# app/static, which vite build empties on every web build.
+releases/
+
 # Build artifacts
 app/static/assets/
 frontend/playwright-report/

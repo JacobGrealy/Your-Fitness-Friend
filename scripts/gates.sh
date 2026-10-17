@@ -112,6 +112,25 @@ gate_smoke() {
     check "API auth 401 /api/dashboard/daily" "$base/api/dashboard/daily" 401
     grep -q '"error"' "$tmp/body" || { echo "  401 body is not JSON"; rc=1; }
 
+    # The AweFit release endpoints: 200 once an APK has been published, JSON 404
+    # before that. Both are correct; a 500 or an HTML body is not.
+    code=$(curl -sS -o "$tmp/body" -w '%{http_code}' --max-time 10 "$base/api/app/version")
+    if [ "$code" = "200" ] || [ "$code" = "404" ]; then
+        printf '  ok   %-42s %s\n' "API /api/app/version (200|404)" "$code"
+        grep -qE '"(versionCode|error)"' "$tmp/body" || { echo "  version endpoint body is not JSON"; rc=1; }
+    else
+        printf '  FAIL %-42s got %s want 200 or 404\n' "API /api/app/version" "$code"
+        rc=1
+    fi
+
+    code=$(curl -sS -o "$tmp/body" -w '%{http_code}' --max-time 10 "$base/download/awefit.apk")
+    if [ "$code" = "200" ] || [ "$code" = "404" ]; then
+        printf '  ok   %-42s %s\n' "GET /download/awefit.apk (200|404)" "$code"
+    else
+        printf '  FAIL %-42s got %s want 200 or 404\n' "GET /download/awefit.apk" "$code"
+        rc=1
+    fi
+
     kill "$pid" 2>/dev/null
     wait "$pid" 2>/dev/null
     rm -rf "$tmp"

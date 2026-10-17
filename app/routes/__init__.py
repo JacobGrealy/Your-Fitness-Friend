@@ -6,6 +6,7 @@ from app.routes.meals import bp as meals_bp
 from app.routes.meals_ai_log import bp as meals_ai_log_bp
 from app.routes.user import bp as user_bp
 from app.routes.dashboard import bp as dashboard_bp
+from app.routes.app_release import bp as app_release_bp, download_bp as download_bp
 
 __all__ = [
     'auth_bp',
@@ -15,5 +16,7 @@ __all__ = [
     'meals_bp',
     'meals_ai_log_bp',
     'user_bp',
-    'dashboard_bp'
+    'dashboard_bp',
+    'app_release_bp',
+    'download_bp',
 ]

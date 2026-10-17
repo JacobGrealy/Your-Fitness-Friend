@@ -185,3 +185,31 @@ have bitten later:
 
 Gates green. Ticket stays `blocked` in the registry until the console switch.
 Next: FF-0009 — in-app update check (the `version.json` FF-0006 already writes).
+
+## Round 9 — 2026-10-17 — FF-0009 in-app update check
+
+Landed: `GET /api/app/version` (the published build's metadata, `no-store`) plus
+`GET /download/<file>` for the APK and its metadata; `src/api/app.ts` and three
+native helpers (`getRunningAppVersion` via `App.getInfo`, `isUpdateAvailable`,
+`openExternalUrl`); an update banner on the More page that only appears inside
+the Android shell and only when the published `versionCode` is newer than the
+installed one. The download leaves the app through a Custom Tab
+(`@capacitor/browser`): an APK link inside a WebView does nothing at all, because
+only a real browser downloads it. 9 backend tests + 3 jest tests.
+
+**Defect found and fixed while building this:** FF-0006 published the APK into
+`app/static/download/`, and `vite build` **empties `app/static`** on every web
+build — the published APK and the update metadata had already been deleted by
+the FF-0007 rebuild, so `/download/awefit.apk` was 404 before anyone noticed.
+Releases now live in `releases/` at the repo root (gitignored) behind a Flask
+route with a suffix allowlist and `send_from_directory` (traversal-safe), and the
+smoke gate asserts both release endpoints answer 200 or a JSON 404.
+
+Verified: gates green including `API /api/app/version 200` and
+`GET /download/awefit.apk 200` on the throwaway server; republished as
+0.1.1 / versionCode 2, sha256 `6fb4aa9c…`.
+
+Live deploy still pending: the running gunicorn predates this blueprint — **Q2 in
+QUESTIONS.md** (install the sudoers drop-in, restart once).
+
+Next: FF-0010 — the crop modal asking for the file twice.

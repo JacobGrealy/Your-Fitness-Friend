@@ -30,6 +30,11 @@ class Config:
     QWEN_MAX_TOKENS = int(os.environ.get('QWEN_MAX_TOKENS') or 50000)
     QWEN_TIMEOUT = 120  # seconds
     
+    # Published AweFit release directory (APK + version.json). Outside
+    # app/static on purpose: `vite build` empties app/static on every web build.
+    APP_RELEASE_DIR = os.environ.get('APP_RELEASE_DIR') or os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'releases')
+
     # Upload Configuration
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size

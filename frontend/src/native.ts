@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import { App as CapacitorApp } from '@capacitor/app'
+import { Browser } from '@capacitor/browser'
 import { SplashScreen } from '@capacitor/splash-screen'
 import { StatusBar, Style } from '@capacitor/status-bar'
 
@@ -63,4 +64,39 @@ export async function initNativeShell(): Promise<void> {
   } catch {
     /* the splash auto-hides anyway */
   }
+}
+
+/** The running build's versionCode, or null outside the native shell. */
+export async function getRunningAppVersion(): Promise<{ build: number; version: string } | null> {
+  if (!Capacitor.isNativePlatform()) return null
+  try {
+    const info = await CapacitorApp.getInfo()
+    return { build: Number.parseInt(info.build, 10) || 0, version: info.version }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * A newer published build is only "available" when both numbers are known: on
+ * the web there is no installed build, and with nothing published there is
+ * nothing to offer.
+ */
+export function isUpdateAvailable(runningBuild: number | null, publishedVersionCode: number | null | undefined): boolean {
+  if (runningBuild === null || publishedVersionCode === null || publishedVersionCode === undefined) return false
+  return publishedVersionCode > runningBuild
+}
+
+/**
+ * Hand a URL to the system instead of the WebView. An APK link inside a WebView
+ * does nothing at all — Android only downloads it from a real browser — so the
+ * update download has to leave the app. A Custom Tab is still the user's own
+ * browser, so the download and the install prompt behave normally.
+ */
+export async function openExternalUrl(url: string): Promise<void> {
+  if (Capacitor.isNativePlatform()) {
+    await Browser.open({ url })
+    return
+  }
+  window.open(url, '_blank', 'noopener')
 }
