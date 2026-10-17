@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import Modal from '@/components/common/Modal'
+import BarcodeScanner from '@/components/food/BarcodeScanner'
 import { foodApi } from '@/api/food'
 import type { Food } from '@/types'
 
@@ -11,23 +12,25 @@ interface BarcodeLookupModalProps {
 }
 
 /**
- * Barcode entry and lookup (FF-0014).
+ * Barcode entry and lookup (FF-0014), with the camera scanner from FF-0030.
  *
- * The camera scanner is FF-0030; this sheet is the part that works everywhere and
- * the fallback when a scan fails, so the lookup is usable today and the scanner
- * has somewhere to land a decoded code.
+ * The camera is the default now that the app is served over HTTPS; the text field
+ * stays because a damaged or unreadable label is the normal case in a kitchen, and
+ * because it is the only option if the camera is refused.
  */
 export default function BarcodeLookupModal({ isOpen, onClose, onFound }: BarcodeLookupModalProps) {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [found, setFound] = useState<Food | null>(null)
+  const [scanning, setScanning] = useState(true)
 
   const reset = () => {
     setCode('')
     setBusy(false)
     setError(null)
     setFound(null)
+    setScanning(true)
   }
 
   const handleClose = () => {
@@ -35,11 +38,11 @@ export default function BarcodeLookupModal({ isOpen, onClose, onFound }: Barcode
     onClose()
   }
 
-  const handleLookup = async () => {
+  const lookup = useCallback(async (raw: string) => {
     setBusy(true)
     setError(null)
     try {
-      const { food } = await foodApi.lookupBarcode(code.trim())
+      const { food } = await foodApi.lookupBarcode(raw.trim())
       setFound(food)
     } catch (err: any) {
       const status = err?.response?.status
@@ -55,6 +58,16 @@ export default function BarcodeLookupModal({ isOpen, onClose, onFound }: Barcode
     } finally {
       setBusy(false)
     }
+  }, [])
+
+  const handleLookup = () => lookup(code)
+
+  const handleDetected = (scanned: string) => {
+    // Stop the camera first so the sheet is not decoding while the lookup runs.
+    setScanning(false)
+    setCode(scanned)
+    setFound(null)
+    void lookup(scanned)
   }
 
   const handleSubmit = () => {
@@ -77,24 +90,48 @@ export default function BarcodeLookupModal({ isOpen, onClose, onFound }: Barcode
       submitLoading={busy}
     >
       <div className="space-y-3">
-        <label className="block text-sm" style={{ color: '#757575' }} htmlFor="barcode-input">
-          Barcode number
-        </label>
-        <input
-          id="barcode-input"
-          type="text"
-          inputMode="numeric"
-          autoComplete="off"
-          value={code}
-          onChange={(e) => {
-            setCode(e.target.value)
-            setFound(null)
-            setError(null)
-          }}
-          placeholder="e.g. 3017620422003"
-          className="w-full border rounded-lg px-4 py-3 text-base outline-none"
-          style={{ borderColor: '#e0e0e0' }}
-        />
+        {scanning && !found ? (
+          <>
+            <BarcodeScanner onDetected={handleDetected} />
+            <button
+              type="button"
+              onClick={() => setScanning(false)}
+              className="block w-full text-center text-sm underline"
+              style={{ color: '#185ADB' }}
+            >
+              Type the barcode instead
+            </button>
+          </>
+        ) : (
+          <>
+            <label className="block text-sm" style={{ color: '#757575' }} htmlFor="barcode-input">
+              Barcode number
+            </label>
+            <input
+              id="barcode-input"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value)
+                setFound(null)
+                setError(null)
+              }}
+              placeholder="e.g. 3017620422003"
+              className="w-full border rounded-lg px-4 py-3 text-base outline-none"
+              style={{ borderColor: '#e0e0e0' }}
+            />
+            <button
+              type="button"
+              onClick={() => setScanning(true)}
+              className="block w-full text-center text-sm underline"
+              style={{ color: '#185ADB' }}
+            >
+              Use the camera instead
+            </button>
+          </>
+        )}
 
         {found && (
           <div className="rounded-lg p-3" style={{ background: '#E8F0FE' }}>

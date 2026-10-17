@@ -280,3 +280,29 @@ trend is confident nonsense; an empty space is honest.
 Computed on the client rather than in the API because the Progress page already
 holds every weigh-in it needs: another endpoint would be a round trip to
 recompute what is on screen.
+
+## 2026-10-17 — Camera scanning is jsQR, and only because the origin is HTTPS
+
+Once Tailscale Serve was enabled, the app's origin became
+`https://home-server-1.tail96ee52.ts.net`, and the blocker recorded in the audit
+disappeared: measured in Chromium against that URL, `isSecureContext` is `true`,
+`navigator.mediaDevices` is an object and `getUserMedia` is a function. Over the
+plain-HTTP LAN address all three were the opposite.
+
+So route 1 from QUESTIONS Q3 was taken: **scan inside the WebView with jsQR**, no
+native plugin, no Play Services dependency, no extra APK weight.
+
+`jsQR` rather than the Barcode Detection API even though Chrome exposes that API
+on Android: it is **not** exposed inside an Android WebView, which is the only
+place this app actually runs. A decoder that works in Chrome on the desktop and
+silently fails on the phone would be the worst outcome, and jsQR is pure
+JavaScript so it behaves identically everywhere.
+
+The typed field from FF-0014 stays, both because a damaged or curved label is the
+normal case in a kitchen and because it is the fallback when the camera is refused.
+The sheet now opens on the camera and offers "Type the barcode instead".
+
+Decoding is throttled to ~8 frames/second (`DECODE_INTERVAL_MS = 120`), stops at
+the first successful read, buzzes once for feedback, and always releases the
+camera tracks on unmount — a scanner that keeps the camera warm after the sheet
+closes is a battery complaint waiting to happen.

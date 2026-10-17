@@ -654,3 +654,24 @@ correct answers it will see.
 
 Lesson for the registry: self-tests that assert on *live* state inherit that
 state's shape, and the empty queue is a shape the code is designed to reach.
+
+## Round 32 — 2026-10-17 — FF-0030 camera scanner, unblocked by the HTTPS move
+
+The owner enabled Tailscale Serve and set the operator, so the app now answers on
+`https://home-server-1.tail96ee52.ts.net`. Step 3's verification found a
+Let's Encrypt certificate (valid to Jan 2027) trusted by both `openssl` and
+Chromium, warm responses in 13 ms, the current bundle, deep links working, and the
+API answering `401` anonymously through the proxy — and, decisively,
+`isSecureContext: true` with `navigator.mediaDevices` present, where the plain-HTTP
+origin had neither.
+
+That answer to Q3 was route 1, so: **FF-0030 is done**. The barcode sheet opens on
+a camera scanner (jsQR, ~8 fps, stops on first decode, buzzes, always releases the
+tracks), with "Type the barcode instead" as the fallback and the FF-0014 typed
+path unchanged underneath. jsQR rather than the Barcode Detection API because that
+API is not exposed in an Android WebView — the one place this runs.
+
+Verified: 6 scanner tests (HTTPS-required message, permission refusal in words a
+user can act on, rear camera requested, single decode callback, keeps scanning on
+no-decode, tracks released on unmount) and the 5 existing FF-0014 tests adapted to
+the camera-first sheet. Gates green.
