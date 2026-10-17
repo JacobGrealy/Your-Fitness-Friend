@@ -7,6 +7,8 @@
    last round handed over.
 3. `python3 tasks/scripts/tasks.py next` — the queue is the work order.
 4. `docs/autonomy/QUESTIONS.md` — anything already waiting on the owner.
+5. The live board, if it is running: `http://<lan-ip>:5181/` —
+   `python3 tasks/webui.py --daemon` starts it (see `tasks/AGENTS.md`).
 
 Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
 `ff-closeout`. State lives in `tasks/TASKS.yaml` and `docs/autonomy/`.

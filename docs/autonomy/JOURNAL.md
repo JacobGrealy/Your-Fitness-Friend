@@ -730,3 +730,29 @@ command here.
 35 toolkit self-tests now, including moving to top, to a position, after an
 anchor, reordering the whole queue, and rejecting an unqueued id or a partial
 permutation. Gates green.
+
+## Round 36 — 2026-10-17 — FF-0035 the queue has a board
+
+Ported AweCraft's board rather than inventing one inside the Flask app:
+
+- **`tasks/scripts/render.py`** — the shared renderer. The server serves it and
+  `python3 tasks/scripts/render.py > board.html` saves the identical view as a
+  file, so the two can never disagree about layout.
+- **`tasks/webui.py`** — stdlib-only server on **5181** (AweCraft holds 5180),
+  binds `0.0.0.0` with no auth per the owner's choice, with `--daemon`,
+  `--sandbox` and `--replace`. Reads the YAML fresh on every request; every action
+  goes through the same `tasks_lib` the CLI uses.
+
+Adapted for FF: per-ticket folders, `spec.html` links, the PNG gallery and the
+`/tasks/<id>/...` static route are all gone (tickets here are flat entries), and
+the title is "AweFit work queue".
+
+One deliberate deviation: AweCraft's table wraps `FF-0035` and `in-progress` mid
+word on a 390 px screen. Since this board is mostly read on a phone, the id and
+status cells got class hooks and a narrow-screen rule that keeps them on one line.
+
+Verified by using it, not just by rendering it: on a **sandboxed copy**, real HTTP
+calls moved a queue entry, rejected a bad status with 400, 404'd an unknown
+action, added a ticket and saw it land in the sandbox YAML — with the live
+registry confirmed untouched. Screenshots at 1180 px and 390 px, plus the detail
+modal opening on a row click. 51 toolkit self-tests, gates green.
