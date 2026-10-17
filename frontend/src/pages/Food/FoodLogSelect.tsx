@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,7 +8,6 @@ import type { Food, FoodLogCreate, MealType } from '@/types'
 import { MEAL_TYPES } from '@/utils/constants'
 import { quickAddFoodSchema } from '@/utils/schemas'
 import Loading from '@/components/common/Loading'
-import Button from '@/components/common/Button'
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -22,16 +21,11 @@ export default function FoodLogSelect() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { foodId } = useParams<{ foodId?: string }>()
-  const { foods, isLoading, logFood, createFood, fetchFoods, error, clearError, uploadFoodLogPhoto } = useFoodStore()
+  const { foods, isLoading, logFood, createFood, fetchFoods, error, clearError } = useFoodStore()
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFood, setSelectedFood] = useState<Food | null>(null)
   const [isQuickAdd, setIsQuickAdd] = useState(false)
-  const [cameFromHistory, setCameFromHistory] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [photoUploading, setPhotoUploading] = useState(false)
 
   const {
     register,
@@ -58,10 +52,6 @@ export default function FoodLogSelect() {
 
   const food_name = watch('food_name')
   const calories = watch('calories')
-  const protein_g = watch('protein_g') || 0
-  const carbs_g = watch('carbs_g') || 0
-  const fat_g = watch('fat_g') || 0
-  const brand = watch('brand')
   const meal_type = watch('meal_type')
 
   useEffect(() => {
@@ -71,21 +61,11 @@ export default function FoodLogSelect() {
   }, [fetchFoods, clearError])
 
   useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
-      }
-    }
-  }, [previewUrl])
-
-  useEffect(() => {
     const historyName = searchParams.get('name')
     const historyCalories = searchParams.get('calories')
-    const historyFoodId = searchParams.get('foodId')
 
     if (historyName && historyCalories) {
       setIsQuickAdd(true)
-      setCameFromHistory(true)
       setValue('food_name', historyName)
       setValue('calories', parseInt(historyCalories, 10) || 0)
       setValue('protein_g', parseFloat(searchParams.get('protein') || '0'))
@@ -134,29 +114,6 @@ export default function FoodLogSelect() {
     }
   }, [foods, foodId, searchParams, setValue])
 
-  const handleFileSelect = useCallback((file: File) => {
-    setSelectedFile(file)
-    setPreviewUrl(URL.createObjectURL(file))
-  }, [])
-
-  const handleRemovePhoto = useCallback(() => {
-    setSelectedFile(null)
-    setPreviewUrl(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }, [])
-
-  const handleUploadPhoto = useCallback(async (logId: string) => {
-    if (!selectedFile || !logId) return
-    setPhotoUploading(true)
-    try {
-      await uploadFoodLogPhoto(logId, selectedFile)
-    } finally {
-      setPhotoUploading(false)
-    }
-  }, [selectedFile, uploadFoodLogPhoto])
-
   const onSubmit = async (data: any) => {
     setIsSubmitting(true)
     try {
@@ -200,11 +157,7 @@ export default function FoodLogSelect() {
         date: data.date || new Date().toISOString().split('T')[0],
       }
 
-      const createdLog = await logFood(logData)
-
-      if (selectedFile && createdLog && createdLog.id) {
-        await handleUploadPhoto(String(createdLog.id))
-      }
+      await logFood(logData)
 
       navigate('/food/log')
     } catch {
@@ -223,7 +176,6 @@ export default function FoodLogSelect() {
   }
 
   const displayName = selectedFood?.name || food_name || 'Unnamed Food'
-  const displayBrand = selectedFood?.brand || brand
 
   return (
     <div className="min-h-screen bg-[#f2f2f2]">
@@ -392,78 +344,6 @@ export default function FoodLogSelect() {
           )}
         </div>
 
-        <div className="text-xs font-semibold uppercase tracking-wider text-[#757575] mt-2">Photo</div>
-
-        {/* Photo */}
-        <div className="bg-white rounded-lg p-4">
-          <label className="block text-sm font-medium text-mfp-text mb-2">Photo (optional)</label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) handleFileSelect(file)
-            }}
-            className="hidden"
-          />
-
-          {!selectedFile ? (
-            <div
-              className="items-center justify-center min-h-[160px] border-2 border-dashed border-gray-300 rounded-lg cursor-pointer relative flex flex-col"
-              onClick={() => fileInputRef.current?.click()}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  fileInputRef.current?.click()
-                }
-              }}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-10 w-10 text-mfp-textSecondary"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-              <p className="text-sm text-mfp-textSecondary mt-2">
-                Tap to add a photo
-              </p>
-            </div>
-          ) : (
-            <div className="items-center p-2">
-              <div className="relative w-full">
-                <img
-                  src={previewUrl!}
-                  alt="Preview"
-                  className="w-full max-h-[200px] object-contain rounded-lg"
-                />
-                <button
-                  type="button"
-                  onClick={handleRemovePhoto}
-                  className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/80 rounded-full text-mfp-textSecondary hover:text-mfp-text shadow-sm"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
 
         <div className="text-xs font-semibold uppercase tracking-wider text-[#757575] mt-2">Date</div>
 

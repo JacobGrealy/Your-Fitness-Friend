@@ -36,11 +36,6 @@ const ftInToCm = (ft: number, inches: number): number => {
   return (ft * 12 + inches) * 2.54
 }
 
-// Convert lbs to kg
-const lbsToKg = (lbs: number): number => {
-  return lbs / 2.20462
-}
-
 function Profile() {
   const { setTitle } = usePageTitle()
   const { user, isLoading, checkAuth, logout } = useAuthStore()
