@@ -1,5 +1,44 @@
 # FitnessFriend Development Guidelines
 
+## Start of session
+
+1. `COORDINATOR.md` — the loop: pick, implement, verify, close out, chain.
+2. `docs/autonomy/JOURNAL.md` — **newest entry last**; current state and what the
+   last round handed over.
+3. `python3 tasks/scripts/tasks.py next` — the queue is the work order.
+4. `docs/autonomy/QUESTIONS.md` — anything already waiting on the owner.
+
+Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
+`ff-closeout`. State lives in `tasks/TASKS.yaml` and `docs/autonomy/`.
+
+## Autonomy invariants — never violate these, whatever else you read
+
+1. **Every change is a ticket** (`FF-NNNN`). `tasks/TASKS.yaml` is mutated
+   **only** through `python3 tasks/scripts/tasks.py`; hand edits are forbidden.
+2. **Green gates before merge**: `./scripts/gates.sh` — pytest, jest, tsc and the
+   throwaway-server smoke. A round that cannot go green is parked as `blocked`
+   with a line in `QUESTIONS.md`, not merged hopefully.
+3. **One ticket, one branch, automerge on green**, then delete the branch
+   locally and on origin. Never delete an unmerged branch without asking.
+4. **A durable rule has one home.** A standing rule discovered in a ticket goes
+   into this file or the relevant skill at closeout — never only in the journal,
+   which is chronological, and never only in a ticket folder.
+5. **Never write inside `backups/`** — uploads snapshots share inodes with the
+   live tree. Restore by copying *out*. Run `./scripts/backup.sh` before any
+   schema change (see "Database & migrations").
+6. **Never `git add -A`** — this tree carries `.scratch/`, `.opencode/`,
+   `.playwright-cli/`, `app/uploads/` and `backups/`. Stage explicit paths and
+   print the staged list before writing the message.
+7. **Privileged commands**: `sudo` needs an interactive password on this host.
+   The only passwordless path is the drop-in in
+   `scripts/sudoers.d/fitnessfriend-agents` (restart/status of the two units);
+   if it is not installed, note "awaiting restart" and continue the round.
+8. **Park, don't thrash**: two attempts at a red gate, then file the reason and
+   move to the next ticket.
+9. **Delegation uses the standard subagent tools** (same model as this session).
+   Fan out freely on reads and reviews; keep anything that builds, runs gates or
+   switches branches in one lane, because it shares this checkout.
+
 ## Environment Setup
 
 ### Python (Backend)
