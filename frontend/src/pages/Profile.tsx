@@ -68,6 +68,7 @@ function Profile() {
   const [saving, setSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [cropModalOpen, setCropModalOpen] = useState(false)
+  const [cropFile, setCropFile] = useState<File | null>(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   // Profile edit state
@@ -104,12 +105,16 @@ function Profile() {
     fetchLatestWeight()
   }, [])
 
-  const handleFileSelect = useCallback((_file: File) => {
+  // Keep the file the user picked: the crop modal crops THIS photo instead of
+  // opening the system picker a second time.
+  const handleFileSelect = useCallback((file: File) => {
+    setCropFile(file)
     setCropModalOpen(true)
   }, [])
 
   const handleCropComplete = async (croppedFile: File) => {
     setCropModalOpen(false)
+    setCropFile(null)
     setUploadingPhoto(true)
     try {
       const formData = new FormData()
@@ -268,6 +273,8 @@ function Profile() {
               accept="image/jpeg,image/png,image/webp"
               onChange={(e) => {
                 const file = e.target.files?.[0]
+                // Reset so choosing the same file again still fires onChange.
+                e.target.value = ''
                 if (file) handleFileSelect(file)
               }}
               className="hidden"
@@ -655,8 +662,12 @@ function Profile() {
       {/* Profile Photo Crop Modal */}
       <CropModal
         isOpen={cropModalOpen}
+        file={cropFile}
         onCropComplete={handleCropComplete}
-        onClose={() => setCropModalOpen(false)}
+        onClose={() => {
+          setCropModalOpen(false)
+          setCropFile(null)
+        }}
       />
     </div>
   )
