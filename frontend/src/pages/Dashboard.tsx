@@ -5,16 +5,18 @@ import { WeightTrendChart } from '@/components/charts'
 import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import Loading from '@/components/common/Loading'
+import { MEAL_TYPES } from '@/utils/constants'
 import type { DailyMealItem } from '@/types'
 
+// Labels only — the *order* comes from MEAL_TYPES so a meal type can never be
+// silently dropped again. This list used to key on 'snacks' while the data uses
+// 'snack', and the filter below quietly discarded every snack (FF-0037).
 const MEAL_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Breakfast',
   lunch: 'Lunch',
   dinner: 'Dinner',
-  snacks: 'Snacks',
+  snack: 'Snacks',
 }
-
-const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snacks']
 
 function groupMealsByType(meals: DailyMealItem[]): { type: string; label: string; calories: number; items: DailyMealItem[] }[] {
   const groups: Record<string, DailyMealItem[]> = {}
@@ -24,7 +26,7 @@ function groupMealsByType(meals: DailyMealItem[]): { type: string; label: string
     groups[type].push(meal)
   }
 
-  return MEAL_TYPE_ORDER
+  return MEAL_TYPES
     .filter(type => groups[type])
     .map(type => ({
       type,

@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T18:38
+  updated_at: 2026-10-17T18:43
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1045,4 +1045,40 @@ intake:
 
     Closed: SCRATCH_DIR is now WEBUI_DIR.parent (repo .scratch/) instead of .parent.parent; stray pid/log
     removed from github_projects/.scratch.'
+  comments: []
+- id: FF-0037
+  title: Snacks are not listed under Today's Meals on home screen
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T18:42
+  updated_at: 2026-10-17T18:43
+  completed_at: 2026-10-17T18:43
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: On the Home screen, "Today''s Meals" lists Breakfast, Lunch and Dinner but never
+    Snacks. A day of snacking looks like it never happened, and because that section''s header total is
+    summed from the groups it renders, the kcal figure next to "Today''s Meals" is short by every snack
+    as well.
+
+
+    2) Technical Details: frontend/src/pages/Dashboard.tsx keys its meal order on ''snacks'' (plural)
+    - MEAL_TYPE_LABELS and MEAL_TYPE_ORDER - while the data uses ''snack'' (singular): MEAL_TYPES in frontend/src/utils/constants.ts,
+    FoodLog.meal_type in the model, and get_daily_meals in app/utils/aggregations.py, which passes log.meal_type
+    through untouched. groupMealsByType groups by meal.meal_type.toLowerCase() and then filters on MEAL_TYPE_ORDER,
+    so a ''snack'' group is built and then thrown away by the filter. Fix by deriving the order from MEAL_TYPES
+    so it cannot drift again, mapping ''snack'' to the label "Snacks". Verify with a Dashboard test that
+    renders a snack log and asserts both the Snacks row and the header total; the existing diary already
+    labels ''snack'' as "Snacks" (MEAL_LABELS in DailyFood.tsx), so the two screens will finally agree.
+
+
+    Closed: Dashboard.tsx keyed its meal order on ''snacks'' while the data uses ''snack'' (MEAL_TYPES
+    / FoodLog.meal_type), so groupMealsByType built the snack group and the order filter discarded it
+    - hiding the row AND under-counting the section header total. Order now derives from MEAL_TYPES and
+    the label map uses ''snack'' -> Snacks. 4 new tests; confirmed they fail against the unfixed file
+    (3 of 4).'
   comments: []
