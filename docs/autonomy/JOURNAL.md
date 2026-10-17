@@ -332,3 +332,22 @@ order (`Log Food Photo, Log Food, Log Weight, Log Exercise`) plus the close-befo
 on top again.
 
 Next: FF-0016 — the Custom Foods screen is unreachable from the UI.
+
+## Round 16 — 2026-10-17 — FF-0016 Custom Foods was unreachable
+
+Landed: the add menu (FAB sheet) gains a fifth entry, **Custom Foods → `/food/custom`**,
+placed last so the logging actions still lead (FF-0015's assertion now covers the
+new order). The screen itself — and its add/edit actions — had no reachable entry
+point: the only link lived on `/food`, a page the Diary tab never opens.
+
+Found while tracing it: `/food` is a stale duplicate of the diary. It renders a
+meal list from the same `foodStore` selectors as `DailyFood` and sets the page
+title to "Diary", so a user landing there sees something that looks like the
+diary but is not the one the tabs use. Filed as FF-0031 rather than deleted in
+this ticket — removing a route deserves its own change (and a redirect so old
+bookmarks keep working).
+
+The add-menu test now uses a `data-testid` on the option buttons instead of
+guessing from label text, which is what made the fifth entry invisible to it.
+
+Next: FF-0017 — calorie goal setting on the More page.

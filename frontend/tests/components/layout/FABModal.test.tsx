@@ -16,11 +16,17 @@ describe('Add menu ordering (FF-0015)', () => {
   it('offers Log Food Photo first', () => {
     open()
 
-    const buttons = screen.getAllByRole('button').filter((el) => /^Log /.test(el.textContent ?? ''))
-    const labels = buttons.map((el) => el.textContent?.trim())
+    const labels = screen.getAllByTestId('fab-option').map((el) => el.textContent?.trim())
 
     expect(labels[0]).toBe('Log Food Photo')
-    expect(labels).toEqual(['Log Food Photo', 'Log Food', 'Log Weight', 'Log Exercise'])
+    expect(labels).toEqual([
+      'Log Food Photo',
+      'Log Food',
+      'Log Weight',
+      'Log Exercise',
+      // FF-0016: management affordance stays last; logging actions lead.
+      'Custom Foods',
+    ])
   })
 
   it('closes itself before navigating', () => {

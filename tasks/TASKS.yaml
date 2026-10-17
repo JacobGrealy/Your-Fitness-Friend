@@ -1,12 +1,11 @@
 meta:
-  updated_at: 2026-10-17T17:32
+  updated_at: 2026-10-17T17:34
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
 - FF-0030
-- FF-0016
 - FF-0017
 - FF-0018
 - FF-0019
@@ -20,6 +19,7 @@ queue:
 - FF-0027
 - FF-0028
 - FF-0029
+- FF-0031
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -458,11 +458,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:34
+  completed_at: 2026-10-17T17:34
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner the /food Custom Foods screen is currently unreachable: the Diary
@@ -470,7 +470,12 @@ intake:
 
 
     2) Technical Details: add a Custom Foods entry to the FAB modal routing to /food, and check the router
-    config plus any auth guard on that route.'
+    config plus any auth guard on that route.
+
+
+    Closed: FAB modal gains Custom Foods -> /food/custom (last, so logging actions lead; FF-0015 ordering
+    test updated + data-testid on options). While tracing, found /food is a stale duplicate diary page
+    that only existed to host that button - filed as FF-0031.'
   comments: []
 - id: FF-0017
   title: Calorie goal setting on the More page
@@ -785,4 +790,28 @@ intake:
     scanner cannot work on the address AweFit loads. Needs either FF-0008 HTTPS first, or the native MLKit
     plugin, which needs a device to verify (permission flow, scanner sheet, Play Services, APK size).
     Typed barcode from FF-0014 is the supported path meanwhile.'
+  comments: []
+- id: FF-0031
+  title: Remove or repurpose the unreachable legacy /food diary page
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: open
+  labels: []
+  created_at: 2026-10-17T17:34
+  updated_at: 2026-10-17T17:34
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I do not want a second, hidden copy of the diary screen in the app:
+    /food renders a Diary page (it even sets the title to "Diary") that the Diary tab never opens, and
+    it exists only to host a Custom Foods button that FF-0016 has now put in the add menu.
+
+
+    2) Technical Details: Decide between deleting src/pages/Food/Food.tsx and its route and redirecting
+    /food to /food/daily, or repurposing it into a real dashboard. It duplicates MealLog rendering against
+    the same foodStore selectors as DailyFood. If deleted, check nothing imports it (Food is exported
+    from src/pages/Food/index.ts and imported in router.tsx) and keep old bookmarks working with a redirect.'
   comments: []
