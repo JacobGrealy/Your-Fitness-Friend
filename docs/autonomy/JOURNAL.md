@@ -492,3 +492,26 @@ which is the cost of keeping the inbox outside the repo — the registry is now 
 only place a task is worked from.
 
 Next: FF-0023 — daily calorie expenditure from height, weight and activity.
+
+## Round 24 — 2026-10-17 — FF-0023/0024/0025 — **already correct, cancelled (batched audit)**
+
+Three more queue items were already shipped, which made the pattern impossible to
+ignore: seven of the fifteen TODO-derived tickets have now turned out to be
+implemented. The rest of the TODO backlog was audited in **one pass** instead of
+one round per ticket, and the result is recorded in DECISIONS.md.
+
+Cancelled here, each with evidence:
+- **FF-0023** — the profile reports BMR and TDEE from the server (Mifflin-St Jeor ×
+  activity factor), shown on the More page. New backend test asserts a 34 y/o
+  male at 180 cm / 85 kg lands in a plausible BMR band, TDEE above BMR, and both
+  absent while the profile is incomplete.
+- **FF-0024** — `weekly_goal` already converts into the daily target: a `lose_2`
+  goal comes out more than 500 kcal below `maintain`.
+- **FF-0025** — the Weekly Goal sheet with its five options already exists on the
+  More page.
+
+Still real, and next in the queue: goal ETA (FF-0026), Then & Now (FF-0027),
+timelapse (FF-0028), serving amounts on diary rows (FF-0029) and the stale `/food`
+page (FF-0031).
+
+Next: FF-0026 — goal ETA on Progress.

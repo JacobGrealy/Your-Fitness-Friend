@@ -237,3 +237,22 @@ for ("the last non-Add Food page, or home if none exists").
 
 Location state rather than a query parameter: it never ends up in the URL bar, so
 it cannot be shared, bookmarked or replayed into a redirect after the fact.
+
+## 2026-10-17 — The TODO backlog had drifted; six items were already shipped
+
+FF-0012, FF-0015, FF-0020, FF-0022, FF-0023, FF-0024 and FF-0025 all turned out to
+be implemented already. Each was filed from `TODO.md`, which is gitignored and
+had not been reconciled with the code since the screens it describes were
+rewritten (the chart components, the add-flow bar, the profile sheet).
+
+Rather than keep discovering that one ticket per round, the remaining
+TODO-derived queue was audited in a single pass. Outcome:
+
+| Already shipped | Genuinely missing |
+| --- | --- |
+| chart order (0012), add-menu order (0015), Quick Add bar (0020), height field (0022), BMR/TDEE (0023), weekly goal → daily target (0024), weekly goal setting (0025) | goal ETA (0026), Then & Now (0027), timelapse (0028), serving amounts on diary rows (0029), the stale `/food` page (0031) |
+
+The audit cost was one round; the three cancelled-here tickets would have cost
+three. Each keeps a test that pins the behaviour, so "already done" is evidence
+rather than an opinion, and `TODO.md` is no longer treated as a work list: the
+registry is.
