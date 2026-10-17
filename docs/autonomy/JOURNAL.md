@@ -1011,3 +1011,21 @@ carries `REQUEST_INSTALL_PACKAGES`, and the FileProvider authority is
 hardware. That needs the phone, and there is a wrinkle worth knowing: the banner
 only appears when a *newer* build is published than the one installed, so testing
 it means running 0.1.4 while 0.1.5 exists.
+
+## Round 47 — 2026-10-17 — FF-0048 published 0.1.5 to make the banner testable
+
+No code change: a bump and rebuild only. The banner compares the installed
+`versionCode` against whatever `/api/app/version` reports, and that route reads
+`releases/version.json` per request — so publishing 0.1.5 (versionCode 6) lights
+the banner on the owner's already-installed 0.1.4 without a restart.
+
+Checked what the phone will actually see rather than trusting the build output:
+`/api/app/version` reports 0.1.5 / 6 with the new sha256, `/download/awefit.apk`
+serves `application/vnd.android.package-archive` at the matching size, and
+`ApkInstaller` is still in `classes.dex` — the plugin the update path depends on is
+present in the build being downloaded.
+
+The interesting bit of the next step is which binary does the work: the installed
+0.1.4 runs the *current* JS from the server (button, fallbacks) but its own native
+plugin does the download and the install intent. So this exercises exactly the
+combination that will ship.
