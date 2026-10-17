@@ -112,3 +112,24 @@ Verified: `./gradlew assembleRelease` → BUILD SUCCESSFUL, 3.6 MB APK,
 
 Next: FF-0006 — build script producing the signed APK, served over the LAN at
 `/download/awefit.apk` so the phone can update without a cable.
+
+## Round 6 — 2026-10-17 — FF-0006 signed APK + LAN distribution
+
+Landed: `scripts/build-android.sh` — sources the toolchain, optionally bumps the
+version, runs `npm run android:sync` (which includes the tsc gate), assembles the
+release build, **verifies the signature with apksigner before publishing** (an
+unsigned or wrong-key APK is worse than no APK: it cannot install over the app
+already on the phone), then copies it to `app/static/download/` and writes
+`version.json` for the in-app update check. README gains an "AweFit (Android)"
+section with the build/install/update loop.
+
+Verified against the *running* production server, not a test double:
+
+- `curl -I http://127.0.0.1:5001/download/awefit.apk` → 200, gunicorn,
+  `Content-Type: application/vnd.android.package-archive`
+- `/download/version.json` → versionCode 1, versionName 0.1.0, signer CN=AweFit
+- the served bytes hash to the same sha256 the build printed
+- URLs printed for localhost, LAN (192.168.0.224) and Tailscale (100.84.29.20)
+
+Next: FF-0007 — WebView polish (safe areas with Capacitor 8's SystemBars,
+hardware back, status bar), then FF-0008 Tailscale HTTPS.
