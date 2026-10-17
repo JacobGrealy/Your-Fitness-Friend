@@ -56,7 +56,9 @@ from tasks_lib import NotFound, TaskError  # noqa: E402
 
 HOST = "0.0.0.0"
 DEFAULT_PORT = 5181
-SCRATCH_DIR = WEBUI_DIR.parent.parent / ".scratch"
+# WEBUI_DIR is <repo>/tasks, so the repo's ignored .scratch/ is one level up
+# (AweCraft's copy needed the same, from its own tasks/ directory).
+SCRATCH_DIR = WEBUI_DIR.parent / ".scratch"
 PIDFILE = SCRATCH_DIR / "tasks_webui.pid"
 LOG_PATH = SCRATCH_DIR / "tasks-webui.log"
 

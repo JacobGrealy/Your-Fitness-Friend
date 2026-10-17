@@ -1018,3 +1018,27 @@ intake:
     over real HTTP (healthz, sections, 400/404 paths, add/queue_add/queue_remove landing in the sandbox
     YAML) - 51 self-tests. Verified by screenshot at 1180px and 390px and by the detail modal.'
   comments: []
+- id: FF-0036
+  title: Board daemon writes its pid and log one level too high
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: in-progress
+  labels: []
+  created_at: 2026-10-17T18:38
+  updated_at: 2026-10-17T18:38
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The board''s daemon writes its pid and log one directory above the project (github_projects/.scratch/)
+    instead of the repo''s own ignored .scratch/, so the files sit next to other projects and --replace
+    cannot find its own pidfile reliably.
+
+
+    2) Technical Details: tasks/webui.py sets SCRATCH_DIR = WEBUI_DIR.parent.parent / ''.scratch'' after
+    the port from AweCraft, where webui.py lives in tasks/ and one .parent sufficed. Here WEBUI_DIR is
+    FitnessFriend/tasks, so it must be WEBUI_DIR.parent / ''.scratch''. Verify the pid lands in FitnessFriend/.scratch/tasks_webui.pid
+    and the log in FitnessFriend/.scratch/tasks-webui.log after --daemon.'
+  comments: []
