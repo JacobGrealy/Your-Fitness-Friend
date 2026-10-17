@@ -713,3 +713,20 @@ the `next` assertion).
 Fixed both halves: the command now prints `queue is empty`, and the self-test
 accepts an FF id or that line, with the populated case still asserted against the
 sandbox fixture. Gates green.
+
+## Round 35 — 2026-10-17 — FF-0034 the CLI can now reorder its own queue
+
+`tasks_lib` could reorder and move queue entries since the port, but the CLI
+exposed only `queue add|remove|list`. That mattered less when the only client was
+the agent; it matters now that a board with drag-to-reorder is coming, because the
+CLI would otherwise be the weaker of two clients of "the same mutation layer".
+
+Added `queue move --id FF-NNNN --to <position>` (1-based to match `queue list`,
+plus `top`, `bottom`, `after FF-0001`) and `queue reorder <ids...>` (must be a
+permutation — a reorder that silently drops an id is how a queue loses work).
+Both write through `commit_write` with an `intended` check, like every other
+command here.
+
+35 toolkit self-tests now, including moving to top, to a position, after an
+anchor, reordering the whole queue, and rejecting an unqueued id or a partial
+permutation. Gates green.
