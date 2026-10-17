@@ -1,11 +1,10 @@
 meta:
-  updated_at: 2026-10-17T17:23
+  updated_at: 2026-10-17T17:25
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
-- FF-0012
 - FF-0013
 - FF-0014
 - FF-0015
@@ -349,11 +348,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: cancelled
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:25
+  completed_at: 2026-10-17T17:25
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner the weight chart should read left to right oldest to newest; it
@@ -362,7 +361,13 @@ intake:
 
     2) Technical Details: sort the series ascending by date before handing it to the Progress page chart
     (recharts renders input order as-is). Check both the chart data and the Weight store selector so other
-    screens inherit the fix.'
+    screens inherit the fix.
+
+
+    CANCELLED - not reproducible; already correct. API returns logs newest-first, both chart pages sort
+    ascending before charting, and a Playwright read of the rendered x-axis on a seeded throwaway server
+    gave [Sep 01, Sep 08, Sep 15, Sep 22] left to right. Locked with tests/pages/WeightHistory.chart.test.tsx
+    (chart receives ascending order from descending input; recent list stays newest-first).'
   comments: []
 - id: FF-0013
   title: 'Migration test: flask db upgrade on an empty database'
