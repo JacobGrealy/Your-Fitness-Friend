@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 import { SplashScreen } from '@capacitor/splash-screen'
@@ -99,4 +99,44 @@ export async function openExternalUrl(url: string): Promise<void> {
     return
   }
   window.open(url, '_blank', 'noopener')
+}
+
+interface ApkInstallerPlugin {
+  install(options: { url: string }): Promise<{ started: boolean; path: string }>
+}
+
+/**
+ * One-tap update (FF-0044).
+ *
+ * Inside the Android shell this goes through the local `ApkInstaller` plugin: it
+ * downloads the APK off the UI thread and fires the system installer, so the user
+ * taps Update once instead of finding the download and opening it themselves. The
+ * install dialog is still Android's — an app cannot replace itself silently.
+ *
+ * Every failure falls back to the browser path rather than dead-ending: a Custom
+ * Tab download is worse than one tap but far better than a button that does
+ * nothing. `install_permission_required` is the one case worth saying out loud,
+ * because the fix is a switch the user has to flip once.
+ */
+export type UpdateInstallOutcome = 'installing' | 'browser' | 'permission-required'
+
+export async function installApkUpdate(url: string): Promise<UpdateInstallOutcome> {
+  if (!Capacitor.isNativePlatform()) {
+    await openExternalUrl(url)
+    return 'browser'
+  }
+
+  try {
+    const installer = registerPlugin<ApkInstallerPlugin>('ApkInstaller')
+    await installer.install({ url })
+    return 'installing'
+  } catch (error: any) {
+    const message = String(error?.message ?? '')
+    if (message.includes('permission') || message.includes('install_permission_required')) {
+      // The plugin has already opened the "install unknown apps" screen.
+      return 'permission-required'
+    }
+    await openExternalUrl(url)
+    return 'browser'
+  }
 }

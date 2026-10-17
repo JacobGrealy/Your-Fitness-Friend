@@ -7,7 +7,7 @@ import Loading from '@/components/common/Loading'
 import Modal from '@/components/common/Modal'
 import CropModal from '@/components/common/CropModal'
 import { getAppRelease, type AppRelease } from '@/api/app'
-import { getRunningAppVersion, isUpdateAvailable, openExternalUrl } from '@/native'
+import { getRunningAppVersion, installApkUpdate, isUpdateAvailable } from '@/native'
 
 const ACTIVITY_LEVELS = [
   { value: 'sedentary', label: 'Sedentary', description: 'Little or no exercise, desk job' },
@@ -64,6 +64,18 @@ function Profile() {
   }, [])
 
   const updateAvailable = isUpdateAvailable(runningBuild, release?.versionCode)
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null)
+
+  const handleInstallUpdate = async () => {
+    if (!release) return
+    setUpdateMessage(null)
+    const outcome = await installApkUpdate(`${window.location.origin}${release.downloadPath}`)
+    if (outcome === 'permission-required') {
+      setUpdateMessage('Allow AweFit to install apps, then tap Get it again.')
+    } else if (outcome === 'browser') {
+      setUpdateMessage('Opened the download in your browser.')
+    }
+  }
   const { user, isLoading, checkAuth, logout } = useAuthStore()
   const [goalModalOpen, setGoalModalOpen] = useState(false)
   const [goalValue, setGoalValue] = useState('')
@@ -517,12 +529,17 @@ function Profile() {
                 <p className="text-xs mt-0.5" style={{ color: '#757575' }}>
                   Installed build {runningBuild} · newest {release.versionCode}
                 </p>
+                {updateMessage && (
+                  <p className="text-xs mt-1" style={{ color: '#212121' }} role="status">
+                    {updateMessage}
+                  </p>
+                )}
               </div>
               <button
                 type="button"
                 className="px-3 py-2 rounded-lg text-sm font-semibold text-white flex-shrink-0"
                 style={{ background: '#185ADB' }}
-                onClick={() => void openExternalUrl(`${window.location.origin}${release.downloadPath}`)}
+                onClick={() => void handleInstallUpdate()}
               >
                 Get it
               </button>
