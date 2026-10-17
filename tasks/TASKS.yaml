@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-17T17:10
+  updated_at: 2026-10-17T17:13
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0007
 - FF-0008
 - FF-0009
 - FF-0010
@@ -208,11 +207,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:13
+  completed_at: 2026-10-17T17:13
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner the app must not hide controls under the gesture bar or the notch,
@@ -223,7 +222,13 @@ intake:
     2) Technical Details: viewport-fit=cover + env(safe-area-inset-*) padding in the app shell; @capacitor/app
     backButton listener that pops router history and closes open modals; @capacitor/status-bar colour
     matching the theme; splash hide after mount. Closes three open TODO bugs: bottom row under the home
-    indicator, missing top-bar border/shadow, bottom bar vanishing at wide aspect ratios.'
+    indicator, missing top-bar border/shadow, bottom bar vanishing at wide aspect ratios.
+
+
+    Closed: viewport-fit=cover + safe-area padding across header/bottom nav/sidebar/main; native.ts wires
+    hardware back (modal claims it via a cancelable awefit:back event), light status bar and splash; SystemBars
+    insetsHandling=css. tsc clean, 97 jest tests (5 new), built CSS carries the inset rules, Playwright
+    verified both viewports against a throwaway DB copy.'
   comments: []
 - id: FF-0008
   title: Serve AweFit over Tailscale HTTPS
@@ -477,7 +482,7 @@ intake:
   status: open
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T17:13
   completed_at: null
   waiting_on: null
   parent_id: null
@@ -487,7 +492,13 @@ intake:
 
     2) Technical Details: relocate the date selector from the DailyFood body into the shared header, keep
     the swipe/arrow navigation working, and re-check the mobile safe-area spacing from FF-0007 after the
-    move.'
+    move.
+
+
+    Visual check during FF-0007 (390x844 and 844x390 viewports): the centered date control (''Today >'')
+    overlaps the ''FitnessFriend'' brand text at 390px, and in landscape (>=640px) the mobile Header is
+    hidden so the date control disappears entirely - the diary date cannot be changed in landscape. Fix
+    both when moving the selector: treat it as the title slot rather than absolutely-centred content.'
   comments: []
 - id: FF-0020
   title: Quick Add replaces the Add Food bar

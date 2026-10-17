@@ -3,14 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/icons/af-icon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- viewport-fit=cover is what makes env(safe-area-inset-*) real inside the
+         Android WebView; without it the insets report 0 and controls end up
+         under the gesture bar and the notch. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#1a1a1a" />
     <meta name="description" content="Track your fitness journey" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <title>AweFit</title>
-    <script type="module" crossorigin src="/assets/index-Bnd9oO4z.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-ClA4umxf.css">
+    <script type="module" crossorigin src="/assets/index-11R1psvO.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-LABA-toP.css">
   </head>
   <body>
     <div id="root"></div>

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
+import { BACK_EVENT } from '../../native'
 
 interface FABModalProps {
   isOpen: boolean
@@ -15,7 +16,21 @@ export default function FABModal({ isOpen, onClose }: FABModalProps) {
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
+
+    // Claim the Android back press while the sheet is open: closing the sheet is
+    // what "back" means to a user, and leaving the screen instead is the exact
+    // tell that an app is a web page in a box. preventDefault tells the native
+    // handler it has been consumed.
+    const handleBack = (event: Event) => {
+      event.preventDefault()
+      onClose()
+    }
+    window.addEventListener(BACK_EVENT, handleBack)
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      window.removeEventListener(BACK_EVENT, handleBack)
+    }
   }, [isOpen, onClose])
 
   const options = [

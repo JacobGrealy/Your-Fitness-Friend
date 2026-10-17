@@ -32,7 +32,7 @@ export default function Header({
   }
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 bg-[#185ADB] shadow-md ${className ?? ''}`}>
+    <header className={`fixed top-0 left-0 right-0 z-50 bg-[#185ADB] shadow-md border-b border-black/10 pt-[env(safe-area-inset-top)] ${className ?? ''}`}>
       <div className="flex items-center w-full px-3 py-2 max-w-4xl mx-auto min-h-[48px] relative">
         {/* Left: Logo or back button */}
         <div className="flex items-center gap-2 flex-shrink-0">
