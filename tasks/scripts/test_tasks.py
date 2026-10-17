@@ -97,6 +97,19 @@ def main():
         item = next((i for i in data["intake"] if i.get("id") == tid), None)
         check("completed_at cleared", item is not None and item.get("completed_at") is None)
 
+    print("\n-- queue_top skips blocked tickets")
+    if tid:
+        # Put the ticket at the head of the queue, block it, and prove `next`
+        # does not stall on it (a blocked ticket waits on the owner).
+        run_cli("queue", "add", "--at", "head", tid, sandbox=sandbox)
+        run_cli("set", "--id", tid, "--status", "blocked", sandbox=sandbox)
+        p = run_cli("next", sandbox=sandbox)
+        check("blocked head is skipped by next", tid not in p.stdout, p.stdout.strip())
+        run_cli("set", "--id", tid, "--status", "open", sandbox=sandbox)
+        p = run_cli("next", sandbox=sandbox)
+        check("open ticket at head is returned again", tid in p.stdout, p.stdout.strip())
+        run_cli("queue", "remove", tid, sandbox=sandbox)
+
     print("\n-- error paths")
     p = run_cli("set", "--id", "FF-9999", "--status", "done", sandbox=sandbox)
     check("unknown id rejected", p.returncode == 1 and "not found" in p.stderr.lower(),
