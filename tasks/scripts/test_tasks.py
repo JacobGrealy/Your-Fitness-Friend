@@ -16,8 +16,12 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from pathlib import Path
 
 import yaml
+
+TASKS_DIR = Path(__file__).resolve().parent.parent.parent / "tasks"
+WEBUI_PY = TASKS_DIR / "webui.py"
 
 SCRIPTS = Path(__file__).resolve().parent
 CLI = SCRIPTS / "tasks.py"
@@ -46,6 +50,41 @@ def run_cli(*args, sandbox=None):
         env["FF_TASKS_FILE"] = str(sandbox)
     cmd = [sys.executable, str(CLI)] + list(args)
     return subprocess.run(cmd, capture_output=True, text=True, timeout=60, env=env)
+
+
+def free_port():
+    import socket
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+
+def wait_port(host, port, timeout=15.0):
+    import socket, time
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=0.5):
+                return True
+        except OSError:
+            time.sleep(0.1)
+    return False
+
+
+def http(url, data=None):
+    """Return (status, body). POST form data when `data` is given."""
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+    body = urllib.parse.urlencode(data).encode() if data is not None else None
+    req = urllib.request.Request(url, data=body, method="POST" if data is not None else "GET")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return resp.status, resp.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as err:
+        return err.code, err.read().decode("utf-8", "replace")
 
 
 def main():
@@ -173,6 +212,67 @@ def main():
     p = run_cli("add", "--title", "bad", "--priority", "9", sandbox=sandbox)
     check("bad priority rejected", p.returncode != 0 and "priority" in p.stderr.lower(),
           "rc=%s %s" % (p.returncode, p.stderr.strip()[:120]))
+
+    print("\n-- task board (FF-0035): sandboxed instance, real HTTP")
+    web_dir = TASKS_DIR.parent / ".scratch" / "ff-webui-smoke"
+    shutil.rmtree(web_dir, ignore_errors=True)
+    port = free_port()
+    web_proc = subprocess.Popen(
+        [sys.executable, str(WEBUI_PY), "--port", str(port), "--sandbox", str(web_dir)],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    try:
+        if not wait_port("127.0.0.1", port):
+            check("board started", False,
+                  web_proc.stdout.read() if web_proc.stdout else "no output")
+        else:
+            base = "http://127.0.0.1:%d" % port
+
+            status, body = http(base + "/healthz")
+            check("GET /healthz -> 200 + sandbox path",
+                  status == 200 and str(web_dir) in body, "%s %s" % (status, body[:160]))
+
+            status, body = http(base + "/")
+            check("GET / -> 200", status == 200, str(status))
+            check("board renders the queue section", "Queue (work order)" in body)
+            check("board renders the backlog section", "Backlog" in body)
+            check("board renders the done section", "Done (" in body)
+            check("board shows a known ticket", 'data-tid="FF-0001"' in body)
+
+            status, body = http(base + "/api/nope", data={})
+            check("POST unknown action -> 404", status == 404, str(status))
+
+            status, body = http(base + "/api/status", data={"id": "FF-0001", "status": "sideways"})
+            check("POST bad status -> 400", status == 400 and "status must be one of" in body,
+                  "%s %s" % (status, body[:120]))
+
+            status, body = http(base + "/api/status", data={"id": "FF-9999", "status": "open"})
+            check("POST unknown id -> 404", status == 404, str(status))
+
+            status, body = http(base + "/api/add", data={"title": "webui smoke ticket", "priority": "3"})
+            check("POST add -> 200", status == 200, "%s %s" % (status, body[:120]))
+            web_yaml = web_dir / "TASKS.yaml"
+            check("sandbox registry exists", web_yaml.exists())
+            data = yaml.safe_load(web_yaml.read_text())
+            added = [i for i in data.get("intake") or [] if i.get("title") == "webui smoke ticket"]
+            check("add reached the registry", len(added) == 1, str(len(added)))
+
+            if added:
+                new_id = added[0]["id"]
+                status, body = http(base + "/api/queue_add", data={"id": new_id})
+                check("POST queue_add -> 200", status == 200, str(status))
+                queue = yaml.safe_load(web_yaml.read_text()).get("queue") or []
+                check("queue_add reached the registry", new_id in queue, str(queue))
+
+                status, body = http(base + "/api/queue_remove", data={"id": new_id})
+                check("POST queue_remove -> 200", status == 200, str(status))
+                queue = yaml.safe_load(web_yaml.read_text()).get("queue") or []
+                check("queue_remove reached the registry", new_id not in queue, str(queue))
+    finally:
+        web_proc.terminate()
+        try:
+            web_proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            web_proc.kill()
 
     print("\n-- isolation")
     check("live TASKS.yaml untouched", sha(LIVE) == live_before)

@@ -39,15 +39,32 @@ cd frontend && npm run dev              # Vite dev server on :5173
 | What | Where |
 | --- | --- |
 | Production (API + built SPA) | `http://<host>:5001` |
+| Production over HTTPS (Tailscale) | `https://home-server-1.tail96ee52.ts.net` |
 | Dev server (hot reload, proxies `/api` → `:5001`) | `http://<host>:5173` |
+| **Work queue board** | `http://<host>:5181` |
 
 The host address is DHCP-assigned and changes; check it rather than assuming.
+
+### Work queue board
+
+The ticket registry has a live board — the same one the AweCraft project uses:
+
+```bash
+python3 tasks/webui.py --daemon    # http://<host>:5181/
+```
+
+It shows the queue in work order, the backlog, blocked tickets and everything
+done, with drag-to-reorder and click-for-detail. It reads `tasks/TASKS.yaml` fresh
+on every request and writes through the same mutation layer as the CLI, so the
+board and `tasks.py` can never disagree. **No auth** — it is meant for the LAN and
+tailnet, so treat ticket notes as visible to the network. `--sandbox DIR` runs it
+against a copy; see `tasks/AGENTS.md`.
 
 ## Tests
 
 ```bash
-./venv/bin/python -m pytest tests/      # 103 passed, nothing skipped
-cd frontend && npm test                 # 108 tests, all passing
+./venv/bin/python -m pytest tests/      # 127 passed, nothing skipped
+cd frontend && npm test                 # 178 tests, all passing
 cd frontend && npx tsc --noEmit         # type check
 ```
 

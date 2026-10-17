@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-17T18:34
+  updated_at: 2026-10-17T18:38
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue:
-- FF-0035
+queue: []
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -990,11 +989,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T18:33
-  updated_at: 2026-10-17T18:33
-  completed_at: null
+  updated_at: 2026-10-17T18:38
+  completed_at: 2026-10-17T18:38
   waiting_on: null
   parent_id: null
   notes: '1) User Story: The owner wants to see the work queue the way the AweCraft project shows it:
@@ -1009,5 +1008,13 @@ intake:
     move-reorder, YAML loaded fresh per request). Adapt for FF-NNNN ids and flat tickets: drop the per-ticket
     folder links and the /tasks/<id>/spec.html artifact routes, which have no equivalent here. Extend
     the tooling gate with a sandboxed HTTP smoke (real requests against --sandbox, then re-read the copy
-    to prove writes landed). Document starting it in tasks/scripts/AGENTS.md, AGENTS.md and README.'
+    to prove writes landed). Document starting it in tasks/scripts/AGENTS.md, AGENTS.md and README.
+
+
+    Closed: ported AweCraft''s board - tasks/scripts/render.py (shared renderer, also saves a static view)
+    + tasks/webui.py (stdlib server, port 5181, 0.0.0.0, no auth per owner''s choice, --daemon/--sandbox/--replace,
+    GET / and /healthz, POST /api/<action>). Dropped per-ticket folders/spec.html/gallery routes (flat
+    tickets here). Narrow-screen CSS keeps id/status on one line. Tooling gate now runs a sandboxed instance
+    over real HTTP (healthz, sections, 400/404 paths, add/queue_add/queue_remove landing in the sandbox
+    YAML) - 51 self-tests. Verified by screenshot at 1180px and 390px and by the detail modal.'
   comments: []
