@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T18:49
+  updated_at: 2026-10-17T18:53
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1154,4 +1154,39 @@ intake:
     and Dashboard). Side effect: FoodLogSelect/EditFoodLog used to say ''Snack'' and now say ''Snacks''
     like every other screen, which needed the FF-0038 chip assertion updated. New tests/utils/mealLabels.test.ts
     makes the map a contract (every MEAL_TYPES entry labelled, no extras).'
+  comments: []
+- id: FF-0040
+  title: Let subagents take tickets end to end; coordinator owns merges
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T18:53
+  updated_at: 2026-10-17T18:53
+  completed_at: 2026-10-17T18:53
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The owner wants implementation parallelised: the agent should stop doing every
+    branch-and-gates cycle itself when independent tickets could proceed at once, and instead coordinate.
+
+
+    2) Technical Details: AGENTS.md invariant 9 currently says "fan out freely on reads and reviews; keep
+    anything that builds, runs gates or switches branches in one lane". Owner decision 2026-10-17: subagents
+    may take a whole ticket end to end, including its branch and ./scripts/gates.sh, and the coordinating
+    agent owns the merge, the deploy and the registry. Update invariant 9 with the coordination protocol
+    this implies: subagents work only on their own feature branch cut from master, never merge or push,
+    never run npm run build or scripts/build-android.sh (app/static is a single live build output), never
+    write tasks/TASKS.yaml, never start or stop the live services or the board daemon; they run gates
+    and report. State the known-safe facts: the smoke gate picks a dynamic port and instance/ is per-worktree,
+    so concurrent gates do not collide; merges serialise. Assign independent tickets whose files do not
+    overlap, and note that overlapping files must go to one lane.
+
+
+    Closed: AGENTS.md invariant 9 rewritten - subagents take a ticket end to end (own branch from master,
+    gates, report) while the coordinator owns merge, deploy and registry. Protocol lists the prohibitions
+    (no merge/push, no app/static writes, no registry or service changes) and the measured facts that
+    make concurrent gates safe (dynamic smoke port, per-worktree instance/).'
   comments: []

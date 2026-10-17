@@ -37,9 +37,26 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
    if it is not installed, note "awaiting restart" and continue the round.
 8. **Park, don't thrash**: two attempts at a red gate, then file the reason and
    move to the next ticket.
-9. **Delegation uses the standard subagent tools** (same model as this session).
-   Fan out freely on reads and reviews; keep anything that builds, runs gates or
-   switches branches in one lane, because it shares this checkout.
+9. **Subagents take tickets end to end; the coordinator owns the merge.** A
+   subagent may hold a whole ticket — implement, branch, run `./scripts/gates.sh`,
+   report. The coordinating agent keeps the merge, the deploy and the registry.
+   The protocol exists because this is one checkout with one live server:
+
+   - A subagent works **only** on its own feature branch cut from `master`, one
+     ticket, and **never** merges or pushes. Merges are serialised here.
+   - A subagent **never** runs `npm run build`, `scripts/build-android.sh`,
+     `deploy-production.sh` or anything else that writes `app/static`: it is a
+     single build output that the running server serves, so two lanes would
+     clobber each other. Deploys happen after the merge, from this lane.
+   - A subagent **never** touches `tasks/TASKS.yaml`, starts/stops the services,
+     restarts the board daemon, or runs migrations against `instance/`.
+   - Give parallel lanes tickets that touch **disjoint files**. If two tickets
+     touch the same file, they go to one lane, whatever else is true.
+   - Concurrent gates are safe: the smoke gate binds a dynamically chosen port,
+     and `instance/` is per-worktree, so two runs do not collide on either. They
+     do compete for CPU, which is only a speed cost.
+   - Fan out read-only work (audits, reviews, research) freely — that is the
+     cheapest parallelism available and needs no protocol at all.
 
 ## Environment Setup
 
