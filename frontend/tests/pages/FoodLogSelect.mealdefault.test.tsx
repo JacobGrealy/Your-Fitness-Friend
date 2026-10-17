@@ -62,7 +62,8 @@ describe('Quick Add meal default (FF-0038)', () => {
   it('preselects the meal passed in the URL', () => {
     renderAt('/food/log/select?meal=snack')
 
-    expect(chipIsSelected('Snack')).toBe(true)
+    // "Snacks", not "Snack": FF-0039 gave the labels one home (MEAL_LABELS).
+    expect(chipIsSelected('Snacks')).toBe(true)
     expect(chipIsSelected('Breakfast')).toBe(false)
   })
 

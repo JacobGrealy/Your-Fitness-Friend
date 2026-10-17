@@ -817,3 +817,28 @@ Verified: 5 tests on the serving screen (preselection, the logged payload, other
 meals, the junk/absent fallback, and the user overriding it) and 3 on the handoff
 (Quick Add, Food Photo, and the clock fallback when opened from the tab bar).
 Without the fix **6 of those 11 fail**; with it they pass. Gates green.
+
+## Round 40 — 2026-10-17 — FF-0039 five copies of the meal labels, now one
+
+PhotoLog paired a positional array `['Breakfast','Lunch','Dinner','Snacks']` with
+`MEAL_TYPES` through the array index. It worked, which is exactly why it was worth
+a ticket: one inserted meal type and every dropdown in that screen would have filed
+photos under the wrong name, silently. That is the same class as FF-0037, waiting
+instead of visible.
+
+Rather than fix only that array, the labels got **one home**: `MEAL_LABELS` in
+`utils/constants.ts`, a `Record<MealTypeKey, string>` keyed by type. The five
+copies went away — PhotoLog's array, plus Records in `DailyFood`,
+`FoodLogSelect` and `EditFoodLog`, plus the one I added to `Dashboard` in FF-0037.
+
+Two consequences worth recording:
+
+- `FoodLogSelect` and `EditFoodLog` called the meal **"Snack"** while the diary and
+  now the dashboard call it **"Snacks"**. Unifying them is a visible (and correct)
+  copy change, and it broke the FF-0038 test that asserted the chip reading
+  "Snack" — updated, with a comment saying why.
+- The map is now a contract: `tests/utils/mealLabels.test.ts` asserts every
+  `MEAL_TYPES` entry has a label and that no extra keys exist, so adding a meal
+  type without a name fails the suite instead of rendering `undefined`.
+
+Gates green — 194 frontend tests.

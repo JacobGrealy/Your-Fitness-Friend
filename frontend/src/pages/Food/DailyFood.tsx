@@ -5,7 +5,7 @@ import { useFoodStore } from '@/store/foodStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { MealType, FoodLog } from '@/types'
 import { formatCalories, formatServing } from '@/utils/formatters'
-import { MEAL_TYPES } from '@/utils/constants'
+import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
 import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
 import Loading from '@/components/common/Loading'
 import Modal from '@/components/common/Modal'
@@ -17,13 +17,6 @@ const MEAL_ICONS: Record<MealType, string> = {
   lunch: '🌤️',
   dinner: '🌙',
   snack: '🍎',
-}
-
-const MEAL_LABELS: Record<MealType, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snack: 'Snacks',
 }
 
 function MealSection({
