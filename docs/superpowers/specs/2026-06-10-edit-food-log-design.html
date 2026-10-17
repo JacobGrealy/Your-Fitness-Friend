@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Food Log - Feature Spec</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #212121; max-width: 800px; margin: 0 auto; padding: 40px 20px; background: #fafafa; }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #185ADB; }
+    h2 { font-size: 20px; font-weight: 600; margin-top: 32px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #e0e0e0; color: #212121; }
+    h3 { font-size: 16px; font-weight: 600; margin-top: 24px; margin-bottom: 8px; color: #424242; }
+    p { margin-bottom: 12px; color: #424242; }
+    ul, ol { margin: 12px 0 12px 24px; color: #424242; }
+    li { margin-bottom: 6px; }
+    code { background: #e8e8e8; padding: 2px 6px; border-radius: 4px; font-size: 14px; font-family: 'SF Mono', 'Fira Code', monospace; }
+    pre { background: #212121; color: #fafafa; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 12px 0; font-size: 13px; }
+    pre code { background: none; color: inherit; padding: 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { padding: 10px 12px; text-align: left; border: 1px solid #e0e0e0; }
+    th { background: #f2f2f2; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: #757575; }
+    td { font-size: 14px; }
+    .meta { font-size: 13px; color: #757575; margin-bottom: 24px; }
+    .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    .status-draft { background: #fff3e0; color: #e65100; }
+    .status-approved { background: #e8f5e9; color: #2e7d32; }
+    .mockup-link { display: inline-block; margin: 8px 0; padding: 8px 16px; background: #185ADB; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; }
+    .mockup-link:hover { background: #1565c0; }
+    .callout { background: #e3f2fd; border-left: 4px solid #185ADB; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; }
+    .callout-warning { background: #fff3e0; border-left-color: #e65100; }
+    .callout-danger { background: #fce4ec; border-left-color: #c62828; }
+  </style>
+</head>
+<body>
+
+<h1>Edit Food Log</h1>
+<p class="meta">Created: 2026-06-10 · Status: <span class="status status-draft">Draft</span> · Mockups: <a href="../mockups/edit-food-log.html">Edit Page</a> · <a href="../mockups/diary-view.html">Diary View</a></p>
+
+<h2>1. Problem Statement</h2>
+<p>Users cannot edit food logs after creating them. If they log incorrect nutrition data, wrong meal type, or a food from the wrong date, they must delete and re-log. Additionally, food logs cannot have photos, unlike weight logs which support photo uploads.</p>
+
+<h2>2. Goals</h2>
+<ul>
+  <li>Enable editing of all food log fields via a dedicated page</li>
+  <li>Support photo upload/change on food logs</li>
+  <li>Display photo thumbnails in diary view for logs with photos</li>
+  <li>Maintain consistency with existing <code>EditWeight</code> patterns</li>
+  <li>Ensure users can only edit their own logs</li>
+</ul>
+
+<h2>3. Design Decisions</h2>
+
+<h3>3.1 Approach: Dedicated Page</h3>
+<p>Following the <code>EditWeight</code> precedent, we use a dedicated page at <code>/food/log/:id/edit</code> rather than a modal or inline editing. This provides full-screen space for all fields and photo management.</p>
+
+<h3>3.2 Navigation: Tap Row</h3>
+<p>Tapping anywhere on a food log row navigates to the edit page. The delete button (✕) remains separate with <code>stopPropagation</code> to prevent navigation when deleting.</p>
+
+<h3>3.3 Photo Storage: FoodLog (Per Entry)</h3>
+<p>Photos attach to individual <code>FoodLog</code> entries, not to <code>Food</code> records. This avoids cross-user photo leakage on shared foods and allows different photos for the same food logged multiple times. Recent foods and search results derive photos from the user's latest log for each food via a join query.</p>
+
+<h3>3.4 Linked Food Update</h3>
+<p>When editing a log, the linked <code>Food</code> record's nutrition data (calories, protein, carbs, fat, serving_size) updates to match the log. However, other <code>FoodLog</code> entries referencing that food are <strong>not</strong> retroactively updated — each log preserves its own nutrition snapshot.</p>
+
+<h3>3.5 Date Editing</h3>
+<p>Users can change the date of a log, effectively moving it to a different day. The diary reflects this immediately.</p>
+
+<h2>4. Data Model Changes</h2>
+
+<h3>4.1 FoodLog Model</h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Change</th><th>Description</th></tr>
+  <tr><td><code>serving_size</code> (current)</td><td><code>String(100)</code></td><td>Rename</td><td>Currently holds float values ("1.0", "1.5"). Rename to <code>number_of_servings</code> (Float)</td></tr>
+  <tr><td><code>number_of_servings</code></td><td><code>Float</code></td><td>New (renamed)</td><td>Numeric count of servings (1.0, 1.5, 2.0)</td></tr>
+  <tr><td><code>serving_size</code></td><td><code>String(255)</code></td><td>New</td><td>Text description (e.g., "1 cup", "2 tbsp", "1 breast (174g)")</td></tr>
+  <tr><td><code>photo_url</code></td><td><code>String</code></td><td>New</td><td>Optional path to uploaded photo</td></tr>
+</table>
+
+<h3>4.2 Food Model</h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Change</th><th>Description</th></tr>
+  <tr><td><code>serving_size</code></td><td><code>String(255)</code></td><td>New</td><td>Text description of what one serving is (e.g., "1 cup", "100g", "1 breast")</td></tr>
+</table>
+
+<h3>4.3 Migration</h3>
+<p>Alembic migration to:</p>
+<ol>
+  <li>Rename <code>FoodLog.serving_size</code> → <code>number_of_servings</code>, convert existing string values to Float (default 1.0 for null/empty)</li>
+  <li>Add <code>FoodLog.serving_size</code> as <code>String(255)</code>, nullable</li>
+  <li>Add <code>FoodLog.photo_url</code> as <code>String(512)</code>, nullable</li>
+  <li>Add <code>Food.serving_size</code> as <code>String(255)</code>, nullable</li>
+</ol>
+
+<h2>5. API Changes</h2>
+
+<h3>5.1 Existing Endpoints</h3>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Change</th></tr>
+  <tr><td><code>GET</code></td><td><code>/food/log/&lt;id&gt;</code></td><td>Verify exists, ensure returns <code>photo_url</code>, <code>number_of_servings</code>, <code>serving_size</code></td></tr>
+  <tr><td><code>PUT</code></td><td><code>/food/log/&lt;id&gt;</code></td><td>Accept new fields: <code>number_of_servings</code>, <code>serving_size</code>, <code>photo_url</code></td></tr>
+</table>
+
+<h3>5.2 New Endpoints</h3>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+  <tr><td><code>POST</code></td><td><code>/food/log/&lt;id&gt;/photo</code></td><td>Upload photo for food log. Accepts multipart form with <code>photo</code> field.</td></tr>
+  <tr><td><code>DELETE</code></td><td><code>/food/log/&lt;id&gt;/photo</code></td><td>Remove photo from food log. Deletes file from storage.</td></tr>
+</table>
+
+<h3>5.3 Security</h3>
+<p>All endpoints must verify <code>FoodLog.user_id == current_user.id</code>. Return 403 if user attempts to edit another user's log.</p>
+
+<h3>5.4 Recent Foods / Search Photo Derivation</h3>
+<p>When fetching recent foods or search results, include a subquery to get the latest <code>FoodLog.photo_url</code> for each <code>Food</code>, filtered by current user. Example:</p>
+<pre><code>SELECT f.*, sub.photo_url
+FROM foods f
+LEFT JOIN LATERAL (
+  SELECT photo_url
+  FROM food_logs
+  WHERE food_logs.food_id = f.id
+    AND food_logs.user_id = :current_user_id
+  ORDER BY food_logs.created_at DESC
+  LIMIT 1
+) sub ON true
+WHERE ...</code></pre>
+
+<h2>6. Frontend Changes</h2>
+
+<h3>6.1 New Page: EditFoodLog</h3>
+<p><code>frontend/src/pages/Food/EditFoodLog.tsx</code></p>
+<ul>
+  <li>Route: <code>/food/log/:id/edit</code></li>
+  <li>Fetch log data on mount via <code>getFoodLogById</code></li>
+  <li>Pre-populate all fields from existing log</li>
+  <li>Meal type buttons matching <code>FoodLogSelect</code> quick add style</li>
+  <li>Photo upload/change via <code>POST /food/log/&lt;id&gt;/photo</code></li>
+  <li>Save via <code>PUT /food/log/&lt;id&gt;</code></li>
+  <li>Cancel navigates back via <code>navigate(-1)</code></li>
+  <li>Header: "← Back" | "Edit Food Log" | Checkmark (submit)</li>
+  <li>Field order: Meal Type → Food Name → Brand → Calories → Macros → Serving Size → Number of Servings → Photo → Date → Barcode</li>
+</ul>
+
+<h3>6.2 Updated Page: DailyFood</h3>
+<p><code>frontend/src/pages/Food/DailyFood.tsx</code></p>
+<ul>
+  <li>Each log row: <code>onClick</code> navigates to edit page</li>
+  <li>Delete button: <code>stopPropagation</code> to prevent navigation</li>
+  <li>Show 40×40 photo thumbnail on left when <code>photo_url</code> exists</li>
+  <li>Rows without photos maintain existing layout (no thumbnail, adjusted margin)</li>
+</ul>
+
+<h3>6.3 Store Changes</h3>
+<p><code>frontend/src/store/foodStore.ts</code></p>
+<ul>
+  <li>Add <code>getFoodLogById(id)</code> action</li>
+  <li>Add <code>uploadFoodLogPhoto(id, file)</code> action</li>
+  <li>Add <code>deleteFoodLogPhoto(id)</code> action</li>
+  <li>Update <code>updateFoodLog</code> to handle <code>number_of_servings</code>, <code>serving_size</code>, <code>photo_url</code></li>
+</ul>
+
+<h3>6.4 Type Changes</h3>
+<p><code>frontend/src/types/food.ts</code></p>
+<ul>
+  <li><code>FoodLog</code>: Add <code>photo_url?: string</code>, <code>number_of_servings?: number</code>. Update existing <code>serving_size</code> from <code>number</code> to <code>string</code></li>
+  <li><code>Food</code>: Add <code>serving_size?: string</code></li>
+</ul>
+
+<h3>6.5 Router Changes</h3>
+<p><code>frontend/src/router.tsx</code></p>
+<ul>
+  <li>Add route: <code>/food/log/:id/edit</code> → <code>EditFoodLog</code></li>
+</ul>
+
+<h2>7. Edge Cases</h2>
+<ol>
+  <li><strong>Photo upload fails:</strong> Show error toast, keep existing photo if any, don't block form save</li>
+  <li><strong>Food log deleted:</strong> Navigate back to diary, show success toast</li>
+  <li><strong>Concurrent edit:</strong> Use <code>updated_at</code> timestamp to detect conflicts</li>
+  <li><strong>Date change:</strong> Moving log to different day updates diary for both old and new dates</li>
+  <li><strong>Linked Food update:</strong> Update Food record nutrition data but NOT other logs using that food</li>
+  <li><strong>No photo:</strong> Diary row shows no thumbnail, edit page shows "Add photo" placeholder</li>
+  <li><strong>Large photo files:</strong> Compress/resize on upload (match WeightLog behavior, max ~2MB)</li>
+  <li><strong>Navigate away unsaved:</strong> Show confirmation dialog (matching EditWeight pattern)</li>
+  <li><strong>Invalid nutrition values:</strong> Client-side validation: non-negative numbers, max reasonable values</li>
+  <li><strong>Meal type change:</strong> Log moves to different meal section in diary</li>
+  <li><strong>Authorization:</strong> Users can only edit their own logs — backend returns 403 for other users' logs</li>
+</ol>
+
+<h2>8. Testing Strategy</h2>
+<h3>8.1 Backend Tests</h3>
+<ul>
+  <li>Unit: <code>updateFoodLog</code> with new fields (<code>number_of_servings</code>, <code>serving_size</code>, <code>photo_url</code>)</li>
+  <li>Unit: Photo upload endpoint — valid file, oversized file, wrong content type</li>
+  <li>Unit: Photo delete endpoint — existing photo, no photo</li>
+  <li>Unit: Authorization — user cannot edit another user's log (403)</li>
+  <li>Integration: Full edit flow — fetch → update → verify</li>
+</ul>
+
+<h3>8.2 Frontend Tests</h3>
+<ul>
+  <li>Unit: <code>getFoodLogById</code> store action</li>
+  <li>Unit: <code>uploadFoodLogPhoto</code> store action</li>
+  <li>Component: EditFoodLog renders with pre-populated fields</li>
+  <li>Component: Save sends correct payload</li>
+  <li>Component: Cancel navigates back without saving</li>
+  <li>Component: Photo upload UI — select, preview, submit</li>
+  <li>E2E: Tap diary row → edit → save → verify diary reflects changes</li>
+</ul>
+
+<h2>9. Files to Modify</h2>
+<table>
+  <tr><th>File</th><th>Change</th></tr>
+  <tr><td><code>app/models/food_log.py</code></td><td>Rename <code>serving_size</code> → <code>number_of_servings</code> (Float), add <code>serving_size</code> (String), add <code>photo_url</code> (String)</td></tr>
+  <tr><td><code>app/models/food.py</code></td><td>Add <code>serving_size</code> (String, nullable)</td></tr>
+  <tr><td><code>app/routes/food_routes.py</code></td><td>Update PUT endpoint, add POST/DELETE photo endpoints</td></tr>
+  <tr><td><code>frontend/src/pages/Food/DailyFood.tsx</code></td><td>Clickable rows, photo thumbnails, <code>stopPropagation</code> on delete</td></tr>
+  <tr><td><code>frontend/src/pages/Food/EditFoodLog.tsx</code></td><td><strong>New file</strong> — edit page</td></tr>
+  <tr><td><code>frontend/src/types/food.ts</code></td><td>Add <code>photo_url</code>, <code>number_of_servings</code>, <code>serving_size</code></td></tr>
+  <tr><td><code>frontend/src/store/foodStore.ts</code></td><td>Add <code>getFoodLogById</code>, <code>uploadFoodLogPhoto</code>, <code>deleteFoodLogPhoto</code></td></tr>
+  <tr><td><code>frontend/src/api/food.ts</code></td><td>Add photo upload/delete API calls</td></tr>
+  <tr><td><code>frontend/src/router.tsx</code></td><td>Add <code>/food/log/:id/edit</code> route</td></tr>
+  <tr><td><code>migrations/versions/</code></td><td><strong>New file</strong> — Alembic migration</td></tr>
+</table>
+
+<h2>10. Mockups</h2>
+<p>Live mockups served at:</p>
+<ul>
+  <li><a href="../mockups/edit-food-log.html" target="_blank">Edit Food Log Page</a> — Full edit form with meal type, food info, nutrition, photo, date</li>
+  <li><a href="../mockups/diary-view.html" target="_blank">Diary View</a> — Diary with photo thumbnails on log rows</li>
+</ul>
+
+</body>
+</html>

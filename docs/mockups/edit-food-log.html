@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Food Log Mockup</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f2f2f2; margin: 0; min-height: 100vh; }
+    .header { background: #185ADB; padding: 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .back-btn { color: white; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 4px; cursor: pointer; min-width: 60px; }
+    .header-title { color: white; font-size: 18px; font-weight: 700; text-align: center; flex: 1; }
+    .check-btn { color: white; cursor: pointer; padding: 4px; min-width: 60px; text-align: right; }
+    .content { padding: 16px; padding-bottom: 32px; }
+    .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+    .card-label { display: block; font-size: 13px; font-weight: 500; color: #212121; margin-bottom: 8px; }
+    .card-input { width: 100%; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 15px; color: #212121; background: white; outline: none; }
+    .card-input:focus { border-color: #185ADB; box-shadow: 0 0 0 1px #185ADB; }
+    .card-input.filled { background: #fafafa; color: #212121; }
+    .macros-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .macro-field { text-align: center; }
+    .macro-field label { display: block; font-size: 11px; color: #757575; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .macro-field input { width: 100%; padding: 10px 8px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 15px; text-align: center; background: #fafafa; color: #212121; outline: none; }
+    .macro-field input:focus { border-color: #185ADB; box-shadow: 0 0 0 1px #185ADB; }
+    .date-input { width: 100%; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 15px; color: #212121; background: #fafafa; outline: none; }
+    .calories-input { width: 100%; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 24px; font-weight: 700; color: #212121; background: #fafafa; outline: none; text-align: center; }
+    .calories-input:focus { border-color: #185ADB; box-shadow: 0 0 0 1px #185ADB; }
+    .calories-unit { text-align: center; font-size: 12px; color: #757575; margin-top: 4px; }
+    .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #757575; margin-bottom: 8px; font-weight: 600; margin-top: 8px; }
+    .meal-buttons { display: flex; gap: 8px; }
+    .meal-btn { flex: 1; padding: 10px 8px; font-size: 12px; font-weight: 500; border-radius: 8px; border: none; cursor: pointer; text-align: center; }
+    .meal-btn.active { background: #185ADB; color: white; }
+    .meal-btn.inactive { background: #e0e0e0; color: #757575; }
+    .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; padding-top: 16px; }
+    .btn { padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; border: none; }
+    .btn-primary { background: #185ADB; color: white; }
+    .btn-outline { background: white; color: #185ADB; border: 1.5px solid #185ADB; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="back-btn">← Back</div>
+    <div class="header-title">Edit Food Log</div>
+    <div class="check-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:28px;height:28px;">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+    </div>
+  </div>
+  <div class="content">
+    <div class="card">
+      <label class="card-label">Meal Type</label>
+      <div class="meal-buttons">
+        <button class="meal-btn inactive">Breakfast</button>
+        <button class="meal-btn active">Lunch</button>
+        <button class="meal-btn inactive">Dinner</button>
+        <button class="meal-btn inactive">Snack</button>
+      </div>
+    </div>
+
+    <div class="section-label">Food Info</div>
+    <div class="card">
+      <label class="card-label">Food Name</label>
+      <input class="card-input filled" value="Grilled Chicken Breast" />
+    </div>
+    <div class="card">
+      <label class="card-label">Brand (optional)</label>
+      <input class="card-input filled" value="" placeholder="e.g. Perdue" />
+    </div>
+
+    <div class="section-label">Nutrition</div>
+    <div class="card">
+      <label class="card-label">Calories</label>
+      <input class="calories-input" value="310" />
+      <div class="calories-unit">kcal</div>
+    </div>
+    <div class="card">
+      <div class="macros-row">
+        <div class="macro-field">
+          <label>Protein</label>
+          <input value="46" />
+        </div>
+        <div class="macro-field">
+          <label>Carbs</label>
+          <input value="0" />
+        </div>
+        <div class="macro-field">
+          <label>Fat</label>
+          <input value="10" />
+        </div>
+      </div>
+      <div style="text-align:center; font-size:11px; color:#757575; margin-top:6px;">grams</div>
+    </div>
+    <div class="card">
+      <label class="card-label">Serving Size (optional)</label>
+      <input class="card-input filled" value="1 breast (174g)" placeholder="e.g. 1 cup, 2 tbsp" />
+    </div>
+    <div class="card">
+      <label class="card-label">Number of Servings</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input class="card-input filled" type="number" step="0.1" value="1" style="flex:1;" />
+        <span style="font-size:14px;color:#757575;">servings</span>
+      </div>
+    </div>
+
+    <div class="section-label">Photo</div>
+    <div class="card">
+      <label class="card-label">Photo (optional)</label>
+      <div style="position:relative; width:100%;">
+        <div style="width:100%; height:160px; background:#e8e8e8; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+          <span style="color:#999; font-size:14px;">📷 Food Photo</span>
+        </div>
+        <div style="position:absolute; inset:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; border-radius:8px;">
+          <p style="font-size:14px; color:white; font-weight:500;">Tap to change photo</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Date</div>
+    <div class="card">
+      <label class="card-label">Date</label>
+      <input type="date" class="date-input" value="2025-06-10" />
+    </div>
+
+    <div class="card">
+      <label class="card-label">Barcode ID (optional)</label>
+      <input class="card-input filled" value="" placeholder="e.g. 012345678901" />
+    </div>
+
+    <div class="buttons">
+      <button class="btn btn-primary">Save Changes</button>
+      <button class="btn btn-outline">Cancel</button>
+    </div>
+  </div>
+</body>
+</html>
