@@ -1,4 +1,6 @@
 import pytest
+
+from app import db
 from app.models.user import User
 from app.models.weight_log import WeightLog
 from app.models.exercise_log import ExerciseLog
@@ -53,7 +55,6 @@ class TestUserModel:
             )
             user2.set_password('testpass')
             
-            db = pytest.importorskip('app', 'db')
             db.session.add(user1)
             db.session.commit()
             
@@ -100,7 +101,6 @@ class TestExerciseLogModel:
                 name='Squats',
                 muscle_group='legs'
             )
-            db = pytest.importorskip('app', 'db')
             db.session.add(exercise)
             db.session.commit()
             
@@ -118,7 +118,6 @@ class TestExerciseLogModel:
                 name='Push-ups',
                 muscle_group='chest'
             )
-            db = pytest.importorskip('app', 'db')
             db.session.add(exercise)
             db.session.commit()
             
@@ -153,7 +152,6 @@ class TestFoodModel:
                 carbs_g=3,
                 fat_g=1
             )
-            db = pytest.importorskip('app', 'db')
             db.session.add(food)
             db.session.commit()
             
@@ -182,7 +180,6 @@ class TestFoodLogModel:
                 date=date.today(),
                 meal_type='lunch'
             )
-            db = pytest.importorskip('app', 'db')
             db.session.add(log)
             db.session.commit()
             
@@ -199,7 +196,6 @@ class TestMealPhotoModel:
                 photo_path='/path/to/photo.jpg',
                 date=date.today()
             )
-            db = pytest.importorskip('app', 'db')
             db.session.add(photo)
             db.session.commit()
             
@@ -218,7 +214,6 @@ class TestMealPhotoModel:
                 estimated_carbs=50,
                 estimated_fat=20
             )
-            db = pytest.importorskip('app', 'db')
             db.session.add(photo)
             db.session.commit()
             

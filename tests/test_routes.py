@@ -87,48 +87,49 @@ class TestAuthRoutes:
 
 
 class TestWeightRoutes:
-    @pytest.mark.skip(reason="Requires session handling fix")
     def test_weight_log_create(self, authenticated_client):
-        response = authenticated_client.post('/api/weight', json={
+        response = authenticated_client.post('/api/weight/logs', json={
             'weight': 70.5,
             'notes': 'Morning weigh-in'
         })
         assert response.status_code == 201
 
-    @pytest.mark.skip(reason="Requires session handling fix")
     def test_weight_log_list(self, authenticated_client):
-        response = authenticated_client.get('/api/weight')
+        response = authenticated_client.get('/api/weight/logs')
         assert response.status_code == 200
 
 
 class TestExerciseRoutes:
-    @pytest.mark.skip(reason="Requires session handling fix")
     def test_saved_exercise_create(self, authenticated_client):
-        response = authenticated_client.post('/api/exercise/saved', json={
+        response = authenticated_client.post('/api/exercise/save', json={
             'name': 'Bench Press',
             'muscle_group': 'chest'
         })
         assert response.status_code == 201
 
-    @pytest.mark.skip(reason="Requires session handling fix")
     def test_saved_exercise_list(self, authenticated_client):
         response = authenticated_client.get('/api/exercise/saved')
         assert response.status_code == 200
 
-    @pytest.mark.skip(reason="Requires session handling fix")
-    def test_exercise_log_create(self, authenticated_client):
+    def test_exercise_log_create(self, authenticated_client, monkeypatch):
+        from app.utils.qwen_client import qwen_client
+
+        # Keep the test hermetic: exercise logging asks the local model first
+        monkeypatch.setattr(
+            qwen_client, 'estimate_exercise_calories',
+            lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError('no model')),
+        )
         response = authenticated_client.post('/api/exercise/log', json={
             'exercise_name': 'Push-ups',
-            'duration': 15,
+            'duration_min': 15,
             'calories_burned': 100
         })
         assert response.status_code == 201
 
 
 class TestFoodRoutes:
-    @pytest.mark.skip(reason="Requires session handling fix")
     def test_custom_food_create(self, authenticated_client):
-        response = authenticated_client.post('/api/food/custom', json={
+        response = authenticated_client.post('/api/food', json={
             'name': 'Homemade Salad',
             'calories': 250,
             'protein_g': 10,
@@ -137,12 +138,10 @@ class TestFoodRoutes:
         })
         assert response.status_code == 201
 
-    @pytest.mark.skip(reason="Requires session handling fix")
     def test_custom_food_list(self, authenticated_client):
-        response = authenticated_client.get('/api/food/custom')
+        response = authenticated_client.get('/api/food')
         assert response.status_code == 200
 
-    @pytest.mark.skip(reason="Requires session handling fix")
     def test_food_log_create(self, authenticated_client):
         response = authenticated_client.post('/api/food/log', json={
             'food_name': 'Test Food',
@@ -150,44 +149,46 @@ class TestFoodRoutes:
             'protein_g': 10,
             'carbs_g': 20,
             'fat_g': 5,
-            'meal_type': 'breakfast'
+            'meal_type': 'breakfast',
+            'date': '2026-06-10'
         })
         assert response.status_code == 201
 
-    @pytest.mark.skip(reason="Requires session handling fix")
     def test_daily_food_totals(self, authenticated_client):
         response = authenticated_client.get('/api/food/daily')
         assert response.status_code == 200
 
 
 class TestMealPhotoRoutes:
-    @pytest.mark.skip(reason="Requires session handling fix")
-    def test_meal_photo_upload(self, authenticated_client):
+    def test_meal_photo_upload(self, authenticated_client, monkeypatch):
+        from app.utils.qwen_client import qwen_client
+
+        # Uploading triggers AI analysis; stub it so no real model is called
+        monkeypatch.setattr(
+            qwen_client, 'analyze_meal_photo',
+            lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError('no model')),
+        )
         response = authenticated_client.post(
-            '/api/food/photos',
-            data={'file': (b'test.jpg', 'test.jpg')},
+            '/api/meals/photo',
+            data={'photo': (io.BytesIO(b'test.jpg'), 'test.jpg')},
             content_type='multipart/form-data'
         )
-        assert response.status_code in [201, 400, 415]
+        assert response.status_code in [200, 201, 400, 415]
 
-    @pytest.mark.skip(reason="Requires session handling fix")
     def test_meal_photo_list(self, authenticated_client):
-        response = authenticated_client.get('/api/food/photos')
+        response = authenticated_client.get('/api/meals/')
         assert response.status_code == 200
 
 
 class TestDashboardRoutes:
-    @pytest.mark.skip(reason="Requires session handling fix")
     def test_daily_summary(self, authenticated_client):
         response = authenticated_client.get('/api/dashboard/daily')
         assert response.status_code == 200
 
-    @pytest.mark.skip(reason="Requires session handling fix")
     def test_weight_trend(self, authenticated_client):
         response = authenticated_client.get('/api/dashboard/weight-trend')
         assert response.status_code == 200
 
-    @pytest.mark.skip(reason="Requires session handling fix")
     def test_weekly_summary(self, authenticated_client):
         response = authenticated_client.get('/api/dashboard/weekly-summary')
         assert response.status_code == 200

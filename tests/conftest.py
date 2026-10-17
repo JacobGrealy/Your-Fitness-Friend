@@ -81,10 +81,12 @@ def test_user(app):
 
 @pytest.fixture
 def authenticated_client(client, test_user):
-    client.post('/api/auth/login', json={
-        'username': 'testuser',
+    # POST /api/auth/login authenticates by email, not username.
+    response = client.post('/api/auth/login', json={
+        'email': test_user.email,
         'password': 'testpass123'
     })
+    assert response.status_code == 200, response.get_json()
     return client
 
 
