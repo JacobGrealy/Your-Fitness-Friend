@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { subDays, addDays, isToday, format } from 'date-fns'
+import { format } from 'date-fns'
 import { useFoodStore } from '@/store/foodStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { MealType, FoodLog } from '@/types'
@@ -9,6 +9,7 @@ import { MEAL_TYPES } from '@/utils/constants'
 import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
 import Loading from '@/components/common/Loading'
 import Modal from '@/components/common/Modal'
+import DiaryDateSelector from '@/components/food/DiaryDateSelector'
 
 const MEAL_ICONS: Record<MealType, string> = {
   breakfast: '☀️',
@@ -150,26 +151,6 @@ export default function DailyFood() {
 
   useEffect(() => { setTitle('Diary') }, [setTitle])
 
-  const formatDateLabel = useCallback((date: Date) => {
-    if (isToday(date)) return 'Today'
-    return format(date, 'MMM d')
-  }, [])
-
-  const handlePrevDay = useCallback(() => {
-    setCurrentDate((prev) => subDays(prev, 1))
-  }, [])
-
-  const handleNextDay = useCallback(() => {
-    setCurrentDate((prev) => {
-      if (isToday(prev)) return prev
-      return addDays(prev, 1)
-    })
-  }, [])
-
-  const handleToday = useCallback(() => {
-    setCurrentDate(new Date())
-  }, [])
-
   useEffect(() => {
     const dateStr = format(currentDate, 'yyyy-MM-dd')
     setIsNavigating(true)
@@ -181,18 +162,10 @@ export default function DailyFood() {
 
   useEffect(() => {
     setCenterContent(
-      <div className="flex items-center justify-center gap-4 text-white">
-        <button onClick={handlePrevDay} className="p-0.5 text-white hover:bg-white/10 rounded-full transition-colors" aria-label="Previous day">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-        </button>
-        <button onClick={handleToday} className="px-3 py-0.5 text-lg font-bold text-white hover:bg-white/10 rounded-full transition-colors">{formatDateLabel(currentDate)}</button>
-        <button onClick={handleNextDay} className="p-0.5 text-white hover:bg-white/10 rounded-full transition-colors" aria-label="Next day">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        </button>
-      </div>
+      <DiaryDateSelector date={currentDate} onChange={setCurrentDate} variant="header" />
     )
     return () => setCenterContent(null)
-  }, [currentDate, setCenterContent, formatDateLabel])
+  }, [currentDate, setCenterContent])
 
   const groupedLogs = MEAL_TYPES.reduce((acc, meal) => {
     acc[meal] = foodLogs.filter(log => log.meal_type === meal)
@@ -249,6 +222,14 @@ export default function DailyFood() {
           </div>
         </div>
       )}
+
+      {/* The mobile top bar carries the date control, and it is hidden at the
+          width where the sidebar takes over — so landscape and desktop get it
+          inline. Without this, the diary date could not be changed at all in
+          landscape (FF-0019). */}
+      <div className="hidden sm:flex justify-end px-4 pt-4">
+        <DiaryDateSelector date={currentDate} onChange={setCurrentDate} variant="inline" />
+      </div>
 
       <div className="px-4 pt-4 space-y-4">
         {dailyTotals && (
