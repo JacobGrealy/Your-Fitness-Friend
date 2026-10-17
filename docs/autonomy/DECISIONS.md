@@ -200,3 +200,22 @@ Range is 500–10,000 kcal, enforced server-side with the constants in
 Also fixed while here: the PUT answered `calorie_goal` while the GET answered
 `daily_calorie_goal`, so no client could compare the two payloads. The PUT now
 returns both keys.
+
+## 2026-10-17 — Quick-add logs into a guessed meal, not a chosen one
+
+FF-0018 asks for a "+" on recent foods that logs "to the currently selected
+meal". There is no such selection when the screen is opened from the tab bar, so
+the meal comes from two places, in order:
+
+1. `?meal=` in the URL — the diary already links to Add Food per meal section
+   (`/food/log?meal=lunch`), and that link was being ignored entirely.
+2. Otherwise the clock: breakfast before 11, lunch before 16, dinner before 21,
+   snack otherwise (and for 00:00–04:00).
+
+One tap beat one dialog: guessing from the clock is fewer taps than asking, and a
+wrong guess is a correction the diary already supports in two taps. The same meal
+is now also passed on to the serving form when the row itself is tapped, so the
+two paths agree.
+
+The quick-add logs exactly **one serving** of the food's own nutrition — it is the
+"same as last time" shortcut, and anything else goes through the serving form.

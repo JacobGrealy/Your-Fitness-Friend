@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useFoodStore } from '@/store/foodStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { Food, FoodRecent } from '@/types'
 import { SEARCH_DEBOUNCE_MS } from '@/utils/constants'
+import { resolveMealType } from '@/utils/meal'
 import Button from '@/components/common/Button'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
@@ -12,7 +13,11 @@ import BarcodeLookupModal from '@/components/food/BarcodeLookupModal'
 export default function LogFood() {
   const { setTitle } = usePageTitle()
   const navigate = useNavigate()
-  const { foods, recentFoods, isLoading, error, fetchFoods, fetchRecentFoods, clearError } = useFoodStore()
+  const [searchParams] = useSearchParams()
+  // The diary passes ?meal=lunch when it opens this screen from a meal section.
+  const mealType = resolveMealType(searchParams.get('meal'))
+  const [quickAdded, setQuickAdded] = useState<string | null>(null)
+  const { foods, recentFoods, isLoading, error, fetchFoods, fetchRecentFoods, clearError, logFood } = useFoodStore()
 
   const [barcodeOpen, setBarcodeOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -78,12 +83,39 @@ export default function LogFood() {
   const handleHistoryTap = (history: FoodRecent) => {
     const foodIdParam = history.food_id ? `&foodId=${history.food_id}` : ''
     navigate(
-      `/food/log/select?name=${encodeURIComponent(history.food_name)}&calories=${history.calories}&protein=${history.protein_g}&carbs=${history.carbs_g}&fat=${history.fat_g}&brand=${encodeURIComponent(history.brand || '')}&barcode_id=${encodeURIComponent(history.barcode_id || '')}&serving_size=${encodeURIComponent(history.serving_size || '')}${foodIdParam}`
+      `/food/log/select?meal=${mealType}&name=${encodeURIComponent(history.food_name)}&calories=${history.calories}&protein=${history.protein_g}&carbs=${history.carbs_g}&fat=${history.fat_g}&brand=${encodeURIComponent(history.brand || '')}&barcode_id=${encodeURIComponent(history.barcode_id || '')}&serving_size=${encodeURIComponent(history.serving_size || '')}${foodIdParam}`
     )
   }
 
   const handleBarcode = () => {
     setBarcodeOpen(true)
+  }
+
+  /**
+   * Log one serving of a recent food without leaving the screen (FF-0018).
+   * Deliberately one serving: this is the "same as last time" shortcut, and the
+   * diary row can be edited when a different amount is wanted.
+   */
+  const handleQuickLog = async (history: FoodRecent) => {
+    try {
+      await logFood({
+        food_id: history.food_id ?? undefined,
+        food_name: history.food_name,
+        calories: history.calories,
+        protein_g: history.protein_g,
+        carbs_g: history.carbs_g,
+        fat_g: history.fat_g,
+        brand: history.brand ?? undefined,
+        barcode_id: history.barcode_id ?? undefined,
+        serving_size: history.serving_size ?? undefined,
+        meal_type: mealType,
+        number_of_servings: 1,
+      })
+      setQuickAdded(history.food_name)
+      window.setTimeout(() => setQuickAdded(null), 1500)
+    } catch {
+      // logFood surfaces its own error through the store
+    }
   }
 
   const handleQuickAdd = () => {
@@ -207,17 +239,37 @@ export default function LogFood() {
           }
 
           const history = item as FoodRecent & { _type: 'history' }
+          const added = quickAdded === history.food_name
           return (
-            <button
+            <div
               key={history.food_name}
-              onClick={() => handleHistoryTap(history)}
-              className="w-full bg-white rounded-lg p-3 text-left hover:bg-gray-50 transition-colors"
+              className="w-full bg-white rounded-lg flex items-stretch hover:bg-gray-50 transition-colors"
             >
-              <div className="font-medium text-sm text-[#212121]">{history.food_name}</div>
-              <div className="text-xs text-[#757575] mt-0.5">
-                {history.calories} cal{history.brand ? ` · ${history.brand}` : ''} · {history.total_logs} log{history.total_logs > 1 ? 's' : ''}
-              </div>
-            </button>
+              <button
+                onClick={() => handleHistoryTap(history)}
+                className="flex-1 p-3 text-left rounded-l-lg"
+              >
+                <div className="font-medium text-sm text-[#212121]">{history.food_name}</div>
+                <div className="text-xs text-[#757575] mt-0.5">
+                  {history.calories} cal{history.brand ? ` · ${history.brand}` : ''} · {history.total_logs} log{history.total_logs > 1 ? 's' : ''}
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleQuickLog(history)}
+                aria-label={`Add ${history.food_name} to ${mealType}`}
+                className="px-4 flex items-center justify-center rounded-r-lg border-l border-gray-100"
+                style={{ color: added ? '#1a7f37' : '#185ADB' }}
+              >
+                {added ? (
+                  <span className="text-xs font-semibold">Added</span>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                )}
+              </button>
+            </div>
           )
         })}
       </div>
