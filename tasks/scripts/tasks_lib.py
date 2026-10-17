@@ -795,6 +795,16 @@ def backlog_move(data, task_id, to_index):
 
 
 def queue_top(data):
-    """The next live item: first queue entry (queue now contains only live tasks)."""
-    queue = data.get("queue") or []
-    return queue[0] if queue else None
+    """The next workable queue entry.
+
+    A blocked ticket stays in the queue so it is not forgotten, but it must not
+    stall the loop: skip anything whose status is not open or in-progress
+    (blocked waits on the owner, done and cancelled are finished).
+    """
+    for tid in data.get("queue") or []:
+        item = find_task(data, tid)
+        if item is None:
+            continue
+        if item.get("status") in (None, "open", "in-progress"):
+            return tid
+    return None
