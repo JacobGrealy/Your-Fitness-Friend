@@ -37,3 +37,26 @@ export function getMacroPercentage(calories: number, totalCalories: number): num
 export function calculateCaloriesRemaining(consumed: number, goal: number): number {
   return goal - consumed
 }
+
+/**
+ * How much of a food a diary row represents (FF-0029): "2 × 170 g", "1 serving",
+ * or nothing at all when the log never recorded a serving. Returns null rather
+ * than a default, so callers can omit the line entirely.
+ */
+export function formatServing(
+  servings: number | null | undefined,
+  servingSize: string | null | undefined
+): string | null {
+  const size = (servingSize ?? '').trim()
+  const count = servings ?? null
+
+  if (!size && (count === null || count === 0)) return null
+  if (!size) return count === null ? null : `${formatCount(count)} serving${count === 1 ? '' : 's'}`
+  if (count === null || count <= 0) return size
+  return `${formatCount(count)} × ${size}`
+}
+
+function formatCount(value: number): string {
+  // 1 and 2 read better than 1.0 and 2.0; 1.5 keeps its decimal.
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, '')
+}

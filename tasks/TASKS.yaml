@@ -1,12 +1,11 @@
 meta:
-  updated_at: 2026-10-17T17:53
+  updated_at: 2026-10-17T17:56
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
 - FF-0030
-- FF-0029
 - FF-0031
 intake:
 - id: FF-0001
@@ -801,11 +800,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:56
+  completed_at: 2026-10-17T17:56
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want to see how much of a food I logged on the diary row, not
@@ -813,7 +812,13 @@ intake:
 
 
     2) Technical Details: render number_of_servings and serving_size from FoodLog.to_dict() in the diary
-    row component; both fields already exist on the model, so this is frontend only.'
+    row component; both fields already exist on the model, so this is frontend only.
+
+
+    Closed: diary rows lead with the serving (''2 x 170 g'') from number_of_servings + serving_size; formatServing
+    handles half-known cases and returns null so a log without serving data is unchanged. 4 unit tests
+    + 2 diary-row tests. (Also: FF-0028 slipped onto master without a branch and was replayed through
+    one before push.)'
   comments: []
 - id: FF-0030
   title: Camera barcode scanner in AweFit

@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import { useFoodStore } from '@/store/foodStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { MealType, FoodLog } from '@/types'
-import { formatCalories } from '@/utils/formatters'
+import { formatCalories, formatServing } from '@/utils/formatters'
 import { MEAL_TYPES } from '@/utils/constants'
 import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
 import Loading from '@/components/common/Loading'
@@ -108,6 +108,12 @@ function MealSection({
                     <div className="text-xs text-[#757575] mt-0.5">{log.brand}</div>
                   )}
                   <div className="text-xs text-[#757575] mt-0.5">
+                    {(() => {
+                      // Serving first when it is known: "how much did I have"
+                      // is what a diary row is scanned for (FF-0029).
+                      const serving = formatServing(log.number_of_servings, log.serving_size)
+                      return serving ? `${serving} · ` : ''
+                    })()}
                     {formatCalories(log.calories)} cal · P:{log.protein_g}g C:{log.carbs_g}g F:{log.fat_g}g
                   </div>
                 </div>
