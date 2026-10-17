@@ -23,8 +23,11 @@ const lookup = foodApi.lookupBarcode as jest.Mock
 describe('BarcodeLookupModal (FF-0014)', () => {
   beforeEach(() => lookup.mockReset())
 
+  // FF-0030 made the camera the default view; these FF-0014 tests are about the
+  // typed path, so they switch to it first.
   const open = (onFound = jest.fn()) => {
     render(<BarcodeLookupModal isOpen onClose={jest.fn()} onFound={onFound} />)
+    fireEvent.click(screen.getByRole('button', { name: /type the barcode instead/i }))
     return onFound
   }
 
@@ -69,5 +72,12 @@ describe('BarcodeLookupModal (FF-0014)', () => {
   it('will not submit an empty code', () => {
     open()
     expect(screen.getByRole('button', { name: /look up/i })).toBeDisabled()
+  })
+
+  it('opens on the camera and offers the typed path as an alternative', () => {
+    render(<BarcodeLookupModal isOpen onClose={jest.fn()} onFound={jest.fn()} />)
+
+    expect(screen.getByTestId('barcode-video')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /type the barcode instead/i })).toBeInTheDocument()
   })
 })

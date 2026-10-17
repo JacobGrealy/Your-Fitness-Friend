@@ -25,6 +25,7 @@
     "@capacitor/status-bar": "^8.0.4",
     "axios": "1.14.0",
     "date-fns": "3.0.6",
+    "jsqr": "^1.4.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-easy-crop": "5.5.2",
