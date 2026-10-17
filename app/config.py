@@ -35,7 +35,8 @@ class Config:
         'weights': {'png', 'jpg', 'jpeg', 'gif'},
         'foods': {'png', 'jpg', 'jpeg', 'gif'},
         'meal_photos': {'png', 'jpg', 'jpeg', 'gif'},
-        'profile_photos': {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        'profile_photos': {'png', 'jpg', 'jpeg', 'gif', 'webp'},
+        'food_log_photos': {'png', 'jpg', 'jpeg', 'gif', 'webp'}
     }
     
     # CORS configuration: comma-separated list of browser origins allowed to

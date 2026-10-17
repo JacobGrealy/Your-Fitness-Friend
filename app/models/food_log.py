@@ -15,7 +15,9 @@ class FoodLog(db.Model):
     protein_g = db.Column(db.Float, default=0.0)
     carbs_g = db.Column(db.Float, default=0.0)
     fat_g = db.Column(db.Float, default=0.0)
-    serving_size = db.Column(db.String(100), nullable=True)
+    serving_size = db.Column(db.String(255), nullable=True)
+    number_of_servings = db.Column(db.Float, nullable=True)
+    photo_url = db.Column(db.String(512), nullable=True)
     brand = db.Column(db.String(100), nullable=True)
     barcode_id = db.Column(db.String(100), nullable=True)
     date = db.Column(db.Date, nullable=False, index=True)
@@ -30,17 +32,21 @@ class FoodLog(db.Model):
         return {
             'id': self.id,
             'user_id': self.user_id,
+            'food_id': self.food_id,
             'food_name': self.food_name,
             'calories': self.calories,
             'protein_g': self.protein_g,
             'carbs_g': self.carbs_g,
             'fat_g': self.fat_g,
             'serving_size': self.serving_size,
+            'number_of_servings': self.number_of_servings,
+            'photo_url': self.photo_url,
             'brand': self.brand,
             'barcode_id': self.barcode_id,
             'date': self.date.isoformat() if self.date else None,
             'meal_type': self.meal_type,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
     
     def __repr__(self):

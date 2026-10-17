@@ -1,12 +1,82 @@
-from flask import Blueprint, request, jsonify, current_app
+import os
+import uuid
+
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_login import login_required, current_user
 from app.models.food import Food
 from app.models.food_log import FoodLog
+from app.config import Config
 from app import db
 from datetime import datetime, date, timedelta
 
 
 bp = Blueprint('food', __name__)
+
+FOOD_LOG_PHOTO_FOLDER = 'food_log_photos'
+
+
+def _uploads_root():
+    """Absolute path to the uploads directory.
+
+    Honours UPLOAD_FOLDER so tests (and alternate deployments) can relocate it
+    instead of writing into app/uploads.
+    """
+    configured = current_app.config.get('UPLOAD_FOLDER')
+    if configured:
+        return os.path.abspath(configured)
+    return os.path.abspath(os.path.join(current_app.root_path, 'uploads'))
+
+
+def _food_log_photo_dir():
+    """Absolute path to the directory holding food log photos."""
+    return os.path.join(_uploads_root(), FOOD_LOG_PHOTO_FOLDER)
+
+
+def _has_allowed_extension(filename):
+    """Whether a filename carries an extension allowed for food log photos."""
+    if '.' not in filename:
+        return False
+    extension = filename.rsplit('.', 1)[1].lower()
+    return extension in Config.ALLOWED_EXTENSIONS.get('food_log_photos', set())
+
+
+def _remove_photo_file(photo_url):
+    """Delete a stored photo, ignoring anything outside the uploads directory."""
+    if not photo_url:
+        return
+    uploads_root = _uploads_root()
+    target = os.path.abspath(os.path.join(uploads_root, photo_url))
+    if not target.startswith(uploads_root + os.sep):
+        return
+    try:
+        os.remove(target)
+    except OSError:
+        pass
+
+
+def _sync_linked_food(log):
+    """Copy edited nutrition onto the linked Food record.
+
+    Other logs referencing the same food are deliberately left alone: each log
+    keeps its own nutrition snapshot, per the Edit Food Log design.
+    """
+    if not log.food_id:
+        return
+
+    food = Food.query.filter_by(id=log.food_id, user_id=current_user.id).first()
+    if not food:
+        return
+
+    food.name = log.food_name
+    food.calories = log.calories
+    food.protein_g = log.protein_g
+    food.carbs_g = log.carbs_g
+    food.fat_g = log.fat_g
+    food.serving_size = log.serving_size
+    if log.brand is not None:
+        food.brand = log.brand
+    if log.barcode_id is not None:
+        food.barcode_id = log.barcode_id
 
 
 @bp.route('', methods=['GET'])
@@ -38,6 +108,7 @@ def get_foods():
         'protein_g': f.protein_g,
         'carbs_g': f.carbs_g,
         'fat_g': f.fat_g,
+        'serving_size': f.serving_size,
         'brand': f.brand,
         'barcode_id': f.barcode_id,
     } for f in foods]), 200
@@ -66,7 +137,12 @@ def get_recent_foods():
                 'total_logs': 0,
                 'last_logged': log.date,
                 'serving_size': log.serving_size,
+                # logs are ordered newest first, so the first photo encountered
+                # is the most recent one for this food
+                'photo_url': log.photo_url or None,
             }
+        elif grouped[key]['photo_url'] is None and log.photo_url:
+            grouped[key]['photo_url'] = log.photo_url
         grouped[key]['total_logs'] += 1
 
     # Get Food records for all food_ids
@@ -86,6 +162,7 @@ def get_recent_foods():
                 'carbs_g': food.carbs_g,
                 'fat_g': food.fat_g,
                 'serving_size': data['serving_size'],
+                'photo_url': data['photo_url'],
                 'brand': food.brand,
                 'barcode_id': food.barcode_id,
                 'total_logs': data['total_logs'],
@@ -213,6 +290,8 @@ def get_food_logs():
             'brand': log.brand,
             'food_id': log.food_id,
             'serving_size': log.serving_size,
+            'number_of_servings': log.number_of_servings,
+            'photo_url': log.photo_url,
         } for log in logs],
         'totals': {
             'total_calories': total_calories,
@@ -240,6 +319,8 @@ def create_food_log():
     brand = data.get('brand')
     barcode_id = data.get('barcode_id')
     serving_size = data.get('serving_size')
+    number_of_servings = data.get('number_of_servings')
+    photo_url = data.get('photo_url')
     date_param = data.get('date')
     meal_type = data.get('meal_type')
     
@@ -262,6 +343,14 @@ def create_food_log():
     except (TypeError, ValueError):
         return jsonify({'error': 'calories must be a positive integer and date must be YYYY-MM-DD'}), 400
     
+    if number_of_servings is not None:
+        try:
+            number_of_servings = float(number_of_servings)
+            if number_of_servings <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({'error': 'number_of_servings must be a positive number'}), 400
+    
     # Get brand/barcode_id from food reference or request data
     brand = None
     barcode_id = None
@@ -278,6 +367,8 @@ def create_food_log():
             food.fat_g = data.get('fat_g', food.fat_g)
             food.brand = data.get('brand', food.brand)
             food.barcode_id = data.get('barcode_id', food.barcode_id)
+            if serving_size is not None:
+                food.serving_size = serving_size
             db.session.commit()
             brand = food.brand
             barcode_id = food.barcode_id
@@ -294,6 +385,8 @@ def create_food_log():
         carbs_g=carbs_g,
         fat_g=fat_g,
         serving_size=serving_size,
+        number_of_servings=number_of_servings,
+        photo_url=photo_url,
         brand=brand,
         barcode_id=barcode_id,
         date=log_date,
@@ -311,11 +404,32 @@ def create_food_log():
         'carbs_g': food_log.carbs_g,
         'fat_g': food_log.fat_g,
         'serving_size': food_log.serving_size,
+        'number_of_servings': food_log.number_of_servings,
+        'photo_url': food_log.photo_url,
         'brand': food_log.brand,
         'barcode_id': food_log.barcode_id,
         'date': food_log.date.isoformat(),
         'meal_type': food_log.meal_type
     }), 201
+
+
+@bp.route('/log/<int:log_id>', methods=['GET'])
+@login_required
+def get_food_log(log_id):
+    """Get a single food log entry.
+
+    Scoped to the current user, and another user's log returns 404 rather than
+    403 so the endpoint does not reveal whether the id exists.
+    """
+    log = FoodLog.query.filter_by(
+        id=log_id,
+        user_id=current_user.id
+    ).first()
+
+    if not log:
+        return jsonify({'error': 'Food log not found'}), 404
+
+    return jsonify(log.to_dict()), 200
 
 
 @bp.route('/log/<int:log_id>', methods=['DELETE'])
@@ -355,49 +469,135 @@ def delete_food_log(log_id):
 @login_required
 def update_food_log(log_id):
     """Update a food log entry."""
-    current_app.logger.info(f"Update food log request: log_id={log_id} data={request.get_json()}")
     log = FoodLog.query.filter_by(
         id=log_id,
         user_id=current_user.id
     ).first()
     if not log:
-        current_app.logger.error(f"Update food log: log_id={log_id} not found for user {current_user.id}")
         return jsonify({'error': 'Food log not found'}), 404
-    
-    data = request.get_json()
-    
+
+    data = request.get_json() or {}
+
+    valid_meal_types = ['breakfast', 'lunch', 'dinner', 'snack']
+    if data.get('meal_type') is not None and data['meal_type'] not in valid_meal_types:
+        return jsonify(
+            {'error': f'meal_type must be one of: {", ".join(valid_meal_types)}'}
+        ), 400
+
+    try:
+        if data.get('calories') is not None:
+            calories = int(data['calories'])
+            if calories <= 0:
+                raise ValueError
+            log.calories = calories
+        if data.get('protein_g') is not None:
+            log.protein_g = float(data['protein_g'])
+        if data.get('carbs_g') is not None:
+            log.carbs_g = float(data['carbs_g'])
+        if data.get('fat_g') is not None:
+            log.fat_g = float(data['fat_g'])
+        if data.get('number_of_servings') is not None:
+            number_of_servings = float(data['number_of_servings'])
+            if number_of_servings <= 0:
+                raise ValueError
+            log.number_of_servings = number_of_servings
+        if data.get('date') is not None:
+            log.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return jsonify({
+            'error': 'calories must be a positive integer, number_of_servings a '
+                     'positive number, and date must be YYYY-MM-DD'
+        }), 400
+
     if data.get('food_name') is not None:
         log.food_name = data['food_name']
-    if data.get('calories') is not None:
-        log.calories = int(data['calories'])
-    if data.get('protein_g') is not None:
-        log.protein_g = float(data['protein_g'])
-    if data.get('carbs_g') is not None:
-        log.carbs_g = float(data['carbs_g'])
-    if data.get('fat_g') is not None:
-        log.fat_g = float(data['fat_g'])
     if data.get('meal_type') is not None:
         log.meal_type = data['meal_type']
     if data.get('serving_size') is not None:
         log.serving_size = data['serving_size']
     if data.get('brand') is not None:
         log.brand = data['brand']
-    
+    if data.get('barcode_id') is not None:
+        log.barcode_id = data['barcode_id']
+    if data.get('photo_url') is not None:
+        log.photo_url = data['photo_url']
+
+    _sync_linked_food(log)
+
     db.session.commit()
-    current_app.logger.info(f"Update food log: log_id={log_id} updated name={log.food_name} cal={log.calories}")
-    
-    return jsonify({
-        'id': log.id,
-        'food_name': log.food_name,
-        'calories': log.calories,
-        'protein_g': log.protein_g,
-        'carbs_g': log.carbs_g,
-        'fat_g': log.fat_g,
-        'serving_size': log.serving_size,
-        'brand': log.brand,
-        'date': log.date.isoformat(),
-        'meal_type': log.meal_type
-    }), 200
+    current_app.logger.info(
+        f"Update food log: log_id={log_id} name={log.food_name} "
+        f"cal={log.calories} date={log.date}"
+    )
+
+    return jsonify(log.to_dict()), 200
+
+
+@bp.route('/log/<int:log_id>/photo', methods=['POST'])
+@login_required
+def upload_food_log_photo(log_id):
+    """Attach or replace the photo on a food log entry."""
+    log = FoodLog.query.filter_by(
+        id=log_id,
+        user_id=current_user.id
+    ).first()
+    if not log:
+        return jsonify({'error': 'Food log not found'}), 404
+
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo provided'}), 400
+
+    file = request.files['photo']
+    if not file.filename:
+        return jsonify({'error': 'No photo selected'}), 400
+    if not _has_allowed_extension(file.filename):
+        return jsonify({'error': 'Invalid file type'}), 400
+
+    extension = file.filename.rsplit('.', 1)[1].lower()
+    filename = f"{uuid.uuid4().hex}.{extension}"
+    photo_dir = _food_log_photo_dir()
+    os.makedirs(photo_dir, exist_ok=True)
+    file.save(os.path.join(photo_dir, filename))
+
+    # Replace any previous photo so old files don't accumulate
+    _remove_photo_file(log.photo_url)
+
+    log.photo_url = f"{FOOD_LOG_PHOTO_FOLDER}/{filename}"
+    db.session.commit()
+
+    return jsonify({'id': log.id, 'photo_url': log.photo_url}), 200
+
+
+@bp.route('/log/<int:log_id>/photo', methods=['DELETE'])
+@login_required
+def delete_food_log_photo(log_id):
+    """Remove the photo from a food log entry."""
+    log = FoodLog.query.filter_by(
+        id=log_id,
+        user_id=current_user.id
+    ).first()
+    if not log:
+        return jsonify({'error': 'Food log not found'}), 404
+
+    if not log.photo_url:
+        return jsonify({'error': 'Food log has no photo'}), 404
+
+    _remove_photo_file(log.photo_url)
+    log.photo_url = None
+    db.session.commit()
+
+    return jsonify({'message': 'Photo deleted', 'id': log.id}), 200
+
+
+@bp.route('/uploads/<path:filename>')
+@login_required
+def serve_food_log_upload(filename):
+    """Serve an uploaded food log photo.
+
+    ``photo_url`` is stored relative to the uploads root (e.g.
+    ``food_log_photos/<file>.jpg``), so resolve against that root.
+    """
+    return send_from_directory(_uploads_root(), filename)
 
 
 @bp.route('/daily', methods=['GET'])
