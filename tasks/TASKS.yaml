@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-17T16:46
+  updated_at: 2026-10-17T17:01
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0003
 - FF-0004
 - FF-0005
 - FF-0006
@@ -94,11 +93,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:01
+  completed_at: 2026-10-17T17:01
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want AweFit as an installable Android app that shows my tracker
@@ -110,7 +109,13 @@ intake:
     and server.cleartext true (Android 9+ blocks plain HTTP otherwise); package scripts android:sync =
     build + cap sync android; commit android/ except build outputs and local.properties. Chosen over TWA
     (needs HTTPS + asset links) and over bundled assets (would need SameSite=None cookies or token auth);
-    thin client confirmed by owner.'
+    thin client confirmed by owner.
+
+
+    Closed: capacitor.config.ts + frontend/android committed; server.url from ANDROID_SERVER_URL (default
+    http://100.84.29.20:5001), cleartext derived from scheme. Verified by a successful ./gradlew assembleDebug:
+    4.3MB app-debug.apk, package dev.awefit.app, label AweFit, minSdk 24, targetSdk 36. Trap: ambient
+    NODE_ENV=production makes npm skip devDependencies.'
   comments: []
 - id: FF-0004
   title: AweFit launcher icon and splash (new AF mark)
