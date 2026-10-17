@@ -358,3 +358,30 @@ loud.
 The board and the CLI sharing one mutation layer is what forced FF-0034: the
 library could reorder the queue while the CLI could not, so the board would have
 been strictly more capable than the command line. Both now cover the same ground.
+
+## 2026-10-17 — The app shell owns the viewport height, pages do not
+
+Short pages could be scrolled by 136px into empty space. Measured at 390×844:
+`/dashboard` and `/food/daily` reported `scrollHeight` 980 against
+`innerHeight` 844 — and `main` computed `padding-top: 56px` + `padding-bottom:
+80px`, exactly that 136px.
+
+The cause is two rules that are each reasonable alone: the shell pads its content
+by the header and bottom-nav heights (plus safe-area insets), and the pages inside
+it declared `min-h-screen`. `100vh` inside a padded container means the document is
+a full viewport *plus* the padding before any content is counted, so the page is
+always slightly taller than the screen.
+
+So responsibility is now explicit: **`Layout.tsx` owns the viewport height** (a
+flex column at `min-h-[100svh]`, with `main` as `flex-1`) and pages rendered inside
+it must not set `min-h-screen`. Auth pages sit outside the shell and keep theirs.
+
+`100svh` rather than `100vh` in `index.css` and the shell, because in a phone
+browser `100vh` is the *largest* viewport: laying out against it is scrollable the
+whole time a URL bar is visible, which would reintroduce the same overshoot in the
+browser even though the WebView is stable.
+
+`scripts/gates.sh` gains a `layout` gate that fails when a file under
+`frontend/src/pages` (excluding `pages/Auth/`) declares `min-h-screen` — the
+contract is easy to break again by habit, and the failure mode is a subtle
+scroll jitter rather than something a test would otherwise catch.

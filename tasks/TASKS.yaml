@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T19:54
+  updated_at: 2026-10-17T19:57
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1556,4 +1556,43 @@ intake:
     drop-in, camera verification). Also checked the rest of the file for stale version references: the
     remaining mentions are historical (Q1''s TLS verification table and a note about which build speaks
     HTTP) and are correct in their context.'
+  comments: []
+- id: FF-0051
+  title: Pages scroll 136px into empty space because the shell padding stacks on min-h-screen
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T19:54
+  updated_at: 2026-10-17T19:57
+  completed_at: 2026-10-17T19:57
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: Short pages can still be scrolled, moving the content up and revealing empty
+    space the height of the header plus the bottom bar. It makes the app feel unsteady: every page behaves
+    as if it has more content than it does.
+
+
+    2) Technical Details: measured with Playwright at 390x844 on a logged-in session. /dashboard and /food/daily
+    have document.scrollHeight 980 against window.innerHeight 844 - exactly 136px of overflow - and main
+    computes padding-top 56px + padding-bottom 80px, which is that 136px. Cause: pages rendered inside
+    components/layout/Layout.tsx declare min-h-screen (100vh, i.e. the whole 844px viewport) while main
+    also adds the bar paddings on top, so the document is a viewport taller than the screen before any
+    content is counted. /more does not scroll only because Profile.tsx happens not to apply min-h-screen
+    on its normal path. Fix: the shell owns the viewport height (flex column, min-h-[100svh], main flex-1)
+    and pages inside it stop declaring min-h-screen - a padded shell child should not claim 100vh. Also
+    switch the 100vh in index.css body/#root and Layout to 100svh so a browser''s collapsing URL bar cannot
+    recreate the same overshoot. Auth pages (Login/Register) are outside the Layout and keep their own
+    min-h-screen. Verify by re-measuring: overflow 0 on short pages, and long pages (e.g. a diary with
+    many entries) still scroll with content intact; screenshot two pages to confirm nothing is clipped.
+
+
+    Closed: root cause measured (main padding 56+80=136px stacking on pages that declared min-h-screen/100vh).
+    Layout now owns the height: flex column min-h-[100svh], main flex-1; seven shell pages lost min-h-screen;
+    Auth pages keep theirs; 100vh->100svh in index.css. Re-measured: 0 overflow on dashboard/more/weight/exercise/food-custom/food-log;
+    /food/daily''s remaining 36px is real content. Added a layout gate to gates.sh (fails when a non-Auth
+    page declares min-h-screen) and proved it trips on a probe file.'
   comments: []

@@ -205,7 +205,7 @@ export default function DailyFood() {
 
   if ((isLoading || isNavigating) && foodLogs.length === 0 && !dailyTotals) {
     return (
-      <div className="min-h-screen bg-[#f2f2f2]">
+      <div className="bg-[#f2f2f2]">
         <div className="flex justify-center py-12">
           <Loading text="Loading food data..." />
         </div>
@@ -214,7 +214,7 @@ export default function DailyFood() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f2f2f2] pb-4">
+    <div className="bg-[#f2f2f2] pb-4">
       {error && (
         <div className="px-4 pt-2">
           <div className="bg-white rounded-lg p-3 text-red-600 text-sm">

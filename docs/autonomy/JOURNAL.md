@@ -1047,3 +1047,30 @@ the banner appears on the next request because `/api/app/version` reads
 `releases/version.json` per request, and the client installs it itself. Publishing
 never installs anything by itself — Android's own dialog stays in the loop, which
 is the point.
+
+## Round 49 — 2026-10-17 — FF-0051 the 136px of nothing under every page
+
+Owner asked why short pages scroll. Measured instead of guessing: at 390×844,
+`/dashboard` and `/food/daily` had `scrollHeight` 980 against `innerHeight` 844,
+and `main` computed exactly the 136px difference as its `padding-top: 56px` +
+`padding-bottom: 80px`. `/more` did not scroll, purely because Profile happens not
+to apply `min-h-screen` on its normal path — which is why it looked inconsistent.
+
+Two reasonable rules colliding: the shell pads content clear of the header and the
+bottom nav, and the pages inside it claimed `min-h-screen`. `100vh` inside a padded
+container is a viewport *plus* the padding.
+
+Fixed by giving the height one owner: `Layout.tsx` is now a flex column at
+`min-h-[100svh]` with `main` as `flex-1`, and the seven shell pages dropped their
+`min-h-screen`. Auth pages are outside the shell and keep theirs. `100svh` replaces
+`100vh` in the globals too, so a browser's collapsing URL bar cannot recreate it.
+
+Re-measured after the change: `/dashboard`, `/more`, `/weight`, `/exercise`,
+`/food/custom` and `/food/log` all report **0** overflow. `/food/daily` still
+scrolls 36px, which is honest — four meal sections plus the 80px bottom-nav
+clearance genuinely exceed the viewport.
+
+Guarded by a new `layout` gate in `./scripts/gates.sh` (the contract is easy to
+break by habit and the symptom is a subtle jitter). Proved it trips: with a
+throwaway page declaring `min-h-screen` the gate printed the offending file and
+failed the run; removing it restored green.

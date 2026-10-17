@@ -135,7 +135,7 @@ export default function LogFood() {
 
   if (isLoading && foods.length === 0 && recentFoods.length === 0) {
     return (
-      <div className="min-h-screen bg-[#f2f2f2] flex justify-center py-12">
+      <div className="bg-[#f2f2f2] flex justify-center py-12">
         <Loading text="Loading..." />
       </div>
     )
@@ -149,7 +149,7 @@ export default function LogFood() {
     : recentFoods.map(h => ({ ...h, _type: 'history' as const }))
 
   return (
-    <div className="min-h-screen bg-[#f2f2f2]">
+    <div className="bg-[#f2f2f2]">
       {/* Sticky Top Zone */}
       <div className="sticky top-0 z-10 bg-white border-b border-[#e0e0e0]">
         {/* Search Bar */}
