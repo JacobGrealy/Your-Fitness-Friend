@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T19:52
+  updated_at: 2026-10-17T19:54
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1525,4 +1525,35 @@ intake:
     Closed: QUESTIONS.md item 4 removed and the list renumbered to three; current state now records 0.1.5/versionCode
     6 installed and one-tap update verified on the phone. AGENTS.md gains the shipping loop under Android
     (bump -> publish -> banner on next request -> client installs; publishing never installs by itself).'
+  comments: []
+- id: FF-0050
+  title: Drop the obsolete install-0.1.3 item from the waiting list
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-17T19:52
+  updated_at: 2026-10-17T19:54
+  completed_at: 2026-10-17T19:54
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The Waiting-on-you list still opens by asking the owner to install 0.1.3 and
+    warns that 0.1.2 cannot log in. The owner is on 0.1.5 and has verified both the login and the one-tap
+    update, so the first thing any new session reads is obsolete.
+
+
+    2) Technical Details: docs/autonomy/QUESTIONS.md, ''Waiting on you'' item 1. FF-0049 removed the one-tap-verification
+    item but left this one, because it was written when 0.1.3 was the newest build. Delete it and renumber;
+    the list should contain exactly two open items - the sudoers drop-in (Q2) and camera-scanner verification
+    on the phone (FF-0030). Check the whole file for any other reference to 0.1.2/0.1.3 as current while
+    there.
+
+
+    Closed: removed the obsolete install-0.1.3 item and renumbered ''Waiting on you'' to two items (sudoers
+    drop-in, camera verification). Also checked the rest of the file for stale version references: the
+    remaining mentions are historical (Q1''s TLS verification table and a note about which build speaks
+    HTTP) and are correct in their context.'
   comments: []
