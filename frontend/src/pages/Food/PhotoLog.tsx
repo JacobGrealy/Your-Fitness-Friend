@@ -6,6 +6,7 @@ import Loading from '@/components/common/Loading'
 import type { FoodPhotoLogEntry, FoodPhotoMessage } from '@/types/foodPhotoLog'
 import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
 import { isMealType } from '@/utils/meal'
+import { saveAcceptedEntries } from '@/utils/photoLogEntries'
 import { useFoodStore } from '@/store/foodStore'
 
 type Step = 'capture' | 'review' | 'loading'
@@ -143,29 +144,16 @@ export default function PhotoLog() {
     if (logEntries.length === 0 || accepting) return
     setAccepting(true)
     setStep('loading')
-    console.log('[PhotoLog] Accept called, entries:', JSON.stringify(logEntries))
 
     try {
-      for (const entry of logEntries) {
-        console.log('[PhotoLog] Processing entry:', entry)
-        if (entry.id) {
-          console.log('[PhotoLog] Updating entry id:', entry.id)
-          await foodStore.updateFoodLog(String(entry.id), {
-            food_name: entry.food_name,
-            calories: entry.calories,
-            protein_g: entry.protein_g,
-            carbs_g: entry.carbs_g,
-            fat_g: entry.fat_g,
-            meal_type: entry.meal_type,
-          })
-        } else {
-          console.log('[PhotoLog] Skipping entry, no id:', entry)
-        }
-      }
-      console.log('[PhotoLog] All entries processed, navigating to /food')
-      navigate('/food')
+      // Entries normally carry an id from /api/meals/ai-log; anything without one
+      // is created rather than silently dropped (FF-0042).
+      await saveAcceptedEntries(logEntries, {
+        updateFoodLog: (id, data) => foodStore.updateFoodLog(id, data),
+        logFood: (data) => foodStore.logFood(data),
+      })
+      navigate('/food/daily')
     } catch (err: any) {
-      console.error('[PhotoLog] Accept error:', err)
       setError(err.response?.data?.message || 'Failed to save food logs')
       setStep('review')
       setAccepting(false)
