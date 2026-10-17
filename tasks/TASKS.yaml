@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-17T17:09
+  updated_at: 2026-10-17T17:10
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0006
 - FF-0007
 - FF-0008
 - FF-0009
@@ -180,11 +179,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:10
+  completed_at: 2026-10-17T17:10
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want to grab the new APK on my phone over the LAN and install
@@ -194,7 +193,13 @@ intake:
     2) Technical Details: scripts/build-android.sh runs the env setup, npm run android:sync, ./gradlew
     assembleRelease, then copies the signed APK to a served path (app/static/download/awefit.apk, gitignored)
     so https://<host>/download/awefit.apk downloads it; prints versionCode, versionName and sha256; verifies
-    the APK is signed with the release key (apksigner verify).'
+    the APK is signed with the release key (apksigner verify).
+
+
+    Closed: scripts/build-android.sh builds+signs+publishes; APK served by the live gunicorn at /download/awefit.apk
+    (verified 200, application/vnd.android.package-archive, sha256 matches the build) with /download/version.json
+    metadata; README documents install and update. Signature verified with apksigner before publish. --bump
+    increments versionCode so updates install in place.'
   comments: []
 - id: FF-0007
   title: 'WebView mobile polish: safe areas, status bar, hardware back'

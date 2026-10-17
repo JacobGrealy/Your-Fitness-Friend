@@ -70,6 +70,39 @@ sudo systemctl restart fitnessfriend     # after backend code changes
 may still exist on an older host: it was a duplicate dev backend on port 5001 that
 crash-looped, so leave it disabled or remove it.
 
+## AweFit (Android)
+
+AweFit is the Android client: a thin Capacitor shell that loads the running
+server in a WebView (same origin, so the session cookie, uploads and photo URLs
+all behave as in a browser). It therefore needs the server reachable — LAN or
+Tailscale — and has no offline mode.
+
+```bash
+./scripts/android-toolchain.sh          # once: JDK 21 + Android SDK 36 under ~/tools
+./scripts/build-android.sh --bump       # web build + signed release APK + publish
+./scripts/android-version.py show       # versionCode / versionName
+```
+
+| What | Where |
+| --- | --- |
+| the APK | `http://<host>:5001/download/awefit.apk` |
+| metadata | `http://<host>:5001/download/version.json` |
+
+**Install / update on the phone:** open that URL, download, tap the file. Android
+asks once for permission to install unknown apps. An update installs *over* the
+existing app only when it is signed with the same keystore and its `versionCode`
+is higher — `--bump` handles the second part, and the keystore is backed up.
+
+- App id `dev.awefit.app` (permanent once installed), label AweFit,
+  minSdk 24, targetSdk 36.
+- The server address is baked in at build time:
+  `ANDROID_SERVER_URL=http://... ./scripts/build-android.sh` (default is the
+  Tailscale address, because the LAN address is DHCP).
+- Signing key: `~/.android-keys/awefit-release.jks`, referenced by the
+  gitignored `frontend/android/keystore.properties`, snapshotted by
+  `scripts/backup.sh` → `backups/keys/`. Losing it means every install must be
+  uninstalled before the next one works.
+
 ## Data and migrations
 
 - SQLite database: `instance/fitness_friend.db`
