@@ -24,7 +24,7 @@ jest.mock('@/store/weightStore', () => ({
 }))
 
 jest.mock('@/store/authStore', () => ({
-  useAuthStore: () => ({ user: { weight_goal_lbs: 190 } }),
+  useAuthStore: () => ({ user: { weight_goal_lbs: 190, weekly_goal: 'lose_1' } }),
 }))
 
 jest.mock('@/components/layout/PageTitleContext', () => ({
@@ -62,5 +62,20 @@ describe('Progress weight chart ordering (FF-0012)', () => {
 
     const dates = screen.getAllByText(/Sep \d{2}, 2026/).map((el) => el.textContent)
     expect(dates).toEqual(['Sep 22, 2026', 'Sep 08, 2026', 'Sep 01, 2026'])
+  })
+})
+
+describe('Goal ETA on Progress (FF-0026)', () => {
+  it('shows a projected date under the distance to goal', () => {
+    render(
+      <MemoryRouter>
+        <WeightHistory />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('On track for')).toBeInTheDocument()
+    // three weighed days, flat trend -> the weekly goal drives the projection
+    expect(screen.getByText(/1\.0 lb\/week/)).toBeInTheDocument()
+    expect(screen.getByText(/your goal/)).toBeInTheDocument()
   })
 })
