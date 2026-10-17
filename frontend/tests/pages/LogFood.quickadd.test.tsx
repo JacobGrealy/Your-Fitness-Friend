@@ -95,7 +95,8 @@ describe('Recent food quick-add (FF-0018)', () => {
 
     fireEvent.click(screen.getByText('Greek Yogurt'))
 
-    expect(navigate).toHaveBeenCalledWith(expect.stringContaining('/food/log/select'))
+    // FF-0021 added a second argument (the return-to state), so assert on the path
+    expect(String(navigate.mock.calls[0][0])).toContain('/food/log/select')
     expect(logFood).not.toHaveBeenCalled()
   })
 })

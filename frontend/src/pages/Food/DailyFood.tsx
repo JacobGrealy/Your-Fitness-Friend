@@ -10,6 +10,7 @@ import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
 import Loading from '@/components/common/Loading'
 import Modal from '@/components/common/Modal'
 import DiaryDateSelector from '@/components/food/DiaryDateSelector'
+import { returnState } from '@/utils/returnTo'
 
 const MEAL_ICONS: Record<MealType, string> = {
   breakfast: '☀️',
@@ -258,7 +259,7 @@ export default function DailyFood() {
                 isCollapsed={isCollapsed}
                 onToggle={() => toggleMeal(meal)}
                 onDelete={(id) => setDeleteLogId(id)}
-                onAddFood={(m) => navigate(`/food/log?meal=${m}`)}
+                onAddFood={(m) => navigate(`/food/log?meal=${m}`, { state: returnState('/food/daily') })}
                 onEditLog={(id) => navigate(`/food/log/${id}/edit`)}
               />
             )

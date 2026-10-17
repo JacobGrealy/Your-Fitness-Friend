@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useFoodStore } from '@/store/foodStore'
@@ -8,6 +8,7 @@ import type { Food, FoodLogCreate, MealType } from '@/types'
 import { MEAL_TYPES } from '@/utils/constants'
 import { quickAddFoodSchema } from '@/utils/schemas'
 import Loading from '@/components/common/Loading'
+import { resolveReturnTo } from '@/utils/returnTo'
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -19,6 +20,7 @@ const MEAL_LABELS: Record<MealType, string> = {
 export default function FoodLogSelect() {
   const { setTitle } = usePageTitle()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const { foodId } = useParams<{ foodId?: string }>()
   const { foods, isLoading, logFood, createFood, fetchFoods, error, clearError } = useFoodStore()
@@ -159,7 +161,9 @@ export default function FoodLogSelect() {
 
       await logFood(logData)
 
-      navigate('/food/log')
+      // Back to wherever the flow was entered from (the diary, usually), never
+      // back into the add flow itself (FF-0021).
+      navigate(resolveReturnTo(location.state), { replace: true })
     } catch {
       // Error handled by store
     } finally {

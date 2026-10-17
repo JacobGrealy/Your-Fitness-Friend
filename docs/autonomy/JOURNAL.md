@@ -457,3 +457,23 @@ log).
 The genuinely missing half of this pair is **FF-0021**: the check always navigates
 to `/food/log`, so finishing a quick add dumps you on the search screen instead of
 where you came from. That is next.
+
+## Round 22 — 2026-10-17 — FF-0021 finishing a quick add returns where you were
+
+The add flow's two screens now carry their origin in router location state. The
+diary sets `returnTo: '/food/daily'`, Add Food forwards it to the serving screen,
+and the serving screen navigates there with `replace` after logging instead of
+the hardcoded `/food/log` that dropped the user back on a search box.
+
+`src/utils/returnTo.ts` validates the value instead of trusting it: absolute
+in-app paths only, and never a path inside the add flow (returning into the form
+you just submitted would be worse than the old behaviour). With no origin — from
+the tab bar — it falls back to `/dashboard`.
+
+Verified: 4 unit tests for the resolver (including the loop-back and
+protocol-relative cases) plus a component test that submits a quick add with
+`returnTo: '/food/daily'` and asserts `navigate('/food/daily', { replace: true })`.
+One FF-0018 assertion needed updating because `navigate` now takes a second
+argument. Gates green — 138 jest tests.
+
+Next: FF-0022 — a height field on the profile (migration, so back up first).
