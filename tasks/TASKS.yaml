@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T17:13
+  updated_at: 2026-10-17T17:16
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -237,10 +237,10 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: blocked
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T17:16
   completed_at: null
   waiting_on: null
   parent_id: null
@@ -251,7 +251,14 @@ intake:
     2) Technical Details: tailscale serve/cert for the .ts.net name proxying :5001, ANDROID_SERVER_URL
     pointing at it, CORS_ORIGINS updated, verify the Flask-Login cookie survives HTTPS (SESSION_COOKIE_SECURE)
     and consider relaxing login_manager.session_protection from strong to basic, since strong binds the
-    session to IP + user agent and invalidates on network change.'
+    session to IP + user agent and invalidates on network change.
+
+
+    BLOCKED on owner (Q1 in QUESTIONS.md): tailscale serve is not enabled on the tailnet (console URL
+    in the question) and CertDomains is empty, so HTTPS certs are off; operator unset so serve needs root.
+    Landed the parts that need no Tailscale: SESSION_PROTECTION configurable, default basic (strong logged
+    the phone out on every network switch); SESSION_COOKIE_SECURE/SAMESITE no longer hardcoded over config
+    (were silently overriding); README Tailscale HTTPS section.'
   comments: []
 - id: FF-0009
   title: In-app update check for AweFit

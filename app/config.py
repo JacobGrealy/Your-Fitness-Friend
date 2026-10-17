@@ -14,6 +14,13 @@ class Config:
     
     # Session configuration
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
+    # basic | strong — see app/__init__.py. Strong ties a session to the client
+    # IP, which breaks mobile clients that switch networks.
+    SESSION_PROTECTION = os.environ.get('SESSION_PROTECTION') or 'basic'
+    # Only set true when the app is served exclusively over HTTPS; a Secure
+    # cookie is silently dropped over plain HTTP, which looks like "login does
+    # nothing" on the LAN address.
+    SESSION_COOKIE_SECURE = (os.environ.get('SESSION_COOKIE_SECURE') or '').lower() in ('1', 'true', 'yes')
     
     # Qwen Configuration - llama-swap endpoint backing all AI features
     # (exercise calorie estimation, meal photo analysis, AI food logging)
