@@ -165,7 +165,7 @@ export default function PhotoLog() {
   }, [navigate])
 
   return (
-    <div className="bg-[#f2f2f2] min-h-screen pt-14 sm:pt-0 pb-20 sm:pb-0">
+    <div className="bg-[#f2f2f2] pt-14 sm:pt-0 pb-20 sm:pb-0">
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 bg-[#185ADB] text-white px-4 py-3 flex items-center gap-3 z-10 sm:hidden">
         <button onClick={handleBack} className="text-white text-xl">

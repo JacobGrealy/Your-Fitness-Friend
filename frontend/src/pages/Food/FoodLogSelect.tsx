@@ -171,7 +171,7 @@ export default function FoodLogSelect() {
 
   if (isLoading && !selectedFood && !isQuickAdd) {
     return (
-      <div className="min-h-screen bg-[#f2f2f2] flex justify-center py-12">
+      <div className="bg-[#f2f2f2] flex justify-center py-12">
         <Loading text="Loading food..." />
       </div>
     )
@@ -180,7 +180,7 @@ export default function FoodLogSelect() {
   const displayName = selectedFood?.name || food_name || 'Unnamed Food'
 
   return (
-    <div className="min-h-screen bg-[#f2f2f2]">
+    <div className="bg-[#f2f2f2]">
       {/* Header */}
       <div className="bg-white border-b border-[#e0e0e0] px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <button

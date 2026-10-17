@@ -48,6 +48,21 @@ gate_tsc() {
     ( cd frontend && npx tsc --noEmit )
 }
 
+gate_layout() {
+    # Layout contract (FF-0051): pages rendered inside components/layout/Layout.tsx
+    # live in a padded shell, so a page that declares min-h-screen (100vh) makes the
+    # document a viewport taller than the screen and every short page scrolls into
+    # empty space. Auth pages sit outside the shell and are allowed to.
+    offenders=$(grep -rl 'min-h-screen' frontend/src/pages --include='*.tsx' 2>/dev/null \
+        | grep -v 'pages/Auth/' || true)
+    if [ -n "$offenders" ]; then
+        echo "pages inside the shell must not claim the viewport height:" >&2
+        echo "$offenders" >&2
+        return 1
+    fi
+    echo "no page inside the shell declares min-h-screen"
+}
+
 gate_tooling() {
     # The ticket CLI has to stay trustworthy: it is how an unattended round
     # knows what to do next. Needs PyYAML, which the system python3 has and the
@@ -139,12 +154,13 @@ gate_smoke() {
 
 case "${1:-all}" in
     backend)  run_gate backend  gate_backend ;;
-    frontend) run_gate jest gate_jest; run_gate tsc gate_tsc ;;
+    frontend) run_gate jest gate_jest; run_gate tsc gate_tsc; run_gate layout gate_layout ;;
     smoke)    run_gate smoke   gate_smoke ;;
     tooling)  run_gate tooling gate_tooling ;;
     all)
         run_gate backend gate_backend
         run_gate jest    gate_jest
+        run_gate layout  gate_layout
         run_gate tsc     gate_tsc
         run_gate smoke   gate_smoke
         run_gate tooling gate_tooling

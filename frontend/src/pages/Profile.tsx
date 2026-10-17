@@ -284,7 +284,7 @@ function Profile() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f2f2f2]">
+      <div className="bg-[#f2f2f2]">
         <div className="flex justify-center py-12">
           <Loading text="Loading..." />
         </div>
@@ -295,7 +295,7 @@ function Profile() {
   const emailInitial = user?.email?.charAt(0).toUpperCase() || '?'
 
   return (
-    <div className="min-h-screen bg-[#f2f2f2]">
+    <div className="bg-[#f2f2f2]">
       {/* White user info section */}
       <div className="bg-white px-4 py-4 mx-4 mt-4 rounded-lg">
         <div className="flex items-center justify-center gap-4">

@@ -87,7 +87,7 @@ function Dashboard() {
 
      if (isLoading && !dailySummary) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#f2f2f2' }}>
+      <div className="" style={{ backgroundColor: '#f2f2f2' }}>
         <div className="p-4 flex justify-center py-12">
           <Loading text="Loading dashboard..." />
         </div>
@@ -97,7 +97,7 @@ function Dashboard() {
 
   if (error && !dailySummary) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#f2f2f2' }}>
+      <div className="" style={{ backgroundColor: '#f2f2f2' }}>
         <div className="p-4 flex justify-center py-12">
           <p style={{ color: '#E53935' }}>{error}</p>
         </div>
@@ -107,7 +107,7 @@ function Dashboard() {
 
   if (!dailySummary) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#f2f2f2' }}>
+      <div className="" style={{ backgroundColor: '#f2f2f2' }}>
         <div className="p-4 flex justify-center py-12">
           <Loading text="No data available yet. Try logging food or exercise first." />
         </div>
@@ -116,7 +116,7 @@ function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f2f2f2' }}>
+    <div className="" style={{ backgroundColor: '#f2f2f2' }}>
       <div className="p-4 space-y-4">
         {/* Calorie Summary */}
         <CalorieSummaryBar calories={dailySummary.calories} />
