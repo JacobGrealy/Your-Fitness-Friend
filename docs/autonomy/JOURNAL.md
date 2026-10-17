@@ -551,3 +551,22 @@ first/last photo day rather than the middle rows, explains itself for a screen
 reader, and stays silent without a real comparison). Gates green.
 
 Next: FF-0028 — timelapse slideshow of the weight photos.
+
+## Round 27 — 2026-10-17 — FF-0028 weight-photo timelapse
+
+A "Timelapse" section on Progress steps through the logged weight photos with
+prev / play-pause / next, a frame counter and the weight and date of the frame on
+screen.
+
+Laziness is the design, not an optimisation: the section is collapsed by default,
+nothing is fetched until it is opened, and only **one** frame ahead is ever
+preloaded. Opening Progress on a mobile connection should not pull a year of
+photos because a section exists — and preloading the whole series would stall the
+first frame instead.
+
+Verified: 6 component tests (collapsed and silent until opened, starts at the
+oldest frame, steps both ways, wraps at the ends, preloads exactly one frame,
+plays and pauses under fake timers, and renders nothing with fewer than two
+photos). Gates green.
+
+Next: FF-0029 — serving amounts on diary rows.
