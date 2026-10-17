@@ -102,10 +102,16 @@ git have to agree or a fresh `upgrade head` fails.
 - `docs/api.md` — API reference
 - `docs/superpowers/` — feature specs and implementation plans
 
-## Status
+## Features
 
-The **Edit Food Log** feature (edit an existing entry, attach per-entry photos)
-is in progress on `feat/edit-food-log`. The page, design spec and mockups exist,
-but it still needs: the `/food/log/:id/edit` route, the `foodStore` methods, the
-backend `GET /food/log/<id>` and photo endpoints, and `FoodLog` model fields for
-`number_of_servings` / `photo_url`.
+- Diary by meal with per-entry photo thumbnails; tap a row to edit it
+- Editing a food log updates the entry and its linked saved food, while other
+  logs that reference the same food keep their own nutrition snapshot
+- Per-entry photos with upload/replace/delete, plus quick add, barcode and
+  photo-based logging
+- Weight and exercise tracking, BMR/TDEE and macro goals, weekly goal
+- AI assistance (exercise calorie estimation, meal photo analysis) through a
+  local llama-swap endpoint
+
+The Edit Food Log design notes live in
+`docs/superpowers/specs/2026-06-10-edit-food-log-design.html`.
