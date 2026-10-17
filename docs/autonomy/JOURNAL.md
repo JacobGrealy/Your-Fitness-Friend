@@ -232,3 +232,16 @@ e2e spec asserted the opposite of the old behaviour — it waited for the second
 count on failure. Gates green.
 
 Next: FF-0011 — Account and Help rows in the More page do nothing.
+
+## Round 11 — 2026-10-17 — FF-0011 dead Account/Help rows
+
+Landed: **Account** opens the existing edit-profile sheet (the same one the
+pencil in the Profile Info header uses — no second implementation), and **Help**
+opens a small "Help & About" sheet showing the running version and build, the
+server origin, three logging pointers and a note that sideloaded APKs update only
+when the banner appears. The update-check effect now keeps the version *string*
+as well as the build number so the sheet can report it.
+
+Two new jest tests, one per row, asserting the sheet each one opens. Gates green.
+
+Next: FF-0012 — the Progress weight chart's x-axis runs backwards.
