@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T19:35
+  updated_at: 2026-10-17T19:42
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1456,4 +1456,35 @@ intake:
     Closed: QUESTIONS.md item 4 now gives the two-step (install 0.1.4; coordinator publishes 0.1.5 on
     request; tap Get it) and states that the browser fallback on 0.1.3 is designed behaviour, since the
     native plugin only exists from 0.1.4 onward.'
+  comments: []
+- id: FF-0048
+  title: Publish 0.1.5 so the installed 0.1.4 can exercise one-tap update
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T19:41
+  updated_at: 2026-10-17T19:42
+  completed_at: 2026-10-17T19:42
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The owner has 0.1.4 installed and needs a newer published build to exist so the
+    update banner appears and the one-tap install (FF-0044) can actually be exercised on the phone.
+
+
+    2) Technical Details: no code change - a version bump and rebuild only (./scripts/build-android.sh
+    --bump), publishing 0.1.5 / versionCode 6 to releases/ and version.json. The live /api/app/version
+    reads version.json per request, so the banner appears on a running 0.1.4 without any restart. Acceptance:
+    /api/app/version reports versionCode 6, /download/awefit.apk serves the newer file with a matching
+    sha256, and the installed 0.1.4 shows "Update available - 0.1.5" with the Get it button now driving
+    the native installer rather than the browser fallback.
+
+
+    Closed: published 0.1.5 / versionCode 6 (no code change). Verified /api/app/version reports 0.1.5/6
+    with the new sha256, /download/awefit.apk serves application/vnd.android.package-archive at the matching
+    size, and ApkInstaller is still present in classes.dex. No restart needed - the route reads releases/version.json
+    per request.'
   comments: []
