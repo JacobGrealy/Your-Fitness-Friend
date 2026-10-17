@@ -1,0 +1,34 @@
+# FitnessFriend — passwordless service control for the agent
+#
+# Without this, every `sudo systemctl restart fitnessfriend` needs an interactive
+# password, so an unattended round can stage a backend change but never deploy it.
+# The rule is limited to the two FitnessFriend units and to restart/start/stop/
+# status/is-active plus journal reads — nothing else on the host is reachable.
+#
+# Install (one time, as root):
+#   sudo install -m 0440 -o root -g root \
+#       /home/angrygiant/github_projects/FitnessFriend/scripts/sudoers.d/fitnessfriend-agents \
+#       /etc/sudoers.d/fitnessfriend-agents
+#   sudo visudo -c          # must print "parsed OK"
+#
+# Verify:
+#   sudo -n systemctl is-active fitnessfriend        # no password prompt
+#
+# Remove:
+#   sudo rm /etc/sudoers.d/fitnessfriend-agents
+
+Cmnd_Alias FF_SERVICE = /usr/bin/systemctl restart fitnessfriend, \
+                        /usr/bin/systemctl start fitnessfriend, \
+                        /usr/bin/systemctl stop fitnessfriend, \
+                        /usr/bin/systemctl status fitnessfriend, \
+                        /usr/bin/systemctl is-active fitnessfriend, \
+                        /usr/bin/systemctl restart fitness-frontend, \
+                        /usr/bin/systemctl start fitness-frontend, \
+                        /usr/bin/systemctl stop fitness-frontend, \
+                        /usr/bin/systemctl status fitness-frontend, \
+                        /usr/bin/systemctl is-active fitness-frontend
+
+Cmnd_Alias FF_LOGS = /usr/bin/journalctl -u fitnessfriend, \
+                     /usr/bin/journalctl -u fitness-frontend
+
+angrygiant ALL=(root) NOPASSWD: FF_SERVICE, FF_LOGS

@@ -77,3 +77,15 @@ frontend/test-results/
 
 # Local tracking files
 TODO.md
+
+# Task registry lock (created by tasks/scripts/tasks.py)
+tasks/.tasks.lock
+
+# Android build outputs and local signing
+frontend/android/app/build/
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/android/keystore.properties
+*.jks
+*.keystore
+app/static/download/

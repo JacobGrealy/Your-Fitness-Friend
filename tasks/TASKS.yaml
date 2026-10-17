@@ -1,0 +1,677 @@
+meta:
+  updated_at: 2026-10-17T16:20
+  schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
+    flock + atomic replace). Hand edits are forbidden.
+  id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
+queue:
+- FF-0002
+- FF-0003
+- FF-0004
+- FF-0005
+- FF-0006
+- FF-0007
+- FF-0008
+- FF-0009
+- FF-0010
+- FF-0011
+- FF-0012
+- FF-0013
+- FF-0014
+- FF-0015
+- FF-0016
+- FF-0017
+- FF-0018
+- FF-0019
+- FF-0020
+- FF-0021
+- FF-0022
+- FF-0023
+- FF-0024
+- FF-0025
+- FF-0026
+- FF-0027
+- FF-0028
+- FF-0029
+intake:
+- id: FF-0001
+  title: 'Autonomy scaffold: ticket system, gates, docs, skills'
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:20
+  completed_at: 2026-10-17T16:20
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want a queue-driven ticket system plus one green-gate command,
+    so an agent can work the backlog unattended and leave an auditable trail.
+
+
+    2) Technical Details: tasks/scripts/tasks.py ported verbatim from AweCraft with FF-NNNN ids (single-writer,
+    flock, atomic replace); scripts/gates.sh = pytest + jest + tsc + temp-gunicorn smoke; docs/autonomy/{JOURNAL,QUESTIONS,DECISIONS}.md;
+    COORDINATOR.md role split; .dsh/skills/ff-* procedure skills; scripts/sudoers.d drop-in for passwordless
+    restart; AGENTS.md autonomy invariants.
+
+
+    Closed: gates green (backend/jest/tsc/smoke/tooling). Ported tasks.py with FF-NNNN ids, seeded 29
+    tickets, added scripts/gates.sh + sudoers drop-in + COORDINATOR.md + autonomy docs + ff-* skills.'
+  comments: []
+- id: FF-0002
+  title: Android build toolchain (JDK 21 + SDK) root-free
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want Android builds to run on this Linux box so AweFit can be
+    built and rebuilt without Android Studio or a Windows machine.
+
+
+    2) Technical Details: scripts/android-toolchain.sh installs Temurin JDK 21 to ~/tools/jdk-21 and Android
+    cmdline-tools to ~/tools/android-sdk, then sdkmanager installs platform-tools, platforms;android-35,
+    build-tools;35.0.0 and accepts licences. Capacity 7 requires JDK 21 (https://github.com/ionic-team/capacitor/issues/7839).
+    Idempotent, no sudo, exits non-zero listing anything missing. Disk budget ~1.5 GB, 217 GB free.'
+  comments: []
+- id: FF-0003
+  title: Capacitor Android scaffold for AweFit (thin client over server.url)
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want AweFit as an installable Android app that shows my tracker
+    full-screen from my own server, with no browser chrome.
+
+
+    2) Technical Details: add @capacitor/{core,cli,android,app,status-bar,splash-screen,assets}; capacitor.config.ts
+    with appId dev.awefit.app, appName AweFit, webDir ../app/static, server.url from ANDROID_SERVER_URL
+    and server.cleartext true (Android 9+ blocks plain HTTP otherwise); package scripts android:sync =
+    build + cap sync android; commit android/ except build outputs and local.properties. Chosen over TWA
+    (needs HTTPS + asset links) and over bundled assets (would need SameSite=None cookies or token auth);
+    thin client confirmed by owner.'
+  comments: []
+- id: FF-0004
+  title: AweFit launcher icon and splash (new AF mark)
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want AweFit to have its own AF icon on the launcher and a splash
+    screen, not a default Capacitor logo or a browser icon.
+
+
+    2) Technical Details: author an AF svg, keep it as the single source in frontend/public/icons, generate
+    adaptive foreground/background + all mipmap densities and splash with @capacitor/assets. Also repairs
+    the broken PWA: index.html references /vite.svg and /icons/icon-192x192.png which do not exist (only
+    .svg icons ship) and vite-plugin-pwa is installed but never wired into vite.config.ts behind VitePWA().'
+  comments: []
+- id: FF-0005
+  title: Release signing + keystore backup
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want each new build to install OVER the app already on my phone,
+    so updating is a tap, not an uninstall and a lost login.
+
+
+    2) Technical Details: create a release keystore OUTSIDE the repo, reference it via a gitignored keystore.properties,
+    add signingConfigs to android/app/build.gradle, and a version bump helper (versionCode must strictly
+    increase or Android refuses the install). Extend scripts/backup.sh to snapshot the keystore: losing
+    it makes in-place updates impossible forever. appId dev.awefit.app is permanent once installed.'
+  comments: []
+- id: FF-0006
+  title: Signed APK build + LAN update distribution
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want to grab the new APK on my phone over the LAN and install
+    it without a cable, since this is my daily driver.
+
+
+    2) Technical Details: scripts/build-android.sh runs the env setup, npm run android:sync, ./gradlew
+    assembleRelease, then copies the signed APK to a served path (app/static/download/awefit.apk, gitignored)
+    so https://<host>/download/awefit.apk downloads it; prints versionCode, versionName and sha256; verifies
+    the APK is signed with the release key (apksigner verify).'
+  comments: []
+- id: FF-0007
+  title: 'WebView mobile polish: safe areas, status bar, hardware back'
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner the app must not hide controls under the gesture bar or the notch,
+    the top bar needs to read as separate from the page, and the phone''s back gesture must close an open
+    sheet before it leaves the page.
+
+
+    2) Technical Details: viewport-fit=cover + env(safe-area-inset-*) padding in the app shell; @capacitor/app
+    backButton listener that pops router history and closes open modals; @capacitor/status-bar colour
+    matching the theme; splash hide after mount. Closes three open TODO bugs: bottom row under the home
+    indicator, missing top-bar border/shadow, bottom bar vanishing at wide aspect ratios.'
+  comments: []
+- id: FF-0008
+  title: Serve AweFit over Tailscale HTTPS
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want a stable HTTPS address for AweFit so the APK never needs
+    rebuilding when DHCP moves the LAN IP, and switching Wi-Fi to cellular does not log me out.
+
+
+    2) Technical Details: tailscale serve/cert for the .ts.net name proxying :5001, ANDROID_SERVER_URL
+    pointing at it, CORS_ORIGINS updated, verify the Flask-Login cookie survives HTTPS (SESSION_COOKIE_SECURE)
+    and consider relaxing login_manager.session_protection from strong to basic, since strong binds the
+    session to IP + user agent and invalidates on network change.'
+  comments: []
+- id: FF-0009
+  title: In-app update check for AweFit
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want the app to tell me a newer build exists and hand me the APK,
+    instead of guessing whether my phone is current.
+
+
+    2) Technical Details: GET /api/app/version returns versionCode, versionName and the download path;
+    the More page shows an update banner when the running build is older; tapping downloads the APK for
+    the Android installer (no silent install is possible for a sideloaded app). Compare against a Capacitor
+    App.getInfo() versionCode.'
+  comments: []
+- id: FF-0010
+  title: Profile crop modal asks for the file twice
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner picking a profile photo should open one picker, not two: today the
+    main dialog opens one and the crop modal opens another.
+
+
+    2) Technical Details: frontend/src/components/common/CropModal.tsx has its own hidden file input while
+    the caller (frontend/src/pages/Profile.tsx) triggers one first; pass the selected File into the modal
+    and delete the duplicate input.'
+  comments: []
+- id: FF-0011
+  title: Account and Help rows in the More page do nothing
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I should not be able to tap Account or Help and get nothing at all.
+
+
+    2) Technical Details: the More page renders these rows without handlers; either route them (Account
+    -> profile settings, Help -> a static help view) or mark them visibly disabled until built. Do not
+    leave a dead tap target.'
+  comments: []
+- id: FF-0012
+  title: Progress weight chart x-axis is reversed
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner the weight chart should read left to right oldest to newest; it
+    currently runs backwards.
+
+
+    2) Technical Details: sort the series ascending by date before handing it to the Progress page chart
+    (recharts renders input order as-is). Check both the chart data and the Weight store selector so other
+    screens inherit the fix.'
+  comments: []
+- id: FF-0013
+  title: 'Migration test: flask db upgrade on an empty database'
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner a fresh checkout must be able to build the schema from migrations
+    alone, which is exactly how this project has broken three times.
+
+
+    2) Technical Details: add tests/test_migrations.py that points DATABASE_URL at a temp sqlite file,
+    runs flask db upgrade head, asserts the expected tables exist, and asserts alembic_version matches
+    the single head; run it in scripts/gates.sh. AGENTS.md already warns that an uncommitted migration
+    breaks a fresh upgrade.'
+  comments: []
+- id: FF-0014
+  title: Barcode scanning for food logging
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want to scan a product barcode and have the food log itself, instead
+    of typing macros.
+
+
+    2) Technical Details: camera capture already works through <input type=file capture=environment>,
+    so start with a decode library or the Capacitor barcode plugin, map to the existing barcode_id column
+    on FoodLog, and add a lookup path in the food routes. Needs a decision on the product database (local
+    table vs remote lookup) recorded in docs/autonomy/DECISIONS.md.'
+  comments: []
+- id: FF-0015
+  title: Log Food Photo becomes the top option in the add menu
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner the photo shortcut is the fastest way to log a meal and should be
+    first in the plus menu, above Log Food.
+
+
+    2) Technical Details: reorder the entries in the FAB/plus menu component and keep the icons consistent;
+    verify nothing else depends on the current index order.'
+  comments: []
+- id: FF-0016
+  title: Make Custom Foods reachable from the FAB
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner the /food Custom Foods screen is currently unreachable: the Diary
+    tab opens /food/daily, so the list and its edit affordances are dead code to a user.
+
+
+    2) Technical Details: add a Custom Foods entry to the FAB modal routing to /food, and check the router
+    config plus any auth guard on that route.'
+  comments: []
+- id: FF-0017
+  title: Calorie goal setting on the More page
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want to set my calorie goal myself rather than only seeing a derived
+    number.
+
+
+    2) Technical Details: persist a daily calorie goal on the user profile (migration + model field +
+    to_dict), expose it in the More page behind a form validated with the existing zod schemas, and make
+    the dashboard read the stored goal with the derived value as fallback.'
+  comments: []
+- id: FF-0018
+  title: Quick-add button on recent foods
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner adding a recent food again should be one tap on a plus button, not
+    opening the item and confirming.
+
+
+    2) Technical Details: Add Food history rows get a trailing + that logs the food to the currently selected
+    meal via the existing create path, with optimistic or refetch updates so totals move immediately.'
+  comments: []
+- id: FF-0019
+  title: Move the diary date selector into the top bar
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner the date is the primary control on the diary screen and should live
+    in the top bar next to the Diary title, not below it.
+
+
+    2) Technical Details: relocate the date selector from the DailyFood body into the shared header, keep
+    the swipe/arrow navigation working, and re-check the mobile safe-area spacing from FF-0007 after the
+    move.'
+  comments: []
+- id: FF-0020
+  title: Quick Add replaces the Add Food bar
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner the Quick Add bar should take over from the Add Food bar, with back
+    and check buttons, instead of two competing bars.
+
+
+    2) Technical Details: make Quick Add a mode of the add flow with a back/check header, retire the duplicate
+    bar, and keep the check action wired to FF-0021''s redirect.'
+  comments: []
+- id: FF-0021
+  title: Redirect after Quick Add check
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner pressing check after a quick add should return me to the page I
+    came from (or home), not strand me on the form.
+
+
+    2) Technical Details: pass a return route through router state on entry into the add flow and navigate
+    back on success, defaulting to the diary for a direct visit.'
+  comments: []
+- id: FF-0022
+  title: Add a height field to the user profile
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want my height on my profile so calorie maths can use it.
+
+
+    2) Technical Details: migration + model column (float, cm or inches consistent with weight units),
+    profile form field with zod validation, and inclusion in the profile API payload and to_dict.'
+  comments: []
+- id: FF-0023
+  title: Daily calorie expenditure from height, weight and activity level
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want to see the calories I actually burn per day, based on my
+    body and how active I am, not a flat guess.
+
+
+    2) Technical Details: add an activity-level field to the profile, implement Mifflin-St Jeor BMR times
+    an activity factor server-side, expose it on the dashboard, and keep the existing derived value as
+    a fallback when height/activity are missing.'
+  comments: []
+- id: FF-0024
+  title: Weekly calorie goal from a target weight-loss rate
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want to say how much I want to lose per week and have the app
+    turn that into a daily calorie target.
+
+
+    2) Technical Details: convert a 0 to 2 lb/week selection (0.5 lb steps) into a daily deficit against
+    FF-0023''s TDEE, store the chosen rate on the profile, and show the resulting daily goal on the dashboard.'
+  comments: []
+- id: FF-0025
+  title: Target weight-loss rate setting on the More page
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want the target loss rate to be a setting I control, not a constant.
+
+
+    2) Technical Details: More page control bound to the profile field from FF-0024, 0 to 2 lb in 0.5
+    lb increments, persisted through the profile update endpoint with validation.'
+  comments: []
+- id: FF-0026
+  title: Goal ETA on the Progress page
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want to know roughly when I will hit my target weight, based on
+    my actual rate of loss.
+
+
+    2) Technical Details: compute ETA from the most recent weight and the logged trend (not a single week),
+    render it under Distance to Goal, and return nothing rather than a fantasy date when the trend is
+    flat or moving the wrong way.'
+  comments: []
+- id: FF-0027
+  title: Then and Now comparison on the Progress page
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want a starting-versus-current weight photo comparison on Progress,
+    collapsed by default under the weight trend.
+
+
+    2) Technical Details: pick the earliest and latest weight logs that carry a photo, render side by
+    side with labels, collapsed by default, reusing the existing uploads URL resolution.'
+  comments: []
+- id: FF-0028
+  title: Timelapse slideshow of weight photos
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want to step through my weight photos over time and watch the
+    change.
+
+
+    2) Technical Details: ordered slideshow over weight_log photo_urls with play/pause and preload of
+    the next image; keep it lazy so the Progress page does not fetch every photo on load.'
+  comments: []
+- id: FF-0029
+  title: Show serving amount on diary food rows
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T16:17
+  updated_at: 2026-10-17T16:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: As the owner I want to see how much of a food I logged on the diary row, not
+    just its calories.
+
+
+    2) Technical Details: render number_of_servings and serving_size from FoodLog.to_dict() in the diary
+    row component; both fields already exist on the model, so this is frontend only.'
+  comments: []
