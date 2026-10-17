@@ -64,8 +64,11 @@ sudo systemctl restart fitnessfriend     # after backend code changes
 | Unit | Role |
 | --- | --- |
 | `fitnessfriend.service` | gunicorn on `0.0.0.0:5001` — API and built SPA |
-| `fitness-frontend.service` | Vite dev server on `0.0.0.0:5173` |
-| `fitness-backend.service` | **Retired duplicate — leave disabled.** It ran a Flask dev server on the same port and crash-looped. |
+| `fitness-frontend.service` | Vite dev server on `0.0.0.0:5173`, proxies to `:5001` |
+
+`install-dev-services.sh` installs only the dev frontend. A `fitness-backend.service`
+may still exist on an older host: it was a duplicate dev backend on port 5001 that
+crash-looped, so leave it disabled or remove it.
 
 ## Data and migrations
 

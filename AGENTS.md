@@ -30,10 +30,11 @@
   and `/uploads` to `:5001`.
 - The LAN address is DHCP and moves; prefer the Tailscale address when you need
   something stable, and check the current IP rather than assuming.
-- **Do not enable `fitness-backend.service`.** It is a superseded duplicate that
-  ran the Flask dev server on the same port 5001 and crash-looped ~377,000 times
-  (about 15,000 restarts per day). `install-dev-services.sh` still installs and
-  enables it — re-running that script recreates the loop.
+- `fitness-backend.service` is gone from this repo. It was a duplicate Flask dev
+  server on port 5001 that lost the port race on every boot and crash-looped
+  ~377,000 times. A host may still have an old copy installed — leave it
+  disabled, or remove it. `install-dev-services.sh` only installs the frontend
+  now, so it cannot bring the loop back.
 
 ## Database & migrations
 - The live database is `instance/fitness_friend.db`. Flask-SQLAlchemy resolves
