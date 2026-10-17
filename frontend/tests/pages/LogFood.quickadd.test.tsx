@@ -100,3 +100,36 @@ describe('Recent food quick-add (FF-0018)', () => {
     expect(logFood).not.toHaveBeenCalled()
   })
 })
+
+// FF-0038: every way out of this screen has to carry the meal section that
+// opened it, or the next form silently defaults to breakfast.
+describe('meal handoff from the diary section (FF-0038)', () => {
+  beforeEach(() => {
+    logFood.mockReset().mockResolvedValue({})
+    navigate.mockReset()
+  })
+
+  it('passes the meal to Quick Add', () => {
+    renderAt('/food/log?meal=snack')
+
+    fireEvent.click(screen.getByRole('button', { name: /^quick add$/i }))
+
+    expect(String(navigate.mock.calls[0][0])).toBe('/food/log/select?meal=snack')
+  })
+
+  it('passes the meal to the food-photo screen', () => {
+    renderAt('/food/log?meal=dinner')
+
+    fireEvent.click(screen.getByRole('button', { name: /food photo/i }))
+
+    expect(String(navigate.mock.calls[0][0])).toBe('/food/photo-log?meal=dinner')
+  })
+
+  it('falls back to the clock when the diary did not say', () => {
+    renderAt('/food/log')
+
+    fireEvent.click(screen.getByRole('button', { name: /^quick add$/i }))
+
+    expect(String(navigate.mock.calls[0][0])).toMatch(/^\/food\/log\/select\?meal=(breakfast|lunch|dinner|snack)$/)
+  })
+})

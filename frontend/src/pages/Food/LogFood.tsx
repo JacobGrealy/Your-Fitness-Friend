@@ -81,7 +81,7 @@ export default function LogFood() {
   }
 
   const handleFoodTap = (food: Food) => {
-    navigate(`/food/log/select/${food.id}`, { state: originState })
+    navigate(`/food/log/select/${food.id}?meal=${mealType}`, { state: originState })
   }
 
   const handleHistoryTap = (history: FoodRecent) => {
@@ -123,12 +123,14 @@ export default function LogFood() {
     }
   }
 
+  // The meal the diary sent us here with follows every method: picking Quick Add
+  // from under Snacks must not land on a form that says Breakfast (FF-0038).
   const handleQuickAdd = () => {
-    navigate('/food/log/select', { state: originState })
+    navigate(`/food/log/select?meal=${mealType}`, { state: originState })
   }
 
   const handleFoodPhoto = () => {
-    navigate('/food/photo-log')
+    navigate(`/food/photo-log?meal=${mealType}`, { state: originState })
   }
 
   if (isLoading && foods.length === 0 && recentFoods.length === 0) {
@@ -285,7 +287,7 @@ export default function LogFood() {
         onFound={(food) => {
           setBarcodeOpen(false)
           // Same destination as tapping a searched food: the serving/meal screen.
-          navigate(`/food/log/select/${food.id}`, { state: originState })
+          navigate(`/food/log/select/${food.id}?meal=${mealType}`, { state: originState })
         }}
       />
     </div>

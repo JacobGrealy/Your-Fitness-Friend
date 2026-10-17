@@ -794,3 +794,26 @@ and now maps `snack → "Snacks"`, matching `MEAL_LABELS` in `DailyFood.tsx`.
 Verified the way that matters: the four new tests **fail on the unfixed file**
 (3 of 4, with the "no empty meals" case still passing as it should) and pass after
 it — a regression test that only passes both ways proves nothing. Gates green.
+
+## Round 39 — 2026-10-17 — FF-0038 the chosen meal now survives the add flow
+
+Owner-reported: "Add Food under Snacks → Quick Add" landed on a form set to
+Breakfast. Two halves, both trivial, both invisible from either file alone:
+
+- `LogFood.tsx` *had* the resolved meal (FF-0018's `resolveMealType`) and then
+  dropped it: `handleQuickAdd` navigated to `/food/log/select` with no query at
+  all. The food-tap and barcode paths dropped it too, and the photo screen was
+  never told either.
+- `FoodLogSelect.tsx` never read `?meal=` — its `useForm` default was a hardcoded
+  `'breakfast'`, and it only unpacked name/calories/macros/serving/brand/barcode.
+
+Now every exit from Add Food carries `?meal=`, and the serving screen seeds
+`meal_type` from it via the existing `isMealType` guard (`utils/meal.ts`), so a
+junk value still falls back to breakfast. `PhotoLog.tsx` got the same treatment —
+its meal state was hardcoded `'lunch'`, which is the identical bug with a different
+default.
+
+Verified: 5 tests on the serving screen (preselection, the logged payload, other
+meals, the junk/absent fallback, and the user overriding it) and 3 on the handoff
+(Quick Add, Food Photo, and the clock fallback when opened from the tab bar).
+Without the fix **6 of those 11 fail**; with it they pass. Gates green.

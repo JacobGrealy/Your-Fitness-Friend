@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-17T18:43
+  updated_at: 2026-10-17T18:46
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0039
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -1081,4 +1082,70 @@ intake:
     - hiding the row AND under-counting the section header total. Order now derives from MEAL_TYPES and
     the label map uses ''snack'' -> Snacks. 4 new tests; confirmed they fail against the unfixed file
     (3 of 4).'
+  comments: []
+- id: FF-0038
+  title: Quick Add should default to the meal whose Add Food button was tapped
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T18:45
+  updated_at: 2026-10-17T18:46
+  completed_at: 2026-10-17T18:46
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: Tapping "Add Food" under Snacks and then Quick Add should land on a form that
+    already says Snacks. Today it always says Breakfast, so the meal the user just chose is silently dropped
+    and they have to set it again (or, worse, log the snack as breakfast).
+
+
+    2) Technical Details: two halves, both one-liners. (a) frontend/src/pages/Food/LogFood.tsx already
+    resolves the meal from ?meal= (resolveMealType, FF-0018) but handleQuickAdd navigates to ''/food/log/select''
+    with no meal in the URL, and handleFoodTap / the barcode onFound path drop it too. Pass ?meal=<resolved>
+    on every navigation out of that screen. (b) frontend/src/pages/Food/FoodLogSelect.tsx never reads
+    ?meal= at all: useForm defaultValues hardcodes meal_type: ''breakfast'', and only name/calories/macros/serving/brand/barcode
+    are read from searchParams. Seed the form''s meal_type from the validated param (isMealType from utils/meal.ts)
+    so a junk value still falls back sensibly. PhotoLog.tsx has the same shape of bug - its meal state
+    is hardcoded ''lunch'' - so accept ?meal= there too and have LogFood pass it. Verify: a FoodLogSelect
+    test rendered with ?meal=snack asserts the Snacks chip is selected and the submitted payload uses
+    meal_type ''snack'', and a LogFood test asserts Quick Add navigates with ?meal=snack when the screen
+    was opened from the snacks section.
+
+
+    Closed: every exit from LogFood now carries ?meal=<resolved> (Quick Add, food tap, barcode onFound,
+    Food Photo) and FoodLogSelect seeds meal_type from the validated param via isMealType, falling back
+    to breakfast for junk/absent values. PhotoLog had the same shape of bug (hardcoded ''lunch'') and
+    now honours ?meal= too. 5 + 3 tests; 6 of the 11 fail against the unfixed files.'
+  comments: []
+- id: FF-0039
+  title: PhotoLog meal labels are positionally paired with MEAL_TYPES
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T18:45
+  updated_at: 2026-10-17T18:45
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: Nothing visible changes today - this is the bug that has not happened yet. The
+    food-photo screen''s meal dropdown works only because its own label array happens to sit in the same
+    order as the meal list it feeds; add a meal type, reorder one, or translate one label, and the dropdown
+    starts writing the wrong meal_type for the photo it is analysing.
+
+
+    2) Technical Details: frontend/src/pages/Food/PhotoLog.tsx has `const MEAL_LABELS = ["Breakfast","Lunch","Dinner","Snacks"]`
+    paired positionally with MEAL_TYPES in a .map((meal, i) => <option value={meal}>{MEAL_LABELS[i]}</option>)
+    at the meal-type <select>. It is the same shape of bug as FF-0037 (a hand-written meal list drifting
+    from the shared constant) but latent rather than visible. Replace the array with a Record<MealType,
+    string> keyed by MEAL_TYPES, in the style Dashboard.tsx now uses after FF-0037, so a missing label
+    is a type error rather than a silently wrong index. Note DailyFood.tsx and FoodLogSelect.tsx both
+    keep their own MEAL_LABELS records already - align all of them on one exported map in utils/constants.ts
+    so there is a single home for these labels.'
   comments: []
