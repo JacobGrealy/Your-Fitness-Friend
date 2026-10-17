@@ -12,10 +12,14 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * Build with an explicit server:
  *   ANDROID_SERVER_URL=http://192.168.0.224:5001 npm run android:sync
  *
- * The default is the Tailscale address because the LAN address is DHCP and moves.
- * FF-0008 replaces it with https://home-server-1.tail96ee52.ts.net.
+ * The default is the Tailscale HTTPS name (FF-0008): it is stable, it is publicly
+ * trusted by Let's Encrypt so the WebView needs no certificate exception, and —
+ * unlike the plain-HTTP LAN or Tailscale *IP* — it is a secure context, which is
+ * what the camera scanner needs. The LAN address stays available for testing but
+ * is DHCP and changes; pass it explicitly.
  */
-const serverUrl = process.env.ANDROID_SERVER_URL || 'http://100.84.29.20:5001';
+const DEFAULT_SERVER_URL = 'https://home-server-1.tail96ee52.ts.net';
+const serverUrl = process.env.ANDROID_SERVER_URL || DEFAULT_SERVER_URL;
 const isCleartext = serverUrl.startsWith('http://');
 
 const config: CapacitorConfig = {

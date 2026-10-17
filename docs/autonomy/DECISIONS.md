@@ -306,3 +306,27 @@ Decoding is throttled to ~8 frames/second (`DECODE_INTERVAL_MS = 120`), stops at
 the first successful read, buzzes once for feedback, and always releases the
 camera tracks on unmount — a scanner that keeps the camera warm after the sheet
 closes is a battery complaint waiting to happen.
+
+## 2026-10-17 — The Android build defaults to the HTTPS origin
+
+`https://home-server-1.tail96ee52.ts.net` is now the baked-in default server for
+AweFit (FF-0008), for three reasons in order of weight: it is a **secure context**
+(the camera scanner cannot open the camera without one), the certificate is
+publicly trusted so the WebView needs no exception, and the name is stable where
+the LAN address is DHCP.
+
+`cleartext` is now derived from the URL scheme rather than hardcoded, so an HTTPS
+build carries `cleartext: false` and a LAN test build keeps working.
+
+**Trap found while doing it:** the default lived in two places — `capacitor.config.ts`
+*and* `scripts/build-android.sh`, which exports its own fallback. The first rebuild
+shipped 0.1.3 still pointing at `http://100.84.29.20:5001` because the script's
+value wins. Both now hold the HTTPS default with a comment pointing at the other,
+and the script warns loudly when it bakes a cleartext URL. Verify the result by
+reading `assets/capacitor.config.json` out of the APK, not by trusting the build
+log.
+
+`SESSION_COOKIE_SECURE=true` goes in `.env` (not in the config class) because it is
+a property of *this deployment*, not of the code: a plain-HTTP dev host must still
+be able to log in. The consequence is recorded in `AGENTS.md` — the cookie stops
+travelling to the LAN address, so `http://192.168.0.224:5001` can no longer log in.

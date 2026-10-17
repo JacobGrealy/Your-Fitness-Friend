@@ -675,3 +675,29 @@ Verified: 6 scanner tests (HTTPS-required message, permission refusal in words a
 user can act on, rear camera requested, single decode callback, keeps scanning on
 no-decode, tracks released on unmount) and the 5 existing FF-0014 tests adapted to
 the camera-first sheet. Gates green.
+
+## Round 33 — 2026-10-17 — FF-0008 closed: AweFit ships over HTTPS
+
+The default server baked into the APK is now
+`https://home-server-1.tail96ee52.ts.net`, and **0.1.3 (versionCode 4)** is
+published: signed `CN=AweFit`, sha256 `c86960d1…`, 3.8 MB, `cleartext: false`.
+
+**A trap worth the entry.** The first 0.1.3 build came out still pointing at
+`http://100.84.29.20:5001`. The default lived in two places — `capacitor.config.ts`
+and `scripts/build-android.sh`, which exports its own fallback *and wins* because
+the sync reads the exported value. Both now hold the HTTPS default with a comment
+pointing at the other, and the script warns when it bakes a cleartext URL (such an
+origin is not a secure context, so the camera scanner would silently not work).
+Verified by reading `assets/capacitor.config.json` **out of the APK** rather than
+trusting the build log.
+
+`SESSION_COOKIE_SECURE=true` is now in `.env` (this deployment's property, not the
+code's — a plain-HTTP dev host must still be able to log in). It takes effect on
+the restart, and it deliberately stops the session cookie travelling to the plain
+LAN address.
+
+Verified: apksigner signs and verifies the published APK; `version.json` reports
+0.1.3 / versionCode 4 / the HTTPS URL / matching sha256; and against a throwaway
+server on the new code, `/api/app/version` returns that exact metadata and
+`/download/awefit.apk` returns 200 with
+`application/vnd.android.package-archive` and 3,813,445 bytes. Gates green.

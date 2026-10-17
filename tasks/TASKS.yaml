@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-17T18:22
+  updated_at: 2026-10-17T18:24
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue:
-- FF-0008
+queue: []
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -216,11 +215,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T18:20
-  completed_at: null
+  updated_at: 2026-10-17T18:24
+  completed_at: 2026-10-17T18:24
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want a stable HTTPS address for AweFit so the APK never needs
@@ -237,7 +236,16 @@ intake:
     in the question) and CertDomains is empty, so HTTPS certs are off; operator unset so serve needs root.
     Landed the parts that need no Tailscale: SESSION_PROTECTION configurable, default basic (strong logged
     the phone out on every network switch); SESSION_COOKIE_SECURE/SAMESITE no longer hardcoded over config
-    (were silently overriding); README Tailscale HTTPS section.'
+    (were silently overriding); README Tailscale HTTPS section.
+
+
+    Closed: Tailscale Serve is live at https://home-server-1.tail96ee52.ts.net (Let''s Encrypt cert via
+    Tailscale, verified by openssl and Chromium; deep links and API work through the proxy; 13ms warm).
+    APK 0.1.3 / versionCode 4 bakes that URL with cleartext:false, is apksigner-verified, and version.json
+    matches. Found and fixed a double-default trap: build-android.sh exports its own fallback which overrode
+    capacitor.config.ts - the first 0.1.3 still baked http. Both now default to HTTPS and the script warns
+    on cleartext. SESSION_COOKIE_SECURE=true added to .env (awaits restart; stops plain-LAN logins by
+    design).'
   comments: []
 - id: FF-0009
   title: In-app update check for AweFit

@@ -156,8 +156,19 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
   native project; `npm run android:debug` goes on to assemble a debug APK.
   `frontend/android/` is committed; its `build/`, `local.properties` and copied
   web assets are gitignored by Capacitor's own `.gitignore`.
-- The Android server URL is baked at sync time: change `ANDROID_SERVER_URL`
-  (default `http://100.84.29.20:5001`, the stable Tailscale address) and re-sync.
+- The Android server URL is baked at sync time and defaults to
+  **`https://home-server-1.tail96ee52.ts.net`** (Tailscale Serve, FF-0008). It is
+  stable, publicly trusted (Let's Encrypt via Tailscale), and a secure context —
+  which is what the camera barcode scanner requires. Set `ANDROID_SERVER_URL` to
+  override (e.g. the LAN address for testing) and re-sync.
+- The default lives in **two** places that must stay in step:
+  `scripts/build-android.sh` (wins — the sync reads the exported value) and
+  `frontend/capacitor.config.ts`. `build-android.sh` warns when the baked URL is
+  cleartext `http://`, because such an origin is **not** a secure context and the
+  camera scanner silently cannot work there.
+- `SESSION_COOKIE_SECURE=true` is set in `.env` for the HTTPS origin. The cookie
+  is then only sent over `https://`, so a plain-HTTP LAN login stops working —
+  that is the intended trade.
 
 ## Branching
 - When working on a feature or bug fix, create a feature branch (e.g., `feat/add-food-redesign` or `fix/diary-date-nav`)
