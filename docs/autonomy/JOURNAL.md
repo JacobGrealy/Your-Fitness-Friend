@@ -590,3 +590,18 @@ Verified: 4 unit tests for the formatter plus 2 that assert the diary row shows
 174 jest tests.
 
 Next: FF-0031 — the stale `/food` page that duplicates the diary.
+
+## Round 29 — 2026-10-17 — FF-0031 the stale /food diary is gone
+
+`src/pages/Food/Food.tsx` rendered a second diary — the same meal groups from the
+same store, under the page title "Diary" — that the tab bar never opened. It
+existed only to host a Custom Foods button, which FF-0016 put in the add menu.
+Deleted; `/food` is now a `<Navigate to="/food/daily" replace />` so a bookmark or
+an old link lands on the real diary instead of a lookalike with no way forward.
+
+Verified: tsc clean after dropping the export and the import, and a router test
+that enters `/food` and asserts it settles on `/food/daily`. Gates green.
+
+That empties the queue of everything that can be done without you: what remains is
+FF-0008 (Tailscale Serve — Q1) and FF-0030 (camera scanner — Q3), both parked with
+measurements. Next round is the deploy + audit sweep.
