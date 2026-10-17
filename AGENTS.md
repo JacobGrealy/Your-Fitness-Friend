@@ -37,10 +37,20 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
    if it is not installed, note "awaiting restart" and continue the round.
 8. **Park, don't thrash**: two attempts at a red gate, then file the reason and
    move to the next ticket.
-9. **Subagents take tickets end to end; the coordinator owns the merge.** A
-   subagent may hold a whole ticket — implement, branch, run `./scripts/gates.sh`,
-   report. The coordinating agent keeps the merge, the deploy and the registry.
-   The protocol exists because this is one checkout with one live server:
+9. **All implementation is delegated to subagents.** Every implementation ticket
+   — application code, scripts, tests — is carried by a subagent with a **clean
+   context**, not by the long-running coordinating session. Clean context is the
+   point: a fresh subagent reads the ticket and the code it needs instead of
+   inheriting rounds of history. The coordinator investigates, files tickets,
+   writes the brief, reviews the diff, merges, deploys, and owns the registry and
+   the journal. It does not implement.
+
+   Because a subagent does not see the coordinating conversation, **the brief must
+   stand alone**: the ticket's notes, the exact files, the traps, the acceptance
+   criterion, and what not to touch.
+
+   The lane protocol below exists because this is one checkout with one live
+   server:
 
    - A subagent works **only** on its own feature branch cut from `master`, one
      ticket, and **never** merges or pushes. Merges are serialised here.
