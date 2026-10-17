@@ -15,13 +15,10 @@ class Config:
     # Session configuration
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
     
-    # LLM Configuration - Local llama.cpp server
-    LLM_API_URL = os.environ.get('LLM_API_URL') or 'http://localhost:8080/v1'
-    LLM_TIMEOUT = 120  # seconds - llama.cpp is slow
-    
-    # Qwen Configuration - Separate endpoint for exercise estimation
+    # Qwen Configuration - llama-swap endpoint backing all AI features
+    # (exercise calorie estimation, meal photo analysis, AI food logging)
     QWEN_BASE_URL = os.environ.get('QWEN_BASE_URL') or 'http://localhost:1234/v1'
-    QWEN_MODEL = os.environ.get('QWEN_MODEL') or 'Qwen36-35B-A3B-UD-IQ4_NL_XL'
+    QWEN_MODEL = os.environ.get('QWEN_MODEL') or 'Qwen3.8-27B-UD-Q4_K_XL'
     QWEN_TEMPERATURE = os.environ.get('QWEN_TEMPERATURE')
     QWEN_MAX_TOKENS = int(os.environ.get('QWEN_MAX_TOKENS') or 50000)
     QWEN_TIMEOUT = 120  # seconds

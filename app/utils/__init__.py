@@ -1,4 +1,3 @@
-from app.utils.llm_client import LLMClient, llm_client
 from app.utils.bmr_calculator import (
     get_activity_multiplier,
     calculate_bmr,
@@ -13,8 +12,6 @@ from app.utils.weight_calculator import (
 )
 
 __all__ = [
-    'LLMClient',
-    'llm_client',
     'get_activity_multiplier',
     'calculate_bmr',
     'calculate_tdee',

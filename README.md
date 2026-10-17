@@ -92,8 +92,8 @@ git have to agree or a fresh `upgrade head` fails.
 | `DATABASE_URL` | Override the default SQLite path |
 | `CORS_ORIGINS` | Comma-separated allowlist for cross-origin API calls |
 | `FLASK_ENV` / `FLASK_CONFIG` | Selects the config class; must be `production` on a real deployment or `DEBUG` leaks tracebacks |
-| `LLM_API_URL` | Local llama.cpp endpoint for meal estimation |
-| `QWEN_BASE_URL` | Separate endpoint for exercise estimation |
+| `QWEN_BASE_URL` | llama-swap endpoint backing all AI features |
+| `QWEN_MODEL` | Model id to request; must be one the server actually serves |
 
 ## Documentation
 

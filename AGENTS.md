@@ -16,12 +16,12 @@
   builds of React` — 55 of 92 tests, which looks like mass breakage but is not.
 
 ## Testing
-- Backend: `./venv/bin/python -m pytest tests/` — currently 40 passed, 21 skipped.
-  The skips are expected, not breakage: 7 skip on a SQLAlchemy `__version__`
-  detection quirk and the rest carry `Requires session handling fix`.
+- Backend: `./venv/bin/python -m pytest tests/` — 90 passed, nothing skipped.
 - Frontend: `cd frontend && npm test` — 92 tests. They live in `frontend/tests/`,
   not next to the sources in `src/`.
 - Type check: `cd frontend && npx tsc --noEmit`
+- The route tests stub `qwen_client` so the suite never calls the local model.
+  Keep that up: a real model call makes tests slow and nondeterministic.
 
 ## Runtime topology
 - **Production** — `fitnessfriend.service`: gunicorn on `0.0.0.0:5001`, serving
@@ -66,8 +66,14 @@
 - `CORS_ORIGINS` is a comma-separated allowlist for cross-origin API calls. It is
   only needed when the frontend origin differs from the backend's — the Vite dev
   proxy and production are both same-origin.
-- Other variables: `SECRET_KEY`, `DATABASE_URL`, `LLM_API_URL`, `QWEN_BASE_URL`.
+- Other variables: `SECRET_KEY`, `DATABASE_URL`, `QWEN_BASE_URL`, `QWEN_MODEL`.
   `run-backend.sh` sources `.env` and exports them.
+- All AI features go through `app/utils/qwen_client.py` (`QwenClient`) to the
+  llama-swap endpoint on port 1234. `QWEN_MODEL` must name a model the server
+  actually serves — check `curl -s localhost:1234/v1/models`. A wrong id is
+  rejected with "could not find suitable inference handler" and the routes
+  silently fall back (MET estimate, unauthored meal analysis), so AI quietly
+  stops working instead of erroring.
 
 ## Branching
 - When working on a feature or bug fix, create a feature branch (e.g., `feat/add-food-redesign` or `fix/diary-date-nav`)
