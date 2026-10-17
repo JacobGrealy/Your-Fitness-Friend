@@ -51,3 +51,36 @@ flipped only through the passwordless rule in
 **`TODO.md` is the owner's inbox, the registry is the work order.** `TODO.md` is
 gitignored, so it cannot be the durable queue; its open items were filed as
 tickets. New items may be filed either way, but only the registry is worked.
+
+## 2026-10-17 — Capacitor 8, not 7
+
+`npm view` put `@capacitor/core` at **8.5.3**, so the Android track targets
+Capacitor 8 rather than the 7 planned from the earlier search result. That moves
+the native floor:
+
+| | Capacitor 7 | **Capacitor 8 (chosen)** |
+| --- | --- | --- |
+| JDK | 21 | 21 |
+| compileSdk / targetSdk | 35 | **36** |
+| minSdk | 23 | 24 |
+| AGP / Gradle | 8.7.2 / 8.11.1 | 8.13.0 / 8.14.3 |
+
+Consequences recorded now so a later round does not rediscover them:
+
+- `scripts/android-toolchain.sh` installs **platform 36 + build-tools 36.0.0**
+  (35 is still on disk from the first pass and stays — it costs 200 MB and
+  removes a whole class of "why does the build want a different SDK" detours).
+- Capacitor 8 folds status-bar and edge-to-edge handling into a built-in
+  `SystemBars` plugin with an `insetsHandling` option (`native` / `css` /
+  `disable`) and `initialViewportFitValueHint`. FF-0007 should configure that
+  first and only fall back to `@capacitor/status-bar` if v8's own handling is
+  not enough — the old plugin is a second mechanism for the same job.
+- Capacitor can sign the release build itself through
+  `android.buildOptions` (`keystorePath`, `keystoreAlias`, `releaseType: 'APK'`,
+  `signingType: 'apksigner'`), so FF-0005 does not need to hand-edit
+  `signingConfigs` in Gradle unless that proves awkward.
+
+`server.url` and `server.cleartext` are documented as "not intended for
+production" because their usual consumer is live-reload. A deliberately thin
+client loading the real app from the owner's server is the accepted v1 shape
+(see the entry above); the warning is about intent, not capability.
