@@ -160,3 +160,28 @@ landscape the mobile header is hidden so **the diary date cannot be changed at
 all**. That is a layout bug in the date selector, not in the shell.
 
 Next: FF-0008 — Tailscale HTTPS, which also lets SESSION_COOKIE_SECURE be true.
+
+## Round 8 — 2026-10-17 — FF-0008 Tailscale HTTPS — **parked, blocked on owner**
+
+Attempted twice and stopped, per the invariants. `tailscale serve --bg 5001`
+answers "Serve is not enabled on your tailnet" with a console URL, and
+`Self.CertDomains` is empty, so HTTPS certificates are off as well. The operator
+is unset, so serve would need `sudo` for every call even once enabled. All three
+are human switches, so this is a real blocker, not a puzzle — it is recorded as
+**Q1 in QUESTIONS.md** with the two-minute fix.
+
+Landed the part that does not need Tailscale, because it is the half that would
+have bitten later:
+
+- `login_manager.session_protection` is now `basic` by default (was hardcoded
+  `strong`, which ties a session to the client IP — the phone would be logged out
+  on every LAN <-> Tailscale switch) and configurable via `SESSION_PROTECTION`.
+- `SESSION_COOKIE_SECURE` / `SESSION_COOKIE_SAMESITE` were being **overwritten**
+  by hardcoded assignments at the end of `create_app`, silently defeating any
+  config or environment setting. Now `setdefault`, so an HTTPS-only deployment
+  can turn Secure on.
+- README gains a "Tailscale HTTPS" section with the exact enable steps, the
+  build command and the two cookie/`SESSION_PROTECTION` caveats.
+
+Gates green. Ticket stays `blocked` in the registry until the console switch.
+Next: FF-0009 — in-app update check (the `version.json` FF-0006 already writes).

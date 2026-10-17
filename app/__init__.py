@@ -10,7 +10,11 @@ from flask_cors import CORS
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
-login_manager.session_protection = 'strong'
+# 'basic', not 'strong': strong invalidates the session whenever the client's IP
+# or user agent changes, which logs the phone out every time it moves between
+# the LAN address and the Tailscale HTTPS name (and between Wi-Fi and cellular).
+# Override with SESSION_PROTECTION if a stricter host is ever wanted.
+login_manager.session_protection = os.environ.get('SESSION_PROTECTION') or 'basic'
 login_manager.login_view = 'auth.login'
 
 
@@ -119,7 +123,10 @@ def create_app(config_name=None):
             # Otherwise serve index.html for React Router to handle
             return send_from_directory(static_path, 'index.html')
 
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-    app.config['SESSION_COOKIE_SECURE'] = False
+    # Cookie policy. These were hardcoded here, which silently overrode any
+    # config class or environment setting — SESSION_COOKIE_SECURE is now driven
+    # by the config so an HTTPS-only deployment can turn it on.
+    app.config.setdefault('SESSION_COOKIE_SAMESITE', 'Lax')
+    app.config.setdefault('SESSION_COOKIE_SECURE', False)
 
     return app

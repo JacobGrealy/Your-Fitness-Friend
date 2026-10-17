@@ -98,10 +98,54 @@ is higher — `--bump` handles the second part, and the keystore is backed up.
 - The server address is baked in at build time:
   `ANDROID_SERVER_URL=http://... ./scripts/build-android.sh` (default is the
   Tailscale address, because the LAN address is DHCP).
+- Server over HTTPS: see **Tailscale HTTPS** below — the APK then talks to
+  `https://home-server-1.<tailnet>.ts.net` instead of a raw address.
 - Signing key: `~/.android-keys/awefit-release.jks`, referenced by the
   gitignored `frontend/android/keystore.properties`, snapshotted by
   `scripts/backup.sh` → `backups/keys/`. Losing it means every install must be
   uninstalled before the next one works.
+
+## Tailscale HTTPS
+
+The stable, certificate-backed address for the app is
+`https://home-server-1.tail96ee52.ts.net` (the `.ts.net` name never changes,
+unlike the DHCP LAN address). Two one-time steps in the Tailscale admin console
+are required before it works — both are manual by design, which is why they are
+written down here rather than automated:
+
+1. **Enable Serve** for the tailnet: <https://login.tailscale.com/f/serve>
+   (Enabling it also enables HTTPS certificates.)
+2. **Let the user manage serve without root** (otherwise every command below
+   needs `sudo`):
+
+   ```bash
+   sudo tailscale set --operator=angrygiant
+   ```
+
+Then:
+
+```bash
+tailscale serve --bg 5001                     # https://<node>.<tailnet>.ts.net -> :5001
+tailscale serve status                        # confirm
+curl -sI https://home-server-1.tail96ee52.ts.net/ | head -1
+```
+
+Build the APK against the HTTPS origin (no cleartext, no DHCP churn):
+
+```bash
+ANDROID_SERVER_URL=https://home-server-1.tail96ee52.ts.net ./scripts/build-android.sh --bump
+```
+
+Notes:
+
+- The page and the API share one origin either way, so no CORS entry is needed.
+- `SESSION_COOKIE_SECURE` stays off by default: the same app is still reachable
+  over plain HTTP on the LAN, and a Secure cookie is silently dropped there —
+  which presents as "logging in does nothing". Set
+  `SESSION_COOKIE_SECURE=true` only if the app becomes HTTPS-only.
+- `SESSION_PROTECTION` defaults to `basic`. Flask-Login's `strong` mode ties a
+  session to the client IP, so the phone would be logged out every time it moved
+  between the LAN address and the `.ts.net` name.
 
 ## Data and migrations
 
