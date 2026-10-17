@@ -245,3 +245,25 @@ as well as the build number so the sheet can report it.
 Two new jest tests, one per row, asserting the sheet each one opens. Gates green.
 
 Next: FF-0012 — the Progress weight chart's x-axis runs backwards.
+
+## Round 12 — 2026-10-17 — FF-0012 chart "reversed" — **already correct, cancelled**
+
+Not a fix round: the reported bug no longer reproduces. Evidence, gathered rather
+than assumed:
+
+- The API returns weight logs newest first (`2026-09-22 … 2026-09-01`), and both
+  chart pages sort ascending before charting (`WeightHistory.chartData`,
+  `Weight.tsx`, `Dashboard.trendData`). `WeightChartWithGoal` renders the order
+  it is given and slices the *newest* 30 off the end, which is why the direction
+  matters.
+- A Playwright pass against a throwaway server seeded with four logs read the
+  rendered x-axis out of the DOM: `["Sep 01","Sep 08","Sep 15","Sep 22"]` — left
+  to right, oldest first.
+
+So instead of editing correct code, the behaviour is now **locked**: a jest test
+feeds the page descending logs and asserts the chart receives them ascending
+(and that the recent-entries list still shows newest first). Ticket set to
+`cancelled` with the evidence in its note — the item was fixed by an earlier
+chart rewrite, not by this round.
+
+Next: FF-0013 — the migration test that runs `flask db upgrade` on an empty DB.
