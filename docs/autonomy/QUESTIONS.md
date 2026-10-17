@@ -12,33 +12,16 @@ _The eleven from the Android/autonomy planning round were all answered_ (see
 `DECISIONS.md`). The queue is now empty of everything that does not need you:
 22 tickets done, 7 cancelled as already-shipped, and only Q1/Q3's tickets parked.
 
-### Q1 — Tailscale Serve/HTTPS is disabled on the tailnet (FF-0008, blocked)
+### Q1 — Tailscale Serve/HTTPS — **RESOLVED 2026-10-17**
 
-`tailscale serve --bg 5001` answers:
+You enabled Serve and set the operator. Verified from this host:
 
-> Serve is not enabled on your tailnet. To enable, visit:
-> https://login.tailscale.com/f/serve?node=nyeAxDLDc221CNTRL
+- `tailscale serve status` → `https://home-server-1.tail96ee52.ts.net (tailnet only)` proxying `http://127.0.0.1:5001`
+- Certificate: `CN=home-server-1.tail96ee52.ts.net`, Let's Encrypt, valid to 2027-01-15, verified by `openssl` and accepted by Chromium
+- `200` over HTTPS, 13 ms warm (the first request took 35 s while the cert was issued)
+- Deep links (`/food/daily`, `/progress`, `/more`) and the API (`401` anonymous) work through the proxy
 
-`Self.CertDomains` is also empty, so HTTPS certificates are off too. Both are
-admin-console switches I cannot flip.
-
-**What I need from you (2 minutes):**
-
-1. Open <https://login.tailscale.com/f/serve> and enable Serve (this also enables
-   HTTPS certificates for the tailnet).
-2. `sudo tailscale set --operator=angrygiant` so serve can be managed without a
-   password — otherwise every `tailscale serve` call needs you.
-
-**What I assumed meanwhile:** builds keep pointing at
-`http://100.84.29.20:5001` (the stable Tailscale *IP*), which works today. The
-partial work that did not need Tailscale has landed: `SESSION_PROTECTION` is now
-configurable and defaults to `basic` (so switching networks stops logging the
-phone out), `SESSION_COOKIE_SECURE` is config-driven instead of hardcoded false,
-and README documents the exact commands above.
-
-**When you have done it**, just say so and FF-0008 finishes in one round: serve,
-verify with curl, then rebuild the APK against `https://home-server-1.tail96ee52.ts.net`
-and confirm login survives.
+FF-0008 is closed: **APK 0.1.3 (versionCode 4)** bakes that HTTPS origin.
 
 ### Q2 — Two one-time commands from you: sudoers drop-in + a restart
 
@@ -72,47 +55,51 @@ wait for the restart.
 **Assumed meanwhile:** every backend change is gated on the throwaway server in
 `scripts/gates.sh smoke` and reported as "awaiting restart" in the journal.
 
-### Q3 — Camera barcode scanner: which route, and can you test it? (FF-0030, blocked)
+### Q3 — Camera barcode scanner — **RESOLVED, route 1 (FF-0030 shipped)**
 
-I measured the blocker rather than guessing: over `http://192.168.0.224:5001`
-the browser reports `isSecureContext: false` and `navigator.mediaDevices` is
-**undefined**, so a JavaScript scanner cannot open the camera at all on the
-address AweFit uses. Only `http://127.0.0.1:5001` (localhost) has the API, which
-would have hidden the problem during testing.
+Enabling HTTPS answered it. Measured in Chromium against the new origin:
+`isSecureContext: true`, `navigator.mediaDevices` is an object, `getUserMedia` is a
+function — all the opposite of the plain-HTTP origin that parked this ticket.
 
-Two routes, both needing a decision and your phone:
+So the scanner is in-app with **jsQR** (no native plugin, no Play Services, no extra
+APK weight), opening on the camera with "Type the barcode instead" as the fallback.
 
-1. **Wait for HTTPS (Q1), then scan in the WebView** with jsQR. No new native
-   code, tiny APK — but nothing works until Tailscale Serve is enabled.
-2. **Native MLKit scanner** (`@capacitor-mlkit/barcode-scanning`). Works over
-   plain HTTP today, gives a proper camera sheet, costs a few MB of APK and a
-   Play Services dependency, and I cannot verify the permission flow without
-   installing it on your phone.
+**One thing still needs your phone:** I cannot point a camera at a barcode from
+here. The decode path is unit-tested with a stubbed decoder, but "hold a real
+barcode in front of a real lens" is unverified until you try it. If the frame rate
+or focus hunts, tell me and I will tune it.
 
-**My assumption meanwhile:** FF-0030 stays parked and the typed barcode from
-FF-0014 is the supported path. Tell me which route you prefer, and whether you
-can install a test APK (`./scripts/build-android.sh --bump`) so the camera path
-gets verified on real hardware instead of assumed.
-
-### Q4 — Nothing backend has reached the live server yet
+### Q4 — Nothing backend has reached the live server yet (still open)
 
 Every backend change since FF-0008 (`session_protection`, `/api/app/version`,
 `/download/awefit.apk`, the barcode endpoint) is merged and gated but **not
 running**: the deployed gunicorn predates them, and `sudo` needs your password.
 The one-time fix is Q2 above. Until then the app's update banner and barcode
-lookup will 404 on the live server while passing the gates.
+lookup 404 on the live server while passing the gates — re-checked over HTTPS after
+Serve came up: `/api/app/version` is still `404` there, and the same endpoint
+returns the correct 0.1.3 metadata on a throwaway server running `master`.
+
+**`SESSION_COOKIE_SECURE=true` is now in `.env`** and is also waiting on that
+restart. When it takes effect the session cookie stops being sent over plain
+`http://`, so **logging in at `http://192.168.0.224:5001` will stop working** — use
+the HTTPS address. That is the intended trade, not a bug; say so if you would
+rather I revert the flag.
 
 ---
 
 ## Current state, for when you have a minute
 
-- **Queue:** empty. 22 tickets merged, 7 cancelled as already implemented, 2 parked
-  (FF-0008 on Q1, FF-0030 on Q3). Gates green: 127 backend, 171 frontend, tsc,
+- **Queue:** empty — **no blocked tickets left**. 25 merged, 7 cancelled as already
+  implemented. Gates green: 127 backend, 171 frontend, tsc,
   smoke, toolkit.
-- **APK:** `releases/awefit.apk` — **0.1.2 (versionCode 3)**, signed `CN=AweFit`,
-  3.6 MB. `adb install -r releases/awefit.apk` works today. The web download URL
+- **APK:** `releases/awefit.apk` — **0.1.3 (versionCode 4)**, signed `CN=AweFit`,
+  3.8 MB, sha256 `c86960d1…`, baked server `https://home-server-1.tail96ee52.ts.net`
+  with `cleartext: false`. Install with `adb install -r releases/awefit.apk`.
+  **Install this one to get the camera scanner** — 0.1.2 still points at the
+  plain-HTTP address, where `getUserMedia` does not exist. The web download URL
   starts working after the Q2 restart.
-- **Web app:** `app/static` is rebuilt from `master`, so the browser and the
-  installed APK show the current UI the moment the page reloads. No restart needed
-  for frontend changes.
+- **Web app:** `app/static` is rebuilt from `master` and confirmed identical to
+  what the HTTPS origin serves (both `assets/index-C2pAnXw0.js`), so the browser and
+  an installed 0.1.3 show the current UI on reload. No restart needed for frontend
+  changes.
 - **Backend:** everything merged since FF-0008 is waiting on the Q2 restart.

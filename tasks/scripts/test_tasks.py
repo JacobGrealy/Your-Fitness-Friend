@@ -65,7 +65,9 @@ def main():
           p.stdout.strip())
 
     p = run_cli("queue", "list", sandbox=sandbox)
-    check("queue list non-empty", "FF-" in p.stdout, p.stdout[:120])
+    # Same rule as `next`: an emptied queue is the goal state, not a breakage.
+    check("queue list names items or says it is empty",
+          "FF-" in p.stdout or "queue is empty" in p.stdout, p.stdout[:120])
 
     print("\n-- add / set / note / queue round-trip")
     p = run_cli("add", "--title", "self-test ticket", "--source", "agent",
