@@ -85,20 +85,18 @@ real 3.8 MB file, not the SPA shell any more).
 
 ## Waiting on you
 
-Five things, all small; nothing else blocks the queue.
+Four things, all small; nothing else blocks the queue.
 
 1. **Install APK 0.1.3** — `http://192.168.0.224:5001/download/awefit.apk` on the
    phone (verified serving the real file), or `adb install -r releases/awefit.apk`.
    Do this *first*: `SESSION_COOKIE_SECURE=true` is live, so 0.1.2 (plain HTTP) can
    no longer log in.
-2. **One more restart** — FF-0043 (stay signed in across app restarts) merged after
-   the 18:32 restart, so it is not running yet.
-3. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
+2. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
    "awaiting restart".
-4. **Verify the camera scanner on the phone** (FF-0030): the decode path is unit
+3. **Verify the camera scanner on the phone** (FF-0030): the decode path is unit
    tested with a stubbed decoder, but holding a real barcode in front of a real
    lens is unverified from this host.
-5. **Verify the one-tap update on the phone** (FF-0044) once it is built: the
+4. **Verify the one-tap update on the phone** (FF-0044) once it is built: the
    installer intent and the install-time permission flow cannot be exercised here.
 
 ## Current state, for when you have a minute
@@ -106,9 +104,11 @@ Five things, all small; nothing else blocks the queue.
 - **Queue:** FF-0044 (one-tap in-app update) is the only open ticket. 36 done, 7
   cancelled as already implemented, **0 blocked**. Gates green: 131 backend, 201
   frontend, tsc, smoke, toolkit.
-- **Live server:** current with `master` as of the 18:32:16 EDT restart —
-  `/api/app/version` and `/download/awefit.apk` answer correctly. Backend work
-  merged *after* that restart is not running yet.
+- **Live server:** current with `master` as of the 19:18:38 EDT restart —
+  `/api/app/version` and `/download/awefit.apk` answer correctly.
+- **Persistent login (FF-0043):** live and **verified on the phone** — the session
+  cookie now carries a 30-day `Expires` and the remember token 365 days, so the app
+  no longer asks for a password on launch.
 - **APK:** `releases/awefit.apk` — **0.1.3 (versionCode 4)**, signed `CN=AweFit`,
   3.8 MB, sha256 `c86960d1…`, baked server
   `https://home-server-1.tail96ee52.ts.net` with `cleartext: false`. Install it to

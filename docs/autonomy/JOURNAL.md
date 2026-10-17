@@ -952,3 +952,22 @@ going live means the installed 0.1.2 can no longer log in at all.
 Also corrected a stale claim I had left in that file: it said the APK URL returns
 the SPA shell and would keep doing so until the restart. That stopped being true
 when the restart happened.
+
+## Round 45 — 2026-10-17 — FF-0046 persistent login confirmed, and why it needed no restart after all
+
+The owner reported the login now sticks. Two explanations were possible and I
+measured instead of assuming: either the client half alone had done it — the login
+route has honoured a `remember` flag since the original commit, so sending
+`remember: true` would issue the cookie even against the old backend — or the
+backend had been restarted again.
+
+The second. `fitnessfriend` started at **19:18:38 EDT**, ten minutes after FF-0043
+merged at 19:08:18, and the running config carries the new 30-day session / 365-day
+remember lifetimes. The served bundle contains the client half too
+(`remember: t` inside the login call). So the phone now holds a session cookie with
+an `Expires` **and** a remember token, which is why it survives both an app restart
+and a phone reboot.
+
+Removed the "one more restart" item from the Waiting-on-you list — it was asking
+the owner to do something already done — and recorded the state as verified on
+hardware rather than merely green in tests.
