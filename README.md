@@ -245,8 +245,11 @@ Mirror `backups/` to another machine periodically for real protection.
 - Diary by meal with per-entry photo thumbnails; tap a row to edit it
 - Editing a food log updates the entry and its linked saved food, while other
   logs that reference the same food keep their own nutrition snapshot
-- Per-entry photos with upload/replace/delete, plus quick add, barcode and
-  photo-based logging
+- Per-entry photos with upload/replace/delete, plus quick add, barcode lookup
+  and photo-based logging
+- Barcode lookup checks your own foods first, then OpenFoodFacts, and caches a
+  found product as one of your foods so the second scan is instant and offline.
+  Camera scanning is the next ticket (FF-0030); today the code is typed.
 - Weight and exercise tracking, BMR/TDEE and macro goals, weekly goal
 - AI assistance (exercise calorie estimation, meal photo analysis) through a
   local llama-swap endpoint

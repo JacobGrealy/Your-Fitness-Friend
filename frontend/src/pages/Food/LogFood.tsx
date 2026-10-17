@@ -7,12 +7,14 @@ import { SEARCH_DEBOUNCE_MS } from '@/utils/constants'
 import Button from '@/components/common/Button'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
+import BarcodeLookupModal from '@/components/food/BarcodeLookupModal'
 
 export default function LogFood() {
   const { setTitle } = usePageTitle()
   const navigate = useNavigate()
   const { foods, recentFoods, isLoading, error, fetchFoods, fetchRecentFoods, clearError } = useFoodStore()
 
+  const [barcodeOpen, setBarcodeOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState<Food[]>([])
   const [historyResults, setHistoryResults] = useState<FoodRecent[]>([])
@@ -80,6 +82,10 @@ export default function LogFood() {
     )
   }
 
+  const handleBarcode = () => {
+    setBarcodeOpen(true)
+  }
+
   const handleQuickAdd = () => {
     navigate('/food/log/select')
   }
@@ -142,6 +148,9 @@ export default function LogFood() {
           </Button>
           <Button size="sm" variant="outline" onClick={handleFoodPhoto}>
             Food Photo
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleBarcode}>
+            Barcode
           </Button>
         </div>
       </div>
@@ -212,6 +221,16 @@ export default function LogFood() {
           )
         })}
       </div>
+
+      <BarcodeLookupModal
+        isOpen={barcodeOpen}
+        onClose={() => setBarcodeOpen(false)}
+        onFound={(food) => {
+          setBarcodeOpen(false)
+          // Same destination as tapping a searched food: the serving/meal screen.
+          navigate(`/food/log/select/${food.id}`)
+        }}
+      />
     </div>
   )
 }
