@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-17T19:08
+  updated_at: 2026-10-17T19:20
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0044
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -1303,4 +1304,81 @@ intake:
     sends remember=true, lifetime 30 days, remember cookie 365 days Secure/SameSite=Lax/HttpOnly tied
     to SESSION_COOKIE_SECURE. 4 backend + 1 frontend test. Deploy order: install APK 0.1.3 before restarting,
     because SESSION_COOKIE_SECURE=true lands in the same restart.'
+  comments: []
+- id: FF-0044
+  title: 'One-tap in-app update: download and hand the APK to the Android installer'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-17T19:15
+  updated_at: 2026-10-17T19:15
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: When a new AweFit build is published, updating means opening a URL in the phone
+    browser, getting past Chrome''s "this type of file can harm your device" warning, then finding and
+    opening the download. It should be one tap inside the app: "Update", then the system installer.
+
+
+    2) Technical Details: Today frontend/src/native.ts has getRunningAppVersion (CapacitorApp.getInfo),
+    isUpdateAvailable(runningBuild, publishedVersionCode) comparing against /api/app/version, and openExternalUrl
+    which hands the URL to @capacitor/browser (a Custom Tab) - so the app opens the download page but
+    leaves the download and install to the browser. Options, cheapest first: (a) keep openExternalUrl
+    but verify it actually triggers a download in the Custom Tab rather than rendering the APK; (b) use
+    @capacitor/filesystem to fetch /download/awefit.apk into the app cache, then hand the file to Android
+    with an ACTION_VIEW intent (mime application/vnd.android.package-archive) through a FileProvider -
+    this needs a <provider> FileProvider entry in frontend/android/app/src/main/AndroidManifest.xml plus
+    a file_paths.xml, the REQUEST_INSTALL_PACKAGES permission, and likely a small custom Capacitor plugin
+    since no maintained plugin exposes the installer intent; (c) leave it as it is. Whichever route is
+    chosen, the acceptance criterion is the user''s flow on the phone: tap Update in the banner -> one
+    system prompt at most -> the Android installer opens with versionCode 4 and installs over 3, keeping
+    data. NOTE: the final permission/installer flow cannot be verified from this host - only the JS/code
+    path can be tested here, so the ticket must state that the on-device check needs the owner, exactly
+    as the camera scanner did. Also note the signed release already exists at releases/awefit.apk served
+    by /download/awefit.apk (verified live), and versionCode must exceed the installed build or Android
+    refuses the install.'
+  comments: []
+- id: FF-0045
+  title: 'Correct the autonomy state doc: the restart happened, the drop-in did not'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T19:19
+  updated_at: 2026-10-17T19:20
+  completed_at: 2026-10-17T19:20
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The autonomy docs tell the next session that no backend change has reached the
+    live server and that a restart plus a sudoers drop-in are outstanding. The restart has happened (16
+    Oct 22:32 UTC / 18:32 EDT), so the file currently misleads whoever reads it first.
+
+
+    2) Technical Details: docs/autonomy/QUESTIONS.md Q2 and Q4 are stale. Verified 2026-10-17: /etc/sudoers.d/
+    contains NO fitnessfriend-agents file and `sudo -n -l` still answers "interactive authentication is
+    required", so the drop-in was never installed and the 18:32 restart was done by the owner by hand.
+    Verified live after that restart: GET /api/app/version returns 0.1.3 metadata, /download/awefit.apk
+    returns 200 with content-type application/vnd.android.package-archive and 3813445 bytes, /api/food/barcode/...
+    returns 401 (route exists), and the gunicorn process environment contains SESSION_COOKIE_SECURE=true.
+    Rewrite Q2 to say the restart half is done and the drop-in half is not, keep the "awaiting restart"
+    rule, and move Q4 to resolved with this evidence. Record what now waits on the owner: one more restart
+    for FF-0043 (persistent login, merged after 18:32), installing APK 0.1.3 (needed because SESSION_COOKIE_SECURE
+    is live and 0.1.2 speaks plain HTTP), and on-device verification for FF-0030 and FF-0044. Refresh
+    the closing state section: queue contents, test counts, APK version.
+
+
+    Closed: verified restart done (app/version 0.1.3, /download/awefit.apk 200 + correct content-type
+    + 3813445 bytes, barcode 401, SESSION_COOKIE_SECURE in the gunicorn environ) and drop-in NOT installed
+    (/etc/sudoers.d has no fitnessfriend-agents; sudo -n -l demands auth). Q2 rewritten as half-done,
+    Q4 resolved with the evidence table, closing section replaced by an ordered ''Waiting on you'' list
+    (install 0.1.3 first, one more restart for FF-0043, the drop-in, phone verification for FF-0030 and
+    FF-0044). Current-state block refreshed to 36 done / 7 cancelled / 0 blocked, 131 backend + 201 frontend
+    tests.'
   comments: []
