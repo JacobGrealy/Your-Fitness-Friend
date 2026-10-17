@@ -330,3 +330,31 @@ log.
 a property of *this deployment*, not of the code: a plain-HTTP dev host must still
 be able to log in. The consequence is recorded in `AGENTS.md` — the cookie stops
 travelling to the LAN address, so `http://192.168.0.224:5001` can no longer log in.
+
+## 2026-10-17 — The task board is AweCraft's board, not a page in the app
+
+The queue needed a UI. Three options were on the table — a `/queue` route inside
+the Flask app, a generated static HTML file, or AweCraft's standalone board — and
+the board won because it already exists, is already trusted, and keeps developer
+tooling out of the product app.
+
+Ported as-is (renderer + stdlib server, no build step, no dependency). Three
+adaptations:
+
+1. **No per-ticket artifacts.** AweCraft links `tasks/<id>/spec.html`, results
+   HTML and PNG galleries; FitnessFriend tickets are flat registry entries, so the
+   folder links and the `/tasks/<id>/...` static route were removed rather than
+   left pointing at nothing.
+2. **Port 5181**, because AweCraft's board owns 5180.
+3. **Narrow-screen CSS.** The relationship tables in AweCraft break `AC-0445` and
+   `in-progress` across lines at 390 px. Since this board is read mostly on a
+   phone, the id and status cells got hooks and a `nowrap` rule.
+
+**No auth, by explicit owner choice**, matching AweCraft: readable and editable by
+any device on the LAN or tailnet. That is a deliberate posture, not an oversight —
+and it means ticket notes are network-visible, which `tasks/AGENTS.md` says out
+loud.
+
+The board and the CLI sharing one mutation layer is what forced FF-0034: the
+library could reorder the queue while the CLI could not, so the board would have
+been strictly more capable than the command line. Both now cover the same ground.

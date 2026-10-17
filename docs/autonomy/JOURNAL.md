@@ -756,3 +756,22 @@ calls moved a queue entry, rejected a bad status with 400, 404'd an unknown
 action, added a ticket and saw it land in the sandbox YAML — with the live
 registry confirmed untouched. Screenshots at 1180 px and 390 px, plus the detail
 modal opening on a row click. 51 toolkit self-tests, gates green.
+
+## Round 37 — 2026-10-17 — FF-0036 the board filed its own pid in the wrong project
+
+Starting the daemon showed the port from AweCraft's layout does not travel: its
+`webui.py` lives in `tasks/`, so `WEBUI_DIR.parent / ".scratch"` is the project
+root there. Here it is `FitnessFriend/tasks`, one level deeper than I accounted
+for, so the first daemon wrote `tasks_webui.pid` into
+`github_projects/.scratch/` — next to *other* projects — and `--replace` would
+have been looking in the wrong place.
+
+Fixed to `FitnessFriend/.scratch/` (already gitignored), stray files removed, and
+the daemon restarted: pid 2593796, log in the repo, answering `200` on localhost,
+the LAN address and the Tailscale address. A sandboxed probe server left listening
+on 5182 from an earlier check was also cleaned up.
+
+Worth noting for anyone reading the board later: it is served over plain HTTP on
+`:5181` with no auth, which is the same posture as AweCraft's and was chosen
+deliberately. Adding it to `tailscale serve` behind HTTPS would be a one-line
+follow-up if that ever feels too loose.
