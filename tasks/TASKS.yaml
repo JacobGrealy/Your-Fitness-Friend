@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-17T16:20
+  updated_at: 2026-10-17T16:46
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0002
 - FF-0003
 - FF-0004
 - FF-0005
@@ -67,11 +66,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T16:46
+  completed_at: 2026-10-17T16:46
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner I want Android builds to run on this Linux box so AweFit can be
@@ -81,7 +80,12 @@ intake:
     2) Technical Details: scripts/android-toolchain.sh installs Temurin JDK 21 to ~/tools/jdk-21 and Android
     cmdline-tools to ~/tools/android-sdk, then sdkmanager installs platform-tools, platforms;android-35,
     build-tools;35.0.0 and accepts licences. Capacity 7 requires JDK 21 (https://github.com/ionic-team/capacitor/issues/7839).
-    Idempotent, no sudo, exits non-zero listing anything missing. Disk budget ~1.5 GB, 217 GB free.'
+    Idempotent, no sudo, exits non-zero listing anything missing. Disk budget ~1.5 GB, 217 GB free.
+
+
+    Closed: scripts/android-toolchain.sh installs Temurin JDK 21 + Android SDK 36 (platform-tools, platforms;android-36,
+    build-tools;36.0.0) under ~/tools with no sudo; --check mode is side-effect free; verification step
+    exits non-zero. Capacitor 8 is current, so compileSdk/targetSdk 36 and AGP 8.13 (see DECISIONS.md).'
   comments: []
 - id: FF-0003
   title: Capacitor Android scaffold for AweFit (thin client over server.url)
