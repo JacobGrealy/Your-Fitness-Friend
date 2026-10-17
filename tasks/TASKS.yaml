@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T18:24
+  updated_at: 2026-10-17T18:26
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -923,4 +923,33 @@ intake:
     Closed: the live-registry assertion in test_tasks.py now accepts ''queue has no live items'' as well
     as an FF id; the populated case stays asserted against the sandbox fixture. The tooling gate was red
     on a healthy repo because the queue had been worked to empty.'
+  comments: []
+- id: FF-0033
+  title: queue list says nothing when the queue is empty
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-17T18:26
+  updated_at: 2026-10-17T18:26
+  completed_at: 2026-10-17T18:26
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: `tasks.py queue list` prints nothing at all when the queue is empty (exit 0),
+    which is indistinguishable from a broken command in a log, and the toolkit self-test asserted the
+    live queue is always non-empty - so ./scripts/gates.sh tooling goes red on a healthy repo with an
+    empty backlog (same class as FF-0032).
+
+
+    2) Technical Details: Print an explicit "queue is empty" line when there are no live items so the
+    answer is unambiguous and scriptable; relax the self-test to accept either an FF id or that line.
+    The populated case stays asserted against the sandbox fixture.
+
+
+    Closed: queue list prints ''queue is empty'' instead of silence when there is nothing queued, and
+    the self-test accepts either an FF id or that line (populated case still asserted against the sandbox
+    fixture). Second instance of the empty-queue self-test class after FF-0032.'
   comments: []

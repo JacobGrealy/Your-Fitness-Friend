@@ -701,3 +701,15 @@ Verified: apksigner signs and verifies the published APK; `version.json` reports
 server on the new code, `/api/app/version` returns that exact metadata and
 `/download/awefit.apk` returns 200 with
 `application/vnd.android.package-archive` and 3,813,445 bytes. Gates green.
+
+## Round 34 — 2026-10-17 — FF-0033 an empty queue now says so
+
+`tasks.py queue list` printed **nothing** with exit 0 when the queue was empty,
+which in a log is indistinguishable from a command that broke — and the toolkit
+self-test asserted the live queue was always non-empty, so `gates.sh tooling` went
+red again on a healthy repo. Second time this class of bug has bitten (FF-0032 was
+the `next` assertion).
+
+Fixed both halves: the command now prints `queue is empty`, and the self-test
+accepts an FF id or that line, with the populated case still asserted against the
+sandbox fixture. Gates green.

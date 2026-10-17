@@ -273,7 +273,12 @@ def cmd_queue(args):
     path = _path(args)
     if args.queue_cmd == "list":
         data = tasks_lib.load_tasks(path)
-        for pos, tid in enumerate(data.get("queue") or [], 1):
+        queue = data.get("queue") or []
+        # Silence is ambiguous: an empty print could be a broken command. Say it
+        # out loud, so logs and scripts can tell "nothing to do" from "failed".
+        if not queue:
+            print("queue is empty")
+        for pos, tid in enumerate(queue, 1):
             item = tasks_lib.find_task(data, tid)
             st = item.get("status") if item else "missing"
             title = item.get("title") if item else "(missing)"
