@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import FoodLogSelect from '@/pages/Food/FoodLogSelect'
 
@@ -29,9 +29,9 @@ jest.mock('@/components/layout/PageTitleContext', () => ({
   usePageTitle: () => ({ setTitle: jest.fn(), setHeaderRightContent: jest.fn(), headerRightContent: null, centerContent: null }),
 }))
 
-const renderQuickAdd = () =>
+const renderQuickAdd = (entry: any = '/food/log/select') =>
   render(
-    <MemoryRouter initialEntries={['/food/log/select']}>
+    <MemoryRouter initialEntries={[entry]}>
       <FoodLogSelect />
     </MemoryRouter>
   )
@@ -55,5 +55,19 @@ describe('Quick Add bar (FF-0020)', () => {
     renderQuickAdd()
 
     expect(screen.getByLabelText('Submit')).toBeDisabled()
+  })
+})
+
+describe('after a quick add (FF-0021)', () => {
+  it('goes back to the page the flow was entered from', async () => {
+    navigate.mockReset()
+    renderQuickAdd({ pathname: '/food/log/select', state: { returnTo: '/food/daily' } })
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. Banana'), { target: { value: 'Toast' } })
+    fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '120' } })
+    fireEvent.click(screen.getByLabelText('Submit'))
+
+    await waitFor(() => expect(navigate).toHaveBeenCalled())
+    expect(navigate).toHaveBeenCalledWith('/food/daily', { replace: true })
   })
 })

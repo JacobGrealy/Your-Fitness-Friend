@@ -219,3 +219,21 @@ two paths agree.
 
 The quick-add logs exactly **one serving** of the food's own nutrition — it is the
 "same as last time" shortcut, and anything else goes through the serving form.
+
+## 2026-10-17 — The add flow carries its own return path
+
+Finishing a quick add used to land on `/food/log` — the search screen — no matter
+where the flow started, so logging lunch from the diary put you back at a search
+box. The origin now travels with the flow in **router location state**
+(`{ returnTo }`), set by whoever opens it (the diary sets `/food/daily`) and
+forwarded by each screen in turn.
+
+`resolveReturnTo` validates it rather than trusting it: only in-app absolute
+paths, and never anything inside the add flow itself (`/food/log*`,
+`/food/photo-log`, `/food/barcode`), because returning into the form you just
+submitted is worse than the old behaviour. With no recorded origin — entering
+from the tab bar — it falls back to `/dashboard`, which is what the ticket asked
+for ("the last non-Add Food page, or home if none exists").
+
+Location state rather than a query parameter: it never ends up in the URL bar, so
+it cannot be shared, bookmarked or replayed into a redirect after the fact.

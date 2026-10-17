@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useFoodStore } from '@/store/foodStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { Food, FoodRecent } from '@/types'
 import { SEARCH_DEBOUNCE_MS } from '@/utils/constants'
 import { resolveMealType } from '@/utils/meal'
+import { resolveReturnTo, returnState } from '@/utils/returnTo'
 import Button from '@/components/common/Button'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
@@ -14,6 +15,9 @@ export default function LogFood() {
   const { setTitle } = usePageTitle()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const location = useLocation()
+  // Carry the origin through the second half of the add flow.
+  const originState = returnState(resolveReturnTo(location.state))
   // The diary passes ?meal=lunch when it opens this screen from a meal section.
   const mealType = resolveMealType(searchParams.get('meal'))
   const [quickAdded, setQuickAdded] = useState<string | null>(null)
@@ -77,13 +81,14 @@ export default function LogFood() {
   }
 
   const handleFoodTap = (food: Food) => {
-    navigate(`/food/log/select/${food.id}`)
+    navigate(`/food/log/select/${food.id}`, { state: originState })
   }
 
   const handleHistoryTap = (history: FoodRecent) => {
     const foodIdParam = history.food_id ? `&foodId=${history.food_id}` : ''
     navigate(
-      `/food/log/select?meal=${mealType}&name=${encodeURIComponent(history.food_name)}&calories=${history.calories}&protein=${history.protein_g}&carbs=${history.carbs_g}&fat=${history.fat_g}&brand=${encodeURIComponent(history.brand || '')}&barcode_id=${encodeURIComponent(history.barcode_id || '')}&serving_size=${encodeURIComponent(history.serving_size || '')}${foodIdParam}`
+      `/food/log/select?meal=${mealType}&name=${encodeURIComponent(history.food_name)}&calories=${history.calories}&protein=${history.protein_g}&carbs=${history.carbs_g}&fat=${history.fat_g}&brand=${encodeURIComponent(history.brand || '')}&barcode_id=${encodeURIComponent(history.barcode_id || '')}&serving_size=${encodeURIComponent(history.serving_size || '')}${foodIdParam}`,
+      { state: originState }
     )
   }
 
@@ -119,7 +124,7 @@ export default function LogFood() {
   }
 
   const handleQuickAdd = () => {
-    navigate('/food/log/select')
+    navigate('/food/log/select', { state: originState })
   }
 
   const handleFoodPhoto = () => {
@@ -280,7 +285,7 @@ export default function LogFood() {
         onFound={(food) => {
           setBarcodeOpen(false)
           // Same destination as tapping a searched food: the serving/meal screen.
-          navigate(`/food/log/select/${food.id}`)
+          navigate(`/food/log/select/${food.id}`, { state: originState })
         }}
       />
     </div>
