@@ -80,3 +80,8 @@
 - Do not wait for user confirmation — create the branch proactively
 - Switch to the feature branch before starting work
 - Commit work to the feature branch
+- Once a branch is merged into `master`, delete it — locally and on `origin` —
+  without asking for approval:
+  `git branch -d <branch> && git push origin --delete <branch>`
+- Never delete an unmerged branch on your own judgement; those represent work
+  that has not landed, so ask first.
