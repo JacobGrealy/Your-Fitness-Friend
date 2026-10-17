@@ -421,3 +421,27 @@ row still navigates). Gates green.
 
 Next: FF-0019 — the diary date selector, which the visual check in round 7 showed
 overlapping the brand and vanishing in landscape.
+
+## Round 20 — 2026-10-17 — FF-0019 diary date control, twice
+
+The date control moves to a single `DiaryDateSelector` component used in two
+places: the mobile top bar (where it already was) and **inline in the page body at
+`sm`+**, where the mobile header is hidden — landscape previously had no way to
+change the day at all, which the round-7 visual check had found and filed here.
+
+Also fixed the overlap that same check found: the header's centre slot was
+absolutely positioned (`left-1/2 -translate-x-1/2`), so a wide centre — the date
+control — rode over the brand text. It is now a three-column flex row: left
+flexes and truncates, centre takes its natural width, right stays a fixed 110 px
+so the centre does not jump between screens. Brand text now reads **AweFit** in
+both the header and the sidebar, matching the app identity; the sidebar still said
+"FitnessFriend".
+
+Verified with Playwright against a throwaway server on a copy of the database, at
+both viewports, measuring geometry rather than eyeballing:
+- 390×844: `brandRight: 82`, `controlLeft: 142`, **overlap: false**
+- 844×390: inline control present, sidebar navigation intact
+Plus 5 component tests (today label, stepping, jump-to-today, no stepping into the
+future, both variants). Gates green.
+
+Next: FF-0020 — Quick Add bar replacing the Add Food bar.

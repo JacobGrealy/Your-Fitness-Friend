@@ -33,9 +33,13 @@ export default function Header({
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 bg-[#185ADB] shadow-md border-b border-black/10 pt-[env(safe-area-inset-top)] ${className ?? ''}`}>
-      <div className="flex items-center w-full px-3 py-2 max-w-4xl mx-auto min-h-[48px] relative">
+      {/* Three columns, not an absolutely centred middle: the diary puts a date
+          selector in the centre slot, and absolute centring let it ride over the
+          brand text on a 390 px screen (seen in the FF-0007 visual check). The
+          middle stays optically centred without ever overlapping. */}
+      <div className="flex items-center w-full px-3 py-2 max-w-4xl mx-auto min-h-[48px] gap-2">
         {/* Left: Logo or back button */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           {leftContent ?? (
             showBack ? (
               <button
@@ -67,21 +71,21 @@ export default function Header({
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
-                <span className="text-sm font-semibold">FitnessFriend</span>
+                <span className="text-sm font-semibold truncate">AweFit</span>
               </button>
             )
           )}
         </div>
 
-        {/* Center: Page title, absolutely centered */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1">
+        {/* Center: page title, or whatever the page puts here (the diary's date) */}
+        <div className="flex items-center gap-1 flex-shrink-0">
           {centerContent || contextCenter || (
             <h1 className="text-lg font-bold text-white whitespace-nowrap">{propTitle || contextTitle}</h1>
           )}
         </div>
 
-        {/* Right: spacer to balance logo + actual right content */}
-        <div className="flex items-center gap-1 w-[110px] justify-end">
+        {/* Right: fixed width so the centre does not jump between screens */}
+        <div className="flex items-center gap-1 w-[110px] justify-end flex-shrink-0">
           {rightContent || contextRight}
         </div>
       </div>
