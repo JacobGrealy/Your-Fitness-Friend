@@ -67,6 +67,9 @@ app/uploads/
 # Backup files
 *.bak
 
+# Local backups written by scripts/backup.sh
+backups/
+
 # Build artifacts
 app/static/assets/
 frontend/playwright-report/

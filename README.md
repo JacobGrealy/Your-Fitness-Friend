@@ -85,6 +85,50 @@ FLASK_APP=main.py ./venv/bin/flask db revision -m "describe change"
 Commit every migration file — the database's `alembic_version` and the files in
 git have to agree or a fresh `upgrade head` fails.
 
+## Backups
+
+`scripts/backup.sh` snapshots the two things that cannot be rebuilt from the repo:
+the database and `app/uploads/`, plus `.env` (which holds `SECRET_KEY`, so a
+restore is otherwise incomplete). It runs daily at 03:15 from the user crontab and
+keeps the last 14 snapshots.
+
+```bash
+./scripts/backup.sh          # run one now
+crontab -l                   # confirm the schedule
+tail -20 logs/backup.log     # cron output
+```
+
+Layout under `backups/` (gitignored):
+
+```
+db/fitness_friend-<stamp>.db.gz   gzipped, integrity-checked snapshots
+uploads/<stamp>/                  hardlinked rsync snapshots of the photos
+uploads/latest -> <stamp>         points at the newest
+env/.env                          copy of .env, mode 600
+```
+
+The database is copied with SQLite's online backup API rather than `cp`, so a
+write in flight cannot produce a torn file, and each snapshot is checked with
+`PRAGMA integrity_check` before it is kept. Uploads use `rsync --link-dest`, so a
+92 MB photo tree costs only the changed files per run.
+
+**Restore the database:**
+
+```bash
+sudo systemctl stop fitnessfriend
+gunzip -c backups/db/fitness_friend-<stamp>.db.gz > instance/fitness_friend.db
+sudo systemctl start fitnessfriend
+```
+
+**Restore uploads:**
+
+```bash
+rsync -a --delete backups/uploads/latest/ app/uploads/
+```
+
+These copies live on the same disk, so they cover mistakes, not disk failure.
+Mirror `backups/` to another machine periodically for real protection.
+
 ## Configuration
 
 `run-backend.sh` sources `.env` (gitignored), which supplies:

@@ -46,6 +46,20 @@
 - Commit every migration. The database's `alembic_version` and the files in git
   must agree; a migration left uncommitted means a fresh `upgrade head` dies with
   "Can't locate revision".
+- **Snapshot before touching the live schema.** `./scripts/backup.sh` takes a
+  verified copy in under a second; run it before any `flask db upgrade` against
+  `instance/fitness_friend.db`. Restore steps are in README's "Backups" section.
+
+## Backups
+- `scripts/backup.sh` writes to `backups/` (gitignored): the database via
+  SQLite's online backup API with an integrity check, `app/uploads/` via
+  `rsync --link-dest` hardlinks, and `.env` at mode 600. Retention is 14.
+- Scheduled from the **user** crontab at 03:15 daily (`crontab -l`). The script
+  exports its own `PATH` because cron's environment is minimal; keep that if you
+  edit it. Output goes to `logs/backup.log`.
+- Local only — same filesystem, so it survives mistakes but not disk failure.
+- Never edit a file in `backups/`: uploads snapshots share inodes, so writing
+  through a snapshot corrupts the live tree too. Restore by copying *out*.
 
 ## Build & deploy
 - `cd frontend && npm run build` is `tsc && vite build` and writes to
