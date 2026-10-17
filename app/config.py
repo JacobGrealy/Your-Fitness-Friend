@@ -38,6 +38,21 @@ class Config:
         'profile_photos': {'png', 'jpg', 'jpeg', 'gif', 'webp'}
     }
     
+    # CORS configuration: comma-separated list of browser origins allowed to
+    # call the API cross-origin. The Vite dev server proxies /api server-side
+    # and production serves the SPA from the same origin, so this only matters
+    # when the frontend is hosted separately. Set CORS_ORIGINS in the
+    # environment for LAN hosts rather than hardcoding IP addresses here.
+    CORS_ORIGINS = [
+        origin.strip()
+        for origin in os.environ.get(
+            'CORS_ORIGINS',
+            'http://localhost:5173,http://127.0.0.1:5173',
+        ).split(',')
+        if origin.strip()
+    ]
+    CORS_SUPPORTS_CREDENTIALS = True
+
     @staticmethod
     def allowed_file(filename, upload_type):
         """Check if file extension is allowed for specific upload type."""
@@ -63,12 +78,14 @@ class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
     
-    # Logging configuration
-    LOG_LEVEL = 'ERROR'
+    # Logging configuration. INFO keeps the application's informational logs
+    # visible in production; raise this via the LOG_LEVEL environment variable
+    # if the volume becomes a problem.
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
     
-    # CORS configuration
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*').split(',')
-    CORS_SUPPORTS_CREDENTIALS = False
+    # CORS: inherits the env-driven allowlist from Config. Deliberately not
+    # defaulting to '*' here, which would let any site call the API on a
+    # user's behalf.
 
 
 config = {

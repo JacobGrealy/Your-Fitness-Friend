@@ -14,10 +14,36 @@ login_manager.session_protection = 'strong'
 login_manager.login_view = 'auth.login'
 
 
-def create_app(config_name='default'):
-    """Application factory function."""
+def _resolve_config_name(config_name=None):
+    """Resolve which configuration class create_app() should load.
+
+    Order: explicit argument, then FLASK_CONFIG, then FLASK_ENV, then
+    development. An unrecognised name raises instead of quietly falling back,
+    because a silent fallback to DevelopmentConfig would enable DEBUG in
+    production and leak tracebacks and source paths to clients.
+    """
     from app.config import config
-    
+
+    if config_name is None:
+        config_name = (
+            os.environ.get('FLASK_CONFIG')
+            or os.environ.get('FLASK_ENV')
+            or 'development'
+        )
+
+    if config_name not in config:
+        raise ValueError(
+            f'Unknown configuration {config_name!r}; '
+            f'expected one of: {", ".join(sorted(config))}'
+        )
+    return config_name
+
+
+def create_app(config_name=None):
+    """Application factory function."""
+    config_name = _resolve_config_name(config_name)
+    from app.config import config
+
     app = Flask(__name__)
     app.config.from_object(config[config_name])
     
@@ -33,8 +59,9 @@ def create_app(config_name='default'):
 
     login_manager.unauthorized = unauthorized
 
-    # CORS configuration
-    cors_origins = app.config.get('CORS_ORIGINS', ['http://192.168.0.50:5173', 'http://localhost:5173'])
+    # CORS configuration (origins come from config.CORS_ORIGINS, which is
+    # driven by the CORS_ORIGINS environment variable)
+    cors_origins = app.config.get('CORS_ORIGINS') or []
     cors_supports_credentials = app.config.get('CORS_SUPPORTS_CREDENTIALS', True)
     CORS(app, origins=cors_origins, supports_credentials=cors_supports_credentials, methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allow_headers=['Content-Type', 'Authorization'], max_age=3600)
     
@@ -75,6 +102,12 @@ def create_app(config_name='default'):
             return send_from_directory(static_path, 'index.html')
         @app.route('/<path:path>')
         def static_files(path):
+            # API paths must never fall through to the SPA shell: an
+            # unregistered endpoint should answer with a JSON 404 rather than
+            # 200 text/html, otherwise a client that expects JSON fails
+            # confusingly while trying to parse the page.
+            if path == 'api' or path.startswith('api/'):
+                return jsonify({'error': 'Not found'}), 404
             # Serve index.html for all non-file routes (SPA fallback)
             static_files_to_check = ['index.html', 'favicon.ico', 'manifest.json']
             if path in static_files_to_check:

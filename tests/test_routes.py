@@ -270,3 +270,26 @@ class TestProfilePhotoRoutes:
         data = response.get_json()
         assert 'profile_photo_path' in data
         assert data['profile_photo_path'] is None
+
+
+class TestSpaFallback:
+    """The catch-all route must serve the SPA for pages but never for /api."""
+
+    def test_unknown_api_path_returns_json_404(self, client):
+        response = client.get('/api/does-not-exist')
+
+        assert response.status_code == 404
+        assert response.is_json
+        assert response.get_json() == {'error': 'Not found'}
+
+    def test_bare_api_prefix_returns_json_404(self, client):
+        response = client.get('/api')
+
+        assert response.status_code == 404
+        assert response.is_json
+
+    def test_spa_route_still_serves_index(self, client):
+        response = client.get('/dashboard')
+
+        assert response.status_code == 200
+        assert response.mimetype == 'text/html'
