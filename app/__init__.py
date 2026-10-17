@@ -14,10 +14,36 @@ login_manager.session_protection = 'strong'
 login_manager.login_view = 'auth.login'
 
 
-def create_app(config_name='default'):
-    """Application factory function."""
+def _resolve_config_name(config_name=None):
+    """Resolve which configuration class create_app() should load.
+
+    Order: explicit argument, then FLASK_CONFIG, then FLASK_ENV, then
+    development. An unrecognised name raises instead of quietly falling back,
+    because a silent fallback to DevelopmentConfig would enable DEBUG in
+    production and leak tracebacks and source paths to clients.
+    """
     from app.config import config
-    
+
+    if config_name is None:
+        config_name = (
+            os.environ.get('FLASK_CONFIG')
+            or os.environ.get('FLASK_ENV')
+            or 'development'
+        )
+
+    if config_name not in config:
+        raise ValueError(
+            f'Unknown configuration {config_name!r}; '
+            f'expected one of: {", ".join(sorted(config))}'
+        )
+    return config_name
+
+
+def create_app(config_name=None):
+    """Application factory function."""
+    config_name = _resolve_config_name(config_name)
+    from app.config import config
+
     app = Flask(__name__)
     app.config.from_object(config[config_name])
     

@@ -78,8 +78,10 @@ class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
     
-    # Logging configuration
-    LOG_LEVEL = 'ERROR'
+    # Logging configuration. INFO keeps the application's informational logs
+    # visible in production; raise this via the LOG_LEVEL environment variable
+    # if the volume becomes a problem.
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
     
     # CORS: inherits the env-driven allowlist from Config. Deliberately not
     # defaulting to '*' here, which would let any site call the API on a
