@@ -61,17 +61,22 @@ test.describe('Profile Photo Upload', () => {
     // Wait a moment for the modal to appear
     await page.waitForTimeout(1000)
     
-    // The crop modal should now be open
-    const chooseButton = page.locator('button:has-text("Choose a photo")')
-    
-    if (await chooseButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-      console.log('Crop modal is visible - test passed')
+    // The crop modal should open directly on the picked photo. It used to have
+    // its own "Choose a photo" input, which is exactly the double prompt that
+    // FF-0010 removed — so the assertion is the cropper itself.
+    const cropper = page.locator('.reactEasyCrop_Container, button:has-text("Crop")')
+
+    if (await cropper.first().isVisible({ timeout: 5000 }).catch(() => false)) {
+      console.log('Crop modal opened on the selected photo - test passed')
     } else {
       await page.screenshot({ path: 'tests/e2e/screenshots/profile-after.png' })
       const modal = page.locator('div.fixed.inset-0.z-50')
       const exists = await modal.count()
-      console.log(`Modal elements found: ${exists}`)
-      throw new Error(`Crop modal not found. Modal elements: ${exists}`)
+      const prompt = await page.locator('button:has-text("Choose a photo")').count()
+      console.log(`Modal elements found: ${exists}, second-picker prompts: ${prompt}`)
+      throw new Error(
+        `Crop modal did not open on the selected photo. Modal elements: ${exists}, prompts: ${prompt}`
+      )
     }
   })
 })

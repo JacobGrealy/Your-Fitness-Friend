@@ -213,3 +213,22 @@ Live deploy still pending: the running gunicorn predates this blueprint — **Q2
 QUESTIONS.md** (install the sudoers drop-in, restart once).
 
 Next: FF-0010 — the crop modal asking for the file twice.
+
+## Round 10 — 2026-10-17 — FF-0010 crop modal asked for the file twice
+
+Landed: `CropModal` now takes the `File` the caller already picked (`file` prop)
+and no longer carries its own hidden input, "Choose a photo" placeholder or
+Retake-into-the-picker loop. `Profile` keeps the selected file in state and hands
+it over, and clears the input's value so re-picking the same file still fires.
+
+Why it happened: `handleFileSelect(_file)` in Profile deliberately ignored its
+argument (unused parameter named `_file`) and only opened the modal, so the modal
+had no file and was forced to ask again.
+
+Verified: 4 new jest tests (no file input inside the modal, crops the file it was
+handed, revokes the object URL on close, renders nothing when closed) plus the
+e2e spec asserted the opposite of the old behaviour — it waited for the second
+"Choose a photo" prompt, so it now waits for the cropper and reports the prompt
+count on failure. Gates green.
+
+Next: FF-0011 — Account and Help rows in the More page do nothing.

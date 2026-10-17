@@ -1,11 +1,10 @@
 meta:
-  updated_at: 2026-10-17T17:20
+  updated_at: 2026-10-17T17:22
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0008
-- FF-0010
 - FF-0011
 - FF-0012
 - FF-0013
@@ -297,11 +296,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-17T16:17
-  updated_at: 2026-10-17T16:17
-  completed_at: null
+  updated_at: 2026-10-17T17:22
+  completed_at: 2026-10-17T17:22
   waiting_on: null
   parent_id: null
   notes: '1) User Story: As the owner picking a profile photo should open one picker, not two: today the
@@ -310,7 +309,13 @@ intake:
 
     2) Technical Details: frontend/src/components/common/CropModal.tsx has its own hidden file input while
     the caller (frontend/src/pages/Profile.tsx) triggers one first; pass the selected File into the modal
-    and delete the duplicate input.'
+    and delete the duplicate input.
+
+
+    Closed: CropModal takes a file prop and renders the cropper directly - no internal input, no ''Choose
+    a photo'' step, no Retake-into-picker loop; Profile keeps the picked File, passes it, resets input.value
+    so the same file can be re-picked. 4 new jest tests; e2e spec updated (it had been asserting the double
+    prompt).'
   comments: []
 - id: FF-0011
   title: Account and Help rows in the More page do nothing

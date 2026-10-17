@@ -1,8 +1,14 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Cropper, { Point } from 'react-easy-crop'
 
 interface CropModalProps {
   isOpen: boolean
+  /**
+   * The photo the caller already picked. The modal does NOT ask again: the old
+   * version had its own hidden input, so choosing a profile photo opened the
+   * system picker twice.
+   */
+  file: File | null
   onCropComplete: (croppedFile: File) => void
   onClose: () => void
 }
@@ -48,21 +54,27 @@ function cropImageToCircle(
   })
 }
 
-export default function CropModal({ isOpen, onCropComplete, onClose }: CropModalProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
+export default function CropModal({ isOpen, file, onCropComplete, onClose }: CropModalProps) {
   const [image, setImage] = useState<string | null>(null)
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
   const [cropping, setCropping] = useState(false)
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const url = URL.createObjectURL(file)
-      setImage(url)
+  // Object URL lifecycle: created when the modal opens with a file, revoked when
+  // it closes or a different file arrives.
+  useEffect(() => {
+    if (!isOpen || !file) {
+      setImage(null)
+      return
     }
-  }, [])
+    const url = URL.createObjectURL(file)
+    setImage(url)
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+    setCroppedAreaPixels(null)
+    return () => URL.revokeObjectURL(url)
+  }, [isOpen, file])
 
   const onCropCompleteHandler = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels(croppedAreaPixels)
@@ -108,29 +120,7 @@ export default function CropModal({ isOpen, onCropComplete, onClose }: CropModal
         </div>
 
         <div className="p-4">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-
-          {!image ? (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full py-12 border-2 border-dashed border-gray-300 rounded-lg text-[#757575] hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex flex-col items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="text-sm font-medium">Choose a photo</span>
-              </div>
-            </button>
-          ) : (
+          {image ? (
             <div className="relative" style={{ height: '300px' }}>
               <Cropper
                 image={image}
@@ -143,6 +133,10 @@ export default function CropModal({ isOpen, onCropComplete, onClose }: CropModal
                 cropShape="round"
               />
             </div>
+          ) : (
+            <p className="py-12 text-center text-sm" style={{ color: '#757575' }}>
+              No photo selected.
+            </p>
           )}
 
           {image && (
@@ -162,39 +156,21 @@ export default function CropModal({ isOpen, onCropComplete, onClose }: CropModal
         </div>
 
         <div className="flex gap-3 p-4 border-t border-gray-200">
-          {!image ? (
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex-1 py-2.5 text-base font-medium bg-gray-100 text-[#212121] rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Cancel
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  setImage(null)
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = ''
-                    fileInputRef.current.click()
-                  }
-                }}
-                className="flex-1 py-2.5 text-base font-medium bg-gray-100 text-[#212121] rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Retake
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirm}
-                disabled={cropping}
-                className="flex-1 py-2.5 text-base font-medium bg-[#185ADB] text-white rounded-lg hover:bg-[#1550C0] disabled:opacity-50 transition-colors"
-              >
-                {cropping ? 'Cropping...' : 'Crop'}
-              </button>
-            </>
-          )}
+          <button
+            type="button"
+            onClick={handleClose}
+            className="flex-1 py-2.5 text-base font-medium bg-gray-100 text-[#212121] rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={cropping || !image || !croppedAreaPixels}
+            className="flex-1 py-2.5 text-base font-medium bg-[#185ADB] text-white rounded-lg hover:bg-[#1550C0] disabled:opacity-50 transition-colors"
+          >
+            {cropping ? 'Cropping...' : 'Crop'}
+          </button>
         </div>
       </div>
     </div>
