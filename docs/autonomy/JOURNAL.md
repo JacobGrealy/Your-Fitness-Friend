@@ -351,3 +351,26 @@ The add-menu test now uses a `data-testid` on the option buttons instead of
 guessing from label text, which is what made the fifth entry invisible to it.
 
 Next: FF-0017 — calorie goal setting on the More page.
+
+## Round 17 — 2026-10-17 — deploy the SPA, and where things stand
+
+Rebuilt `app/static` so the running server serves the merged frontend (static
+changes need no restart) and confirmed `/` answers 200 with the new bundle hash.
+
+State at the end of this round: **13 done, 2 cancelled (already correct), 2
+blocked on the owner, 14 open**. Gates green (backend 115, jest 114, tsc, smoke,
+toolkit).
+
+Waiting on the owner — these block real work, not busywork:
+
+- **Q1** Tailscale Serve is disabled on the tailnet → FF-0008 (HTTPS) cannot run.
+- **Q2** the sudoers drop-in is not installed and `sudo` needs a password, so
+  **every backend change since FF-0008 is merged but not live** (Q4): the running
+  gunicorn predates `/api/app/version`, `/download/awefit.apk` and the barcode
+  endpoint — all of which answer 404 on 5001 today while passing the gates.
+- **Q3** camera scanner (FF-0030): measured that the app's plain-HTTP origin is
+  not a secure context, so it is HTTPS-then-jsQR or a native MLKit plugin, and
+  either way it wants the phone in hand to verify.
+
+Next: FF-0017 — calorie goal setting on the More page (needs a migration, so
+`./scripts/backup.sh` first).
