@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from app import db
+from app.utils.uploads import stored_file_path, upload_dir
 from app.models.food_log import FoodLog
 from app.utils.qwen_client import qwen_client
 import os
@@ -30,8 +31,7 @@ def save_uploaded_file(file):
         return None, "File too large. Maximum size is 16MB."
     extension = file.filename.rsplit('.', 1)[1].lower()
     unique_filename = f"{uuid.uuid4().hex}.{extension}"
-    upload_path = os.path.join(current_app.root_path, 'uploads', UPLOAD_FOLDER)
-    os.makedirs(upload_path, exist_ok=True)
+    upload_path = upload_dir(UPLOAD_FOLDER)
     filepath = os.path.join(upload_path, unique_filename)
     try:
         file.save(filepath)
@@ -160,7 +160,7 @@ def ai_log():
         if error:
             return jsonify({'error': error}), 400
 
-        full_path = os.path.join(current_app.root_path, 'uploads', photo_path)
+        full_path = stored_file_path(photo_path)
         image_base64 = encode_image_for_ai(full_path)
 
         meal_type = request.form.get('meal_type', 'lunch')

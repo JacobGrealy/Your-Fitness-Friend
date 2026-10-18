@@ -1575,3 +1575,30 @@ The lesson is narrow and worth keeping: a destructive maintenance command must n
 directory. "Unreferenced" is not the same as "safe to delete" — the authorisation was
 "orphaned weight photos", and I generalised it without being asked. Restoring was only
 possible because snapshot-before-destructive-change is a standing rule here.
+
+## Round 68 — 2026-10-18 — FF-0079 verification stopped writing into production
+
+The owner asked whether verification should have its own image directory. Yes — and the
+answer was mostly wiring, not design.
+
+`UPLOAD_FOLDER` already existed and two modules honoured it, but five hard-coded
+`current_app.root_path/uploads`, and the config value could not be set from the
+environment. Added `app/utils/uploads.py` as the single home (`uploads_root`,
+`upload_dir`, `stored_file_path` with escape rejection), env-drove the config, and pointed
+all eleven call sites at it — including `meals_ai_log`, whose `ai_food_logs` directory was
+the one a sweep damaged precisely because it could not be relocated.
+
+Then the part that actually fixes the class of bug: `scripts/dev-server.sh` copies the
+database, allocates a free port, sets `UPLOAD_FOLDER` to a temp directory, prints both
+paths, and deletes the tree on exit. The earlier rounds copied a database by hand and
+guessed ports — including 5181, which is the ticket board.
+
+Two things surfaced only by measuring. The **smoke gate** had no `UPLOAD_FOLDER`, so gates
+themselves could write to prod; now it sets one. Worse, the **pytest suite** was writing
+profile photos into production on every single run — `find app/uploads -type f` grew from
+783 to 786 during one gate run. The `app` fixture now uses a scratch directory and removes
+it; the suite goes 786 → 786 and leaves no temp dirs behind. A new `uploads` gate fails on
+any hand-joined upload path, and I verified it catches a deliberate probe rather than
+trusting that it would.
+
+200 backend tests, all gates green, prod uploads byte-for-byte unchanged across the run.

@@ -6,6 +6,7 @@ from flask_login import login_required, current_user
 from app.models.food import Food
 from app.models.food_log import FoodLog
 from app.config import Config
+from app.utils.uploads import upload_dir, uploads_root
 from app import db
 from datetime import datetime, date, timedelta
 
@@ -15,21 +16,9 @@ bp = Blueprint('food', __name__)
 FOOD_LOG_PHOTO_FOLDER = 'food_log_photos'
 
 
-def _uploads_root():
-    """Absolute path to the uploads directory.
-
-    Honours UPLOAD_FOLDER so tests (and alternate deployments) can relocate it
-    instead of writing into app/uploads.
-    """
-    configured = current_app.config.get('UPLOAD_FOLDER')
-    if configured:
-        return os.path.abspath(configured)
-    return os.path.abspath(os.path.join(current_app.root_path, 'uploads'))
-
-
 def _food_log_photo_dir():
     """Absolute path to the directory holding food log photos."""
-    return os.path.join(_uploads_root(), FOOD_LOG_PHOTO_FOLDER)
+    return upload_dir(FOOD_LOG_PHOTO_FOLDER)
 
 
 def _has_allowed_extension(filename):
@@ -44,9 +33,9 @@ def _remove_photo_file(photo_url):
     """Delete a stored photo, ignoring anything outside the uploads directory."""
     if not photo_url:
         return
-    uploads_root = _uploads_root()
-    target = os.path.abspath(os.path.join(uploads_root, photo_url))
-    if not target.startswith(uploads_root + os.sep):
+    root = uploads_root()
+    target = os.path.abspath(os.path.join(root, photo_url))
+    if not target.startswith(root + os.sep):
         return
     try:
         os.remove(target)
@@ -630,7 +619,7 @@ def serve_food_log_upload(filename):
     ``photo_url`` is stored relative to the uploads root (e.g.
     ``food_log_photos/<file>.jpg``), so resolve against that root.
     """
-    return send_from_directory(_uploads_root(), filename)
+    return send_from_directory(uploads_root(), filename)
 
 
 @bp.route('/daily', methods=['GET'])
