@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-18T09:43
+  updated_at: 2026-10-18T09:47
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -7,6 +7,7 @@ queue:
 - FF-0073
 - FF-0072
 - FF-0074
+- FF-0075
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -2452,7 +2453,7 @@ intake:
   status: open
   labels: []
   created_at: 2026-10-18T09:43
-  updated_at: 2026-10-18T09:43
+  updated_at: 2026-10-18T09:47
   completed_at: null
   waiting_on: null
   parent_id: null
@@ -2504,7 +2505,15 @@ intake:
     \ Remove clears it; LogWeight's create path behaves the same; gates green via ./scripts/gates.sh.\n\
     \n5) Note for scheduling: this is frontend-only unless update_log changes, so the fix ships in a rebuilt\
     \ app/static with no gunicorn restart. It touches EditWeight.tsx and WeightHistory.tsx, which FF-0074\
-    \ also touches - run those two in the same lane, sequentially, never in parallel.\n"
+    \ also touches - run those two in the same lane, sequentially, never in parallel.\n\n\n6) Fix-shape\
+    \ caveat found while filing FF-0075 (verified, so it is not re-derived): weightStore.uploadPhoto DOES\
+    \ `throw error` on failure (frontend/src/store/weightStore.ts:129), unlike useFoodStore.uploadFoodLogPhoto\
+    \ which swallows and resolves. So `const url = await uploadPhoto(file)` inside onSubmit is safe here\
+    \ - a failed upload rejects and aborts the save instead of handing back undefined. Do not \"harmonise\"\
+    \ the two stores by removing that throw; the food log needs the throw added, which is FF-0075. Also\
+    \ note axios drops keys whose value is `undefined`, so sending `photo_url: undefined` would omit the\
+    \ key and silently PRESERVE the old photo - guard the null case explicitly rather than relying on\
+    \ that."
   comments: []
 - id: FF-0074
   title: Open a saved weight entry in a read-only view, with Edit as an explicit step
@@ -2553,4 +2562,68 @@ intake:
     \ view is pointless while the entry's photo is being silently nulled by any save. It touches EditWeight.tsx\
     \ and WeightHistory.tsx, which FF-0073 also touches, so run the two sequentially in one lane and land\
     \ FF-0073 first. Frontend-only: ships in a rebuilt app/static, no backend restart.\n"
+  comments: []
+- id: FF-0075
+  title: A stale photo URL in shared store state silently cancels a food-log photo upload
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-18T09:46
+  updated_at: 2026-10-18T09:46
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: "1) User Story: I open a saved food log entry, pick a photo, press Save, and go back - and the\
+    \ entry has no photo. Nothing errored, nothing warned me; the preview showed my picture the whole\
+    \ time, so I believe it worked. Attaching photos to two entries one after another is enough to trigger\
+    \ it.\n\n2) What this is NOT (recorded so nobody re-derives it and fixes the wrong thing): this is\
+    \ NOT the FF-0073 bug and the same fix does not apply verbatim. The food-log photo upload is self-attaching\
+    \ - foodApi.uploadFoodLogPhoto POSTs to /food/log/<id>/photo and app/routes/food_routes.py:594 sets\
+    \ log.photo_url server-side and returns it - and updateFoodLog's payload in frontend/src/pages/Food/EditFoodLog.tsx\
+    \ never carries photo_url at all. So there is no stale value written into a payload, and saving an\
+    \ edit can never null a photo. Structurally immune to the wipe.\n\n3) Technical Details - what it\
+    \ actually is. The shared root cause is real: useFoodStore.uploadedPhotoUrl is module-level state,\
+    \ set on upload (frontend/src/store/foodStore.ts:263) and cleared only by deleteFoodLogPhoto (:282).\
+    \ Nothing resets it when EditFoodLog mounts, when a different log is opened, or on unmount. Here the\
+    \ field is used only as a GUARD, so the failure inverts from destroying data to suppressing work:\n\
+    \n   a) MAIN BUG - the guard cancels the upload. EditFoodLog.tsx:118: `if (selectedFile && !uploadedPhotoUrl)\
+    \ { await handleUploadPhoto() }`. Once uploadedPhotoUrl holds any value - including a photo_url belonging\
+    \ to a DIFFERENT log from earlier in the session - `!uploadedPhotoUrl` is false and the upload is\
+    \ skipped entirely. The form then saves and navigates back, so the file the user picked is never sent\
+    \ and is lost (it exists only as an object URL that is about to be revoked). Reachable in three taps:\
+    \ edit entry A, attach a photo, back, edit entry B, attach a photo, Save.\n\n   b) DISPLAY - same\
+    \ stale value hides the upload that did happen. The render guard at EditFoodLog.tsx:324 is `initialPhotoUrl\
+    \ && !uploadedPhotoUrl`, with a fallback branch at :346 rendering `uploadedPhotoUrl ? <p>Photo uploaded</p>`.\
+    \ After a successful upload the image disappears and is replaced by the words \"Photo uploaded\",\
+    \ so the photo the user just attached looks like it vanished. Seen from another log, the stale value\
+    \ hides that log's real photo behind the same text.\n\n   c) SILENT FAILURE, which is what makes (a)\
+    \ invisible. useFoodStore.uploadFoodLogPhoto catches its own error, sets `error`, shows a toast and\
+    \ does NOT rethrow (frontend/src/store/foodStore.ts:268-275). handleUploadPhoto therefore resolves\
+    \ on failure, and onSubmit goes on to updateFoodLog and navigate(-1) - the user gets a success-flavoured\
+    \ exit while the photo never uploaded. Note the asymmetry with weightStore.uploadPhoto, which DOES\
+    \ `throw error`, so a failed weight upload aborts the save; whatever FF-0073 does must not rely on\
+    \ the food store's behaviour, and this ticket must not \"fix\" the asymmetry by removing the throw\
+    \ in weightStore.\n\n   Fix shape: stop using uploadedPhotoUrl for control flow. Have the upload return\
+    \ the URL and pass it through, or hold the \"have I uploaded this file\" fact locally in EditFoodLog\
+    \ state (a boolean set by this page's own upload, reset when the selected file changes) rather than\
+    \ reading a store field another screen also writes. Reset uploadedPhotoUrl when EditFoodLog mounts.\
+    \ Make c) fail loudly - rethrow so onSubmit aborts and navigates nowhere, matching weightStore - and\
+    \ only navigate after both the upload and the update have succeeded.\n\n   Tests: no EditFoodLog test\
+    \ exists today. Add frontend/tests/pages/EditFoodLog.photo.test.tsx covering: with a stale uploadedPhotoUrl\
+    \ in the store and a file picked, Save still uploads (the regression this ticket is about); with the\
+    \ store's value null and a file picked, Save uploads once, not twice; a failed upload does not navigate\
+    \ away; the log's existing photo still renders when the store holds a stale URL. Mock axios the way\
+    \ the other page tests do.\n\n4) Acceptance Criteria: attaching a photo to two different entries in\
+    \ a row attaches both; picking a file and pressing Save always uploads it regardless of what any earlier\
+    \ screen did; a failed upload keeps the user on the page and does not claim success; an entry that\
+    \ already has a photo renders it even when the store holds another log's URL; uploads are never silently\
+    \ duplicated; ./scripts/gates.sh green.\n\n5) Scheduling: this touches only frontend/src/pages/Food/EditFoodLog.tsx,\
+    \ frontend/src/store/foodStore.ts and a new test, so it is FILE-DISJOINT from FF-0073/FF-0074 (Weight\
+    \ pages, weightStore) and from FF-0072 (Profile.tsx) and can run as its own parallel lane. Frontend-only:\
+    \ ships in a rebuilt app/static, no backend restart. Same root cause as FF-0073 - if that ticket ends\
+    \ up introducing a shared photo-state helper, this one should use it rather than invent a second pattern.\n"
   comments: []
