@@ -1337,3 +1337,40 @@ until a refetch; and the stale `Honey roasted peanuts` row that a scan had re-cr
 5 backend tests (owner deletes, double delete, another user's food, shared food, a
 logged meal surviving) and 5 store tests (list update, plural/singular count, numeric
 id matching, API error surfaced).
+
+## Round 59 — 2026-10-17 — FF-0068 closing the day became a thing worth keeping
+
+The owner's brief was about behaviour, not just layout: make closing the diary feel
+like a finish line so there is a reason not to keep adding food, and gamify the daily
+habit with streaks.
+
+Backend: `completion_streaks()` computes two counters from `diary_completions` —
+`closed_days` (any completed day) and `within_goal_days` (completed days with intake
+above zero and at most 10% over goal, so under-goal counts). Both use current-run
+semantics: count back from the most recent qualifying day, 0 once that day is older
+than yesterday. `summarise_record()` became the single payload builder for POST and
+GET, so `GET /completion` now returns the entire closed summary and the panel renders
+from the page load instead of a second request.
+
+Writing the tests taught me the design: my first assertion said that closing today
+over goal should zero the on-target streak, and the implementation disagreed by
+returning 2. The implementation was right — zeroing it would erase a real run at the
+exact moment a user is most likely to give up. The streak ended yesterday, and
+yesterday is still current. The test now documents that asymmetry on purpose.
+
+Frontend: a `ClosedDayPanel` sits directly under the goal / food / exercise line with
+the projection, both streaks and Reopen; the old bottom "Diary complete / Undo" row is
+gone, because two ways to undo one action stops a finish line feeling like one. The
+open state gained a one-line nudge ("3 days closed in a row — close today to keep it
+going"), and the celebration modal reports both counters with Reopen in place of Undo.
+
+A bug caught by looking at a screenshot rather than at assertions: because the GET now
+returns the full closed summary, the celebration modal popped up on every page load of
+an already-closed day. Split into `closedSummary` (panel, from load) and `completion`
+(modal, only when the user closes). Verified in the browser: no modal on load, panel
+present, Reopen swaps back to the Complete Diary button, and the nudge reads correctly.
+
+Verified end to end on a throwaway server: three closed days (two under goal, one over)
+produced `closed_days: 3`, `within_goal_days: 3` — correct, because the profile's
+recomputed goal of 2700 puts the 10% ceiling at 2970 and the 2600 kcal day is inside it.
+40 new/changed tests (10 backend over the streak maths and payloads, 16 frontend).
