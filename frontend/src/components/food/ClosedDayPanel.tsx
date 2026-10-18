@@ -1,4 +1,5 @@
 import type { DiaryCompletionSummary } from '@/api/diary'
+import StreakStrip from './StreakStrip'
 
 interface Props {
   summary: DiaryCompletionSummary
@@ -24,11 +25,9 @@ function pounds(value: number | null | undefined): string {
  * Reopen — so closing reads as a finish line rather than a hidden toggle.
  */
 export default function ClosedDayPanel({ summary, onReopen, reopening = false }: Props) {
-  const { projection, streaks, status, message, totals, goal_calories: goal } = summary
+  const { projection, streaks, week, status, message, totals, goal_calories: goal } = summary
   const hasProjection = projection.change_lbs !== null && projection.change_lbs !== undefined
   const losing = (projection.change_lbs ?? 0) < 0
-  const closed = streaks?.closed_days ?? 0
-  const onTarget = streaks?.within_goal_days ?? 0
 
   return (
     <div className="bg-white rounded-lg overflow-hidden border border-[#cfe8d5]">
@@ -47,6 +46,12 @@ export default function ClosedDayPanel({ summary, onReopen, reopening = false }:
         </button>
       </div>
 
+      {week && (
+        <div className="px-2 pt-2">
+          <StreakStrip streaks={streaks} week={week} />
+        </div>
+      )}
+
       <div className="px-4 py-3 space-y-3">
         {hasProjection ? (
           <p className="text-sm" style={{ color: '#212121' }}>
@@ -63,21 +68,6 @@ export default function ClosedDayPanel({ summary, onReopen, reopening = false }:
         ) : (
           <p className="text-sm" style={{ color: GREY }}>{message}</p>
         )}
-
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-lg py-2 text-center" style={{ background: '#f2f2f2' }}>
-            <p className="text-lg font-bold" style={{ color: '#212121' }}>{closed}</p>
-            <p className="text-[11px]" style={{ color: GREY }}>
-              {closed === 1 ? 'day closed in a row' : 'days closed in a row'}
-            </p>
-          </div>
-          <div className="rounded-lg py-2 text-center" style={{ background: '#f2f2f2' }}>
-            <p className="text-lg font-bold" style={{ color: '#212121' }}>{onTarget}</p>
-            <p className="text-[11px]" style={{ color: GREY }}>
-              {onTarget === 1 ? 'day' : 'days'} within {streaks.tolerance_pct}% of goal
-            </p>
-          </div>
-        </div>
 
         {status !== 'ok' && (
           <div

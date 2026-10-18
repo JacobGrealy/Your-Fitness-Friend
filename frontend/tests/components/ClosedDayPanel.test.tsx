@@ -22,6 +22,21 @@ const summary: DiaryCompletionSummary = {
     within_goal_today: true,
     tolerance_pct: 10,
   },
+  week: {
+    start: '2026-10-11',
+    end: '2026-10-17',
+    days: [
+      { date: '2026-10-11', state: 'on_target' as const },
+      { date: '2026-10-12', state: 'on_target' as const },
+      { date: '2026-10-13', state: 'closed' as const },
+      { date: '2026-10-14', state: 'on_target' as const },
+      { date: '2026-10-15', state: 'on_target' as const },
+      { date: '2026-10-16', state: 'on_target' as const },
+      { date: '2026-10-17', state: 'on_target' as const },
+    ],
+    closed: 7,
+    on_target: 6,
+  },
   message: 'Based on this day, repeated for five weeks.',
 }
 
@@ -43,13 +58,13 @@ describe('ClosedDayPanel (FF-0068)', () => {
     expect(screen.getByText(/169\.2 lb/)).toBeInTheDocument()
   })
 
-  it('shows both streaks, worded for a plural', () => {
+  it('carries the week strip, and best streak is not here', () => {
     render(<ClosedDayPanel summary={summary} onReopen={jest.fn()} />)
 
-    expect(screen.getByText('5')).toBeInTheDocument()
-    expect(screen.getByText('days closed in a row')).toBeInTheDocument()
-    expect(screen.getByText('3')).toBeInTheDocument()
-    expect(screen.getByText('days within 10% of goal')).toBeInTheDocument()
+    expect(screen.getByTestId('streak-strip')).toBeInTheDocument()
+    expect(screen.getByText('days closed')).toBeInTheDocument()
+    expect(screen.getByText('6')).toBeInTheDocument()          // on target this week
+    expect(screen.queryByText(/best/i)).not.toBeInTheDocument()
   })
 
   it('reads naturally on a one-day streak', () => {
@@ -63,8 +78,7 @@ describe('ClosedDayPanel (FF-0068)', () => {
       />
     )
 
-    expect(screen.getByText('day closed in a row')).toBeInTheDocument()
-    expect(screen.getByText('day within 10% of goal')).toBeInTheDocument()
+    expect(screen.getByText('day closed')).toBeInTheDocument()
   })
 
   it('nudges against adding more once closed', () => {

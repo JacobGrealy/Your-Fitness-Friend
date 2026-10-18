@@ -12,6 +12,37 @@ export interface DiaryStreaks {
   tolerance_pct: number
 }
 
+export type DiaryDayState = 'on_target' | 'closed' | 'open' | 'missed' | 'future'
+
+export interface DiaryWeekDay {
+  date: string
+  state: DiaryDayState
+}
+
+/** The Sunday–Saturday strip: seven dots plus its counts. */
+export interface DiaryWeek {
+  start: string
+  end: string
+  days: DiaryWeekDay[]
+  closed: number
+  on_target: number
+}
+
+export interface DiaryBadge {
+  id: 'perfect_week' | 'on_target_week' | 'golden_week'
+  title: string
+  rule: string
+  count: number
+  earned: boolean
+  progress: { closed: number; on_target: number; of: number }
+}
+
+export interface DiaryBadges {
+  week: DiaryWeek
+  badges: DiaryBadge[]
+  stats: { days_closed: number; best_streak: number }
+}
+
 export interface DiaryCompletionSummary {
   date: string
   completed: boolean
@@ -33,6 +64,7 @@ export interface DiaryCompletionSummary {
     start_weight_lbs: number | null
   }
   streaks: DiaryStreaks
+  week?: DiaryWeek
   /** Alias of streaks.closed_days, kept for older payloads. */
   streak?: number
   message: string
@@ -43,7 +75,7 @@ export interface DiaryCompletionSummary {
  * projection panel renders without re-posting) or just the live streaks.
  */
 export type DiaryCompletionState =
-  | ({ date: string; completed: false; streaks: DiaryStreaks })
+  | { date: string; completed: false; streaks: DiaryStreaks; week?: DiaryWeek }
   | (DiaryCompletionSummary & { completed: true })
 
 /**
@@ -58,8 +90,17 @@ export const diaryApi = {
   getCompletion: (date: string) =>
     api.get<DiaryCompletionState>('/food/diary/completion', { params: { date } }).then((res) => res.data),
 
+  /** Repeatable week badges plus lifetime stats, for the More page. */
+  getBadges: (date: string) =>
+    api.get<DiaryBadges>('/food/diary/badges', { params: { date } }).then((res) => res.data),
+
   undo: (date: string) =>
-    api.delete<{ completed: boolean; removed: boolean; streaks?: DiaryStreaks }>(
+    api.delete<{
+      completed: boolean
+      removed: boolean
+      streaks?: DiaryStreaks
+      week?: DiaryWeek
+    }>(
       '/food/diary/complete',
       { params: { date } }
     ).then((res) => res.data),

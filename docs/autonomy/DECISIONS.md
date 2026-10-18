@@ -656,3 +656,32 @@ history must remain interpretable — which is exactly why the per-day goal is s
 Weeks are Sunday-start because `date.weekday()` counts from Monday (Sunday is 6), and
 the badge *and* the strip must agree on where a week begins or the reward contradicts
 the evidence. `week_start()` is the single definition.
+
+## 2026-10-18 — The strip shows the week you can still affect; best streak does not belong there
+
+Built to the owner's spec, with one addition that only showed up on a real Sunday.
+
+**The strip names its week.** The owner chose the full Sunday–Saturday week, which means
+that on a Sunday it is empty while the run length above it can read "5 days closed" —
+those five days belong to the week that just ended. Both numbers were correct and looked
+like they disagreed, so the strip now says `this week` above the dots. Naming the window
+is cheaper and more honest than fudging the window.
+
+**The dot states are four, and none of them is red.** `on_target` green, `closed` blue
+(closed but over goal), `open` amber for today, `missed` hollow, `future` pale. A day
+that was closed but over goal is an honest state, not a failure, and colouring it as one
+would discourage exactly the behaviour the badge ladder rewards. The strip also carries
+its own deadline — the tag flips between "close today to keep it" and "today counts" —
+because a streak number without a deadline is trivia.
+
+**Best streak lives only in More.** On the diary it would compete with the week you can
+still change; in the badge section it is part of the record. Same reasoning that keeps
+it off Home.
+
+**Badges are counted, not ticked.** Each qualifying week adds to a count (a golden week
+also earns the two below it), so the section reads as a collection. Locked badges show
+progress through the *current* week rather than a grey mystery.
+
+One implementation note: `StreakStrip` is a single component used by the diary (open
+state), the closed panel and Home — one visual language, one set of states, and the only
+per-screen difference is which container it sits in.

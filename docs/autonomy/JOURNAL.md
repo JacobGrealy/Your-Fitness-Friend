@@ -1427,3 +1427,31 @@ page. 11 new tests: week-start mapping across the whole week, the five day state
 badge ladder (golden earns all three, 5/7 earns two, 4/7 earns one, a gap earns none),
 accumulation across weeks, per-day goal judgement, best streak across a gap, and the
 endpoint shape.
+
+## Round 62 — 2026-10-18 — FF-0072 the strip and the badge collection
+
+Frontend half of the streak work. `StreakStrip` is one component rendered in three
+places — the open diary, inside the closed-day panel, and under the calorie bar on Home
+— so the visual language cannot drift between screens. Best streak stayed out of all
+three, per the owner, and appears only in the More page's badge section.
+
+Four dot states, no red anywhere: on target (green), closed-but-over (blue), today-open
+(amber ring), missed (hollow), future (pale). A day closed over goal is an honest state,
+not a failure; painting it red would discourage the exact behaviour the badges reward.
+
+A real bug fell out of testing on an actual Sunday: the strip is empty on Sunday while
+the run length reads "5 days closed", because those days belong to the week that just
+ended. Both numbers are right and look like they disagree, so the strip now labels
+itself "this week". Naming the window was cheaper — and more honest — than changing it.
+
+Badges are counted (`× 4`), since they are repeatable, and locked ones show progress
+through the current week (1/7, 0/7) rather than a mystery. All derived from history.
+
+Found while screenshotting: the More tab is `/profile`, not `/more` — `/more` is served
+by the SPA catch-all and renders an empty shell, which is what an earlier round measured
+when it listed "/more" among the navigable destinations. Worth remembering before
+trusting a 200 from this app.
+
+Tests: 6 for the strip (states, labels, colours, the on-target count, singular/plural),
+4 for the badges section (counts, locked progress, stats including best streak, and
+rendering nothing when the endpoint fails), plus updated panel and page tests.

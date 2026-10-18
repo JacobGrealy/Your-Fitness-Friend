@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useDashboardStore } from '@/store/dashboardStore'
 import { WeightTrendChart } from '@/components/charts'
 import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
+import StreakStrip from '@/components/food/StreakStrip'
+import { diaryApi, type DiaryStreaks, type DiaryWeek } from '@/api/diary'
+import { todayLocal } from '@/utils/localDate'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import Loading from '@/components/common/Loading'
 import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
@@ -39,6 +42,27 @@ function Dashboard() {
   } = useDashboardStore()
 
   useEffect(() => { setTitle('Home') }, [setTitle])
+
+  // The week strip lives here as well as on the diary (FF-0072): the reward should
+  // greet you on the screen you open first, not only where you close the day.
+  const [streaks, setStreaks] = useState<DiaryStreaks | null>(null)
+  const [week, setWeek] = useState<DiaryWeek | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    diaryApi.getCompletion(todayLocal())
+      .then((state) => {
+        if (cancelled) return
+        setStreaks(state.streaks ?? null)
+        setWeek(state.week ?? null)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setStreaks(null)
+        setWeek(null)
+      })
+    return () => { cancelled = true }
+  }, [])
 
   const [expandedMeals, setExpandedMeals] = useState<Record<string, boolean>>({})
 
@@ -120,6 +144,8 @@ function Dashboard() {
       <div className="p-4 space-y-4">
         {/* Calorie Summary */}
         <CalorieSummaryBar calories={dailySummary.calories} />
+
+        {streaks && week && <StreakStrip streaks={streaks} week={week} />}
 
         {/* Today's Meals */}
         <div className="bg-white rounded-lg overflow-hidden">

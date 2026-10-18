@@ -9,6 +9,7 @@ import CropModal from '@/components/common/CropModal'
 import { getAppRelease, type AppRelease } from '@/api/app'
 import { getRunningAppVersion, installApkUpdate, isUpdateAvailable } from '@/native'
 import RemindersCard from '@/components/profile/RemindersCard'
+import BadgesSection from '@/components/profile/BadgesSection'
 
 const ACTIVITY_LEVELS = [
   { value: 'sedentary', label: 'Sedentary', description: 'Little or no exercise, desk job' },
@@ -548,6 +549,8 @@ function Profile() {
           </div>
         </div>
       )}
+
+      <BadgesSection />
 
       <RemindersCard />
 

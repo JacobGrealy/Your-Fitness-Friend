@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
-import { diaryApi, type DiaryCompletionSummary, type DiaryStreaks } from '@/api/diary'
+import { diaryApi, type DiaryCompletionSummary, type DiaryStreaks, type DiaryWeek } from '@/api/diary'
 import CompleteDiaryModal from '@/components/food/CompleteDiaryModal'
 import ClosedDayPanel from '@/components/food/ClosedDayPanel'
+import StreakStrip from '@/components/food/StreakStrip'
 import { useFoodStore } from '@/store/foodStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { MealType, FoodLog } from '@/types'
@@ -158,6 +159,7 @@ export default function DailyFood() {
   const [completion, setCompletion] = useState<DiaryCompletionSummary | null>(null)
   const [completedToday, setCompletedToday] = useState(false)
   const [streaks, setStreaks] = useState<DiaryStreaks | null>(null)
+  const [week, setWeek] = useState<DiaryWeek | null>(null)
   const [completing, setCompleting] = useState(false)
   const [undoing, setUndoing] = useState(false)
 
@@ -181,11 +183,13 @@ export default function DailyFood() {
           setClosedSummary(null)
         }
         setStreaks(state.streaks ?? null)
+        setWeek(state.week ?? null)
       })
       .catch(() => {
         setCompletedToday(false)
         setClosedSummary(null)
         setStreaks(null)
+        setWeek(null)
       })
   }, [currentDate, fetchDailyTotals, fetchFoodLogs])
 
@@ -204,6 +208,7 @@ export default function DailyFood() {
       setCompletion(summary)
       setCompletedToday(true)
       setStreaks(summary.streaks ?? null)
+      setWeek(summary.week ?? null)
     } finally {
       setCompleting(false)
     }
@@ -218,6 +223,7 @@ export default function DailyFood() {
       setCompletedToday(false)
       // Reopening keeps yesterday's run: the streak only breaks if the day stays open.
       if (state?.streaks) setStreaks(state.streaks)
+      if (state?.week) setWeek(state.week)
     } finally {
       setUndoing(false)
     }
@@ -303,6 +309,8 @@ export default function DailyFood() {
           <ClosedDayPanel summary={closedSummary} onReopen={reopenDiary} reopening={undoing} />
         )}
 
+        {!completedToday && streaks && week && <StreakStrip streaks={streaks} week={week} />}
+
         <div className="space-y-4">
           {MEAL_TYPES.map(meal => {
             const logs = groupedLogs[meal]
@@ -332,12 +340,6 @@ export default function DailyFood() {
           bottom nav itself, and that mistake cost three rounds (FF-0051, FF-0053). */}
       {!completedToday && (
         <div className="px-4 pt-2 pb-2">
-          {streaks && streaks.closed_days > 0 && (
-            <p className="text-xs text-center mb-2" style={{ color: '#757575' }}>
-              {streaks.closed_days} {streaks.closed_days === 1 ? 'day' : 'days'} closed in a row
-              — close today to keep it going
-            </p>
-          )}
           <button
             type="button"
             onClick={completeDiary}

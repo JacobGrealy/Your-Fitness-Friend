@@ -2,6 +2,38 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Profile from '@/pages/Profile'
 
+// The page now asks the diary API for the week strip (FF-0072); the axios client it
+// imports uses import.meta.env, which jest cannot parse.
+jest.mock('@/api/diary', () => ({
+  diaryApi: {
+    getCompletion: jest.fn(() => Promise.resolve({
+      date: '2026-10-18',
+      completed: false,
+      streaks: { closed_days: 0, within_goal_days: 0, closed_today: false, within_goal_today: false, tolerance_pct: 10 },
+      week: {
+        start: '2026-10-11',
+        end: '2026-10-17',
+        days: [
+          { date: '2026-10-11', state: 'missed' }, { date: '2026-10-12', state: 'missed' },
+          { date: '2026-10-13', state: 'missed' }, { date: '2026-10-14', state: 'missed' },
+          { date: '2026-10-15', state: 'missed' }, { date: '2026-10-16', state: 'missed' },
+          { date: '2026-10-17', state: 'open' },
+        ],
+        closed: 0,
+        on_target: 0,
+      },
+    })),
+    getBadges: jest.fn(() => Promise.resolve({
+      week: { start: '2026-10-11', end: '2026-10-17', days: [], closed: 0, on_target: 0 },
+      badges: [],
+      stats: { days_closed: 0, best_streak: 0 },
+    })),
+    complete: jest.fn(),
+    undo: jest.fn(),
+  },
+}))
+
+
 // FF-0011: the Account and Help rows of the More page used to be dead tap
 // targets. They now open real sheets instead of silently doing nothing.
 
