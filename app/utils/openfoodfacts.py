@@ -25,7 +25,7 @@ TIMEOUT_SECONDS = 6
 BARCODE_RE = re.compile(r'^\d{6,14}$')
 
 _FIELDS = ('fields=product_name,product_name_en,generic_name,brands,'
-           'serving_size,nutriments')
+           'serving_size,serving_quantity,nutriments')
 
 
 class OpenFoodFactsUnavailable(Exception):
@@ -46,6 +46,73 @@ def _first_name(product):
         if value:
             return value
     return None
+
+
+#: Grams per unit for the serving units OpenFoodFacts actually uses.
+_UNIT_GRAMS = {
+    'g': 1.0,
+    'gr': 1.0,
+    'gram': 1.0,
+    'grams': 1.0,
+    'kg': 1000.0,
+    'ml': 1.0,
+    'l': 1000.0,
+    'cl': 10.0,
+    'oz': 28.3495,
+    'lb': 453.592,
+}
+
+_SERVING_RE = re.compile(r'^\s*([0-9]+(?:[.,][0-9]+)?)\s*([a-zA-Z]+)\s*$')
+
+
+def serving_mass_g(product):
+    """Grams in one serving, or None when the serving is not a mass.
+
+    OpenFoodFacts publishes both `serving_quantity` (a number, grams for solids) and
+    a human `serving_size` string. Either can name a mass; "1 cup" or "1 bar" cannot
+    be converted without inventing a density, and a guess is exactly the bug being
+    fixed here, so they return None.
+    """
+    quantity = product.get('serving_quantity')
+    try:
+        if quantity is not None:
+            grams = float(quantity)
+            if grams > 0:
+                return grams
+    except (TypeError, ValueError):
+        pass
+
+    match = _SERVING_RE.match(str(product.get('serving_size') or ''))
+    if not match:
+        return None
+    number = float(match.group(1).replace(',', '.'))
+    unit_grams = _UNIT_GRAMS.get(match.group(2).strip().lower())
+    if not unit_grams or number <= 0:
+        return None
+    return number * unit_grams
+
+
+def _serving_value(nutriments, key):
+    """A per-serving nutriment OpenFoodFacts computed itself, if it published one.
+
+    Preferred over scaling per-100g values: OFF already knows the serving's exact
+    mass and rounding, and it also covers servings that are not a plain mass.
+    """
+    value = nutriments.get(f'{key}_serving')
+    try:
+        if value is not None:
+            number = round(float(value), 1)
+            return number if number >= 0 else None
+    except (TypeError, ValueError):
+        pass
+    return None
+
+
+def _scale(value, factor):
+    """Scale a per-100g value to one serving, keeping one decimal."""
+    if value is None:
+        return None
+    return round(value * factor, 1)
 
 
 def _calories(nutriments):
@@ -101,15 +168,44 @@ def parse_product(payload):
         return None
 
     brand = (product.get('brands') or '').split(',')[0].strip() or None
-    serving_size = (product.get('serving_size') or '').strip() or '100 g'
+
+    # The nutriments above are all per 100 g. Presenting them as one serving made a
+    # 15 g serving of Nutella read as 539 kcal instead of 81 (FF-0063), so scale to
+    # the declared serving mass — or, when the serving is not a mass, keep the
+    # per-100g numbers and say so in the label. Number and label must agree.
+    # 1. OFF's own per-serving figures are authoritative when present.
+    published_calories = _serving_value(nutriments, 'energy-kcal')
+    if published_calories and published_calories > 0:
+        calories = round(published_calories)
+        protein_g = _serving_value(nutriments, 'proteins')
+        carbs_g = _serving_value(nutriments, 'carbohydrates')
+        fat_g = _serving_value(nutriments, 'fat')
+        serving_size = (product.get('serving_size') or '').strip() or '1 serving'
+    else:
+        grams = serving_mass_g(product)
+
+    if not published_calories and grams:
+        factor = grams / 100.0
+        calories = round(calories * factor)
+        if calories <= 0:
+            return None
+        protein_g = _scale(_macro(nutriments, 'proteins_100g'), factor)
+        carbs_g = _scale(_macro(nutriments, 'carbohydrates_100g'), factor)
+        fat_g = _scale(_macro(nutriments, 'fat_100g'), factor)
+        serving_size = (product.get('serving_size') or '').strip() or f'{round(grams)} g'
+    elif not published_calories:
+        protein_g = _macro(nutriments, 'proteins_100g')
+        carbs_g = _macro(nutriments, 'carbohydrates_100g')
+        fat_g = _macro(nutriments, 'fat_100g')
+        serving_size = '100 g'
 
     return {
         'name': name[:120],
         'brand': brand[:100] if brand else None,
         'calories': calories,
-        'protein_g': _macro(nutriments, 'proteins_100g'),
-        'carbs_g': _macro(nutriments, 'carbohydrates_100g'),
-        'fat_g': _macro(nutriments, 'fat_100g'),
+        'protein_g': protein_g,
+        'carbs_g': carbs_g,
+        'fat_g': fat_g,
         'serving_size': serving_size[:255],
     }
 
