@@ -134,6 +134,9 @@ function Profile() {
   }, [])
 
   const handleCropComplete = async (croppedFile: File) => {
+    // A second confirm while the first upload is in flight would write a second file and
+    // leave the first unreferenced (FF-0080).
+    if (uploadingPhoto) return
     setCropModalOpen(false)
     setCropFile(null)
     setUploadingPhoto(true)
