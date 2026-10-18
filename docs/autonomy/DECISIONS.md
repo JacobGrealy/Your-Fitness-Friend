@@ -464,3 +464,31 @@ Two consequences accepted deliberately:
   code is served from the server, the plugin lives in the binary. An older install
   gets `'unsupported'` and a line telling the user to install the latest, never a
   switch that silently does nothing.
+
+## 2026-10-17 — Android needs to be *told* about the camera, twice
+
+"Take photo" behaved like "Choose from library". The button was fine and so was the
+JS; two manifest omissions were hiding it, and neither is visible from the web side.
+
+**Package visibility (Android 11+).** Capacitor's `showImageCapturePicker` refuses
+to launch the capture intent when
+`takePictureIntent.resolveActivity(packageManager)` returns null, and under package
+visibility filtering that is null unless the app declares a `<queries>` element for
+the intent. It then logs "Media capture intent could not be launched. Falling back
+to default file picker" and opens the gallery — a silent downgrade, indistinguishable
+from a working gallery button. A `<queries>` block for `android.media.action.IMAGE_CAPTURE`
+(and `GET_CONTENT` for `image/*`) fixes it. Note the `<queries>` element is only
+about *visibility for resolution*; it grants nothing.
+
+**The CAMERA permission.** Capacitor's `onPermissionRequest` translates
+`webkit.resource.VIDEO_CAPTURE` into a request for `Manifest.permission.CAMERA` and
+`request.deny()`s when that fails — so without the permission declared, `getUserMedia`
+cannot work at all. That means the barcode scanner (FF-0030) was broken for a reason
+no amount of host-side testing could reveal: the permission was never in the manifest,
+so the OS denied the request instantly.
+
+Rule for this project: **anything the WebView asks the OS for must exist in
+`android/app/src/main/AndroidManifest.xml`, and anything resolved rather than started
+implicitly needs a `<queries>` entry too.** Verify in the built artifact with
+`aapt2 dump permissions` and `aapt2 dump xmltree --file AndroidManifest.xml`, not
+from the Gradle log, because both failures produce a working-looking app.

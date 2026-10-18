@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T20:44
+  updated_at: 2026-10-17T20:52
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1840,4 +1840,51 @@ intake:
     Closed: removed the already-done restart item (service started 20:38:11 EDT, after the FF-0054 merge;
     the diary routes answer 401/405 rather than 404), recorded Complete Diary as live end to end, refreshed
     the APK line to 0.1.6/versionCode 7, and added the reminder-delivery check to the owner list.'
+  comments: []
+- id: FF-0058
+  title: 'Camera never opens: no <queries> for IMAGE_CAPTURE and no CAMERA permission'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T20:51
+  updated_at: 2026-10-17T20:52
+  completed_at: 2026-10-17T20:52
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: In the app, choosing a food photo only opens the gallery - the camera never launches
+    - so photographing a meal on the spot is impossible. The UI already has a "Take photo" button, which
+    quietly behaves like "Choose from library".
+
+
+    2) Technical Details: root cause found in Capacitor''s BridgeWebChromeClient. showImageCapturePicker()
+    first does `takePictureIntent.resolveActivity(packageManager)` and returns false when that is null,
+    then showMediaCaptureOrFilePicker() logs "Media capture intent could not be launched. Falling back
+    to default file picker" and opens the gallery instead. Since our targetSdk is 36 (Android 11+ package
+    visibility filtering), resolveActivity for MediaStore.ACTION_IMAGE_CAPTURE returns null unless the
+    app declares a <queries> element for that intent - and android/app/src/main/AndroidManifest.xml has
+    no <queries> at all. The blast radius is all five pages that already carry capture="environment":
+    Food/PhotoLog, Food/EditFoodLog, Meals/UploadPhoto, Weight/LogWeight, Weight/EditWeight. SECOND, RELATED
+    BUG: android.permission.CAMERA is not declared either (verified with aapt2 dump permissions on 0.1.6:
+    only INTERNET, REQUEST_INSTALL_PACKAGES, POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, RECEIVE_BOOT_COMPLETED,
+    WAKE_LOCK). BridgeWebChromeClient.onPermissionRequest launches a request for Manifest.permission.CAMERA
+    for VIDEO_CAPTURE and denies the request when it fails, so getUserMedia - the barcode scanner from
+    FF-0030 - cannot work either. Fix: add the CAMERA permission and a <queries> block declaring IMAGE_CAPTURE
+    (plus GET_CONTENT image/* so the gallery fallback resolves explicitly), then rebuild as 0.1.7 (versionCode
+    8). Verify in the artifact with aapt2 that CAMERA is an uses-permission and that the queries element
+    declares android.media.action.IMAGE_CAPTURE; the UI needs no change. Delivery limit: whether the camera
+    really opens can only be confirmed on the phone.
+
+
+    Closed: two manifest omissions, no code fault. (1) No <queries> element, so under Android 11+ package
+    visibility Capacitor''s resolveActivity(ACTION_IMAGE_CAPTURE) returned null and it silently fell back
+    to the gallery picker - affecting all five pages with capture=environment. Added <queries> for IMAGE_CAPTURE
+    and GET_CONTENT image/*. (2) android.permission.CAMERA was never declared, and Capacitor''s onPermissionRequest
+    denies VIDEO_CAPTURE when the CAMERA request fails, so getUserMedia could not work either - the barcode
+    scanner (FF-0030) was broken on every build so far. APK 0.1.7 (versionCode 8) verified with aapt2:
+    CAMERA is an uses-permission and the merged manifest carries both queries intents. On-device confirmation
+    still needed.'
   comments: []
