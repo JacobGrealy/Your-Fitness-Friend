@@ -399,3 +399,39 @@ scrollable emptiness on top of the shell's. The 36px still reported by
 `/weight/log` is *not* that — it is the clearance that lets the submit button
 scroll out from behind the fixed nav, and removing it would strand the button
 under the bar.
+
+## 2026-10-17 — Complete Diary copies MyFitnessPal's rules, including the ones that say no
+
+Researched from MyFitnessPal's own help centre (article 360032624131, "How does
+the Complete This Entry or Finish logging for today feature work?", updated
+2026-10-10) rather than from memory, because the details that matter are the
+cautious ones:
+
+- The projection is **five weeks**: 35 days of "just like today", from the
+  current weight. Framed as motivational, not predictive — MFP says the same.
+- **Under-eating thresholds are gender-specific.** At/above 1200 kcal (women) or
+  1500 (men) the projection is shown plainly. Between 1000–1199 / 1200–1499 it is
+  shown **with** an under-eating warning. Below 1000 / 1200 the warning replaces
+  the projection.
+- Completing is **not required** for the logging streak, and you can keep logging
+  afterwards and complete again.
+
+AweFit keeps all three. `evaluate_intake` holds the bands in one place, and
+`build_completion` withholds `change_lbs` — rather than clamping it — whenever the
+number would be misleading: nothing logged, intake below the threshold, or a
+profile missing age/height/weight/activity so TDEE cannot be computed. A wrong
+projection is worse than an absent one; the UI shows the reason in the same slot
+the number would occupy.
+
+Two deliberate departures:
+
+- **Unknown gender raises no warning.** There is no honest basis for picking a
+  gender-specific threshold, so we do not guess one.
+- **The completion is persisted** (`diary_completions`, one row per user per day)
+  so the diary can show that a day was finished and the app can count consecutive
+  completions. MFP's completion is largely a window; ours is a record. Re-completing
+  updates the row, matching MFP's "carry on logging and complete again".
+
+Deferred on purpose: sharing a day (MFP offers it), and any tie between completion
+and a logging streak — MFP explicitly says those are separate, and inventing a
+coupling would make the app nag about a thing that does not matter.

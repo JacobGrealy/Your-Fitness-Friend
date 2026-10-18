@@ -1125,3 +1125,40 @@ button 736–780 (`acceptFullyVisible: true`), chat input 597–635
 The honest lesson, now twice over: the shell can only clear chrome it owns, and a
 page with its own floating element must clear that too. "Duplicate padding" is not
 a property of a number, it is a property of what the number is for.
+
+## Round 52 — 2026-10-17 — FF-0054 Complete Diary, researched before it was written
+
+The owner asked for MyFitnessPal's Complete Diary and told me to research it first,
+which turned out to matter: the feature is not just "a summary screen", it is a
+summary screen with three rules about when **not** to show a number.
+
+DuckDuckGo was rate-limited from this host and MFP's site 403s a plain fetch, so I
+went to the Zendesk API behind their help centre
+(`support.myfitnesspal.com/api/v2/help_center/articles/search.json`), found article
+360032624131, and read the rules from the source rather than reconstructing them:
+five-week projection from current weight assuming every day matches today, framed
+as motivational; gender-specific under-eating bands (1200/1500 fine, 1000–1199 /
+1200–1499 warn, below that no projection); and completing is *not* required for
+the logging streak, nor final — you can keep logging and complete again.
+
+Backend: `diary_completions` (one row per user per day, unique constraint, migration
+`1ed0f5b7343d`), `app/utils/diary_completion.py` holding the bands and the maths
+(35 days, 3500 kcal/lb, reusing the existing Mifflin-St Jeor `bmr_calculator`), and
+`/api/food/diary/{complete,completion}` with POST/GET/DELETE. A missing profile,
+an empty day, or intake below the threshold all yield `change_lbs: null` plus the
+reason — never a guessed number. 23 backend tests cover the arithmetic, each band,
+upsert, streak, undo and the withheld cases.
+
+Frontend: `api/diary.ts`, a `CompleteDiaryModal`, and the button placed **inline at
+the end of the diary content**, deliberately not in a fixed bar — a floating element
+has to clear the bottom nav itself and that cost three rounds (FF-0051…FF-0053). 8
+jest tests cover the modal's states.
+
+Verified end to end on a throwaway server with a real session: 3 logs totalling
+2000 kcal against a 2720 kcal TDEE gave `change_lbs: -7.2`, `169.2 lb from 176.4 lb`
+— 720 × 35 ÷ 3500, correct. Driving the UI put the same numbers on screen, the
+completed chip and undo both worked, and the page reported no layout overflow.
+
+One process note: the first UI run "failed" because the day was already completed by
+my own earlier curl, so the page correctly showed the completed state and the
+Complete Diary button genuinely was not there. The test was wrong, not the app.

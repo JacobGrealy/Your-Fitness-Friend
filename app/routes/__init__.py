@@ -8,6 +8,7 @@ from app.routes.user import bp as user_bp
 from app.routes.dashboard import bp as dashboard_bp
 from app.routes.app_release import bp as app_release_bp, download_bp as download_bp
 from app.routes.barcode_lookup import bp as barcode_bp
+from app.routes.diary import bp as diary_bp
 
 __all__ = [
     'auth_bp',
@@ -21,4 +22,5 @@ __all__ = [
     'app_release_bp',
     'download_bp',
     'barcode_bp',
+    'diary_bp',
 ]

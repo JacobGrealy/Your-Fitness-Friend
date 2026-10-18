@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T20:16
+  updated_at: 2026-10-17T20:25
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1678,4 +1678,57 @@ intake:
     nav; restored as pb-12. Verified by intercepting POST /api/meals/ai-log with a canned analysis and
     uploading a 1x1 PNG, then measuring at max scroll: nav 787-844, bar 724-780, Accept 736-780 fully
     visible, chat input 597-635 clear.'
+  comments: []
+- id: FF-0054
+  title: 'Complete Diary: end-of-day summary with a five-week weight projection'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-17T20:18
+  updated_at: 2026-10-17T20:25
+  completed_at: 2026-10-17T20:25
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: At the end of the day there is no way to say "I''m done logging" and get the
+    payoff MyFitnessPal gives: a summary of the day and a projection of where that pattern takes you in
+    five weeks.
+
+
+    2) Technical Details: Mirrors MyFitnessPal''s "Complete This Entry" / "Finish logging for today",
+    researched from their help centre article 360032624131 (support.myfitnesspal.com, updated 2026-10-10):
+    it shows a FIVE-WEEK weight projection from today''s logging, using current weight as the start and
+    assuming every one of the next 35 days matches today; it is a motivational estimate only; completing
+    is NOT required for the logging streak and you can keep logging and complete again; and there are
+    under-eating thresholds by gender - at/above 1200 kcal (women) or 1500 (men) the projection is shown,
+    between 1000-1199 / 1200-1499 the projection is shown WITH an under-eating warning, and below 1000
+    / 1200 the warning appears and the projection is withheld.
+
+
+    Backend: new model DiaryCompletion (user_id, date, completed_at, calories, protein_g, carbs_g, fat_g,
+    change_lbs, unique on user_id+date) with a migration; new blueprint app/routes/diary.py mounted at
+    /api/food/diary with POST /complete (upsert), GET /completion?date= and DELETE /complete?date= (undo);
+    projection lives in app/utils/diary_completion.py and reuses the existing app/utils/bmr_calculator.py
+    for BMR/TDEE (Mifflin-St Jeor) and app/utils/daily_totals.py for the day''s totals. Projection: change_lbs
+    = (calories - tdee) * 35 / 3500, rendered as a projected weight = current weight + change. Withhold
+    the projection when the diary is empty (nothing to project) or when intake is below the gender threshold,
+    and skip the warning entirely when gender is unknown. Frontend: api/diary.ts, a CompleteDiaryModal
+    component, and a Complete Diary button at the END of the diary content in DailyFood.tsx - deliberately
+    NOT a fixed bar, because the fixed-bar clearance bugs in FF-0051/FF-0053 cost three rounds; a completed
+    day shows a completed state with the option to undo. Tests: backend projection math and each threshold
+    band, upsert, undo, empty diary, streak, auth required; frontend modal rendering and the button''s
+    completed/undo states.
+
+
+    Closed: researched from MFP help article 360032624131 (Zendesk API) - five-week projection, gender
+    under-eating bands (1200/1500 fine, 1000-1199/1200-1499 warn, below = no projection), completion not
+    required for streaks and repeatable. Backend: diary_completions table + migration 1ed0f5b7343d, app/utils/diary_completion.py
+    (35 days, 3500 kcal/lb, reuses bmr_calculator), /api/food/diary/complete POST+DELETE and /completion
+    GET. Projection withheld (not clamped) for empty days, low intake and incomplete profiles. 23 backend
+    tests. Frontend: api/diary.ts, CompleteDiaryModal, button inline at the end of the diary content (not
+    a fixed bar). 8 jest tests. Verified on a throwaway server: 2000 kcal vs 2720 TDEE -> -7.2 lb, 169.2
+    from 176.4 lb, UI matched, chip+undo work, no overflow. Gates: 154 backend, 214 frontend.'
   comments: []
