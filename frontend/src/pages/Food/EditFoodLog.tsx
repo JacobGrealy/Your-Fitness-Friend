@@ -6,6 +6,7 @@ import { editFoodLogSchema } from '@/utils/schemas'
 import type { FoodLogCreate, MealType } from '@/types'
 import { useFoodStore } from '@/store/foodStore'
 import PhotoSourceChooser from '@/components/common/PhotoSourceChooser'
+import BarcodeScanner from '@/components/food/BarcodeScanner'
 import Button from '@/components/common/Button'
 import Spinner from '@/components/common/Spinner'
 import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
@@ -17,6 +18,9 @@ export default function EditFoodLog() {
 
   // Camera or gallery, chosen explicitly (FF-0078).
   const [showPhotoSources, setShowPhotoSources] = useState(false)
+  // Scanning straight into the barcode field (FF-0081).
+  const [scanning, setScanning] = useState(false)
+  const [scanError, setScanError] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -138,7 +142,7 @@ export default function EditFoodLog() {
         return      // stay put: the store has already explained the failure
       }
     }
-    await updateFoodLog(id, {
+    const basePayload = {
       food_name: data.food_name,
       calories: data.calories,
       protein_g: data.protein_g,
@@ -147,10 +151,14 @@ export default function EditFoodLog() {
       number_of_servings: data.number_of_servings,
       serving_size: data.serving_size,
       brand: data.brand,
-      barcode_id: data.barcode_id,
       date: data.date,
       meal_type: data.meal_type,
-    })
+    } satisfies Omit<typeof data, 'barcode_id'>
+
+    // Only send a barcode when the user actually has one, so editing any other field
+    // cannot wipe the code that came from the scanner.
+    const barcode = (data.barcode_id ?? '').trim()
+    await updateFoodLog(id, barcode ? { ...basePayload, barcode_id: barcode } : basePayload)
     navigate(-1)
   }
 
@@ -438,16 +446,79 @@ export default function EditFoodLog() {
         {/* Barcode */}
         <div className="bg-white rounded-lg p-4">
           <label className="block text-sm font-medium text-mfp-text mb-2">Barcode ID (optional)</label>
-          <input
-            type="text"
-            {...register('barcode_id')}
-            placeholder="e.g. 012345678901"
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              {...register('barcode_id')}
+              placeholder="e.g. 012345678901"
+              className="flex-1 min-w-0 px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
+            />
+            {/* Fill the field with the camera instead of typing the digits (FF-0081). */}
+            <button
+              type="button"
+              onClick={() => { setScanError(null); setScanning(true) }}
+              aria-label="Scan barcode"
+              className="flex-shrink-0 w-12 flex items-center justify-center border border-gray-300 rounded-lg bg-white"
+            >
+              <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#212121" strokeWidth="1.6">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M7 7v10M10 7v10M13.5 7v10M16 7v10M18 7v10" strokeWidth="1.1" />
+              </svg>
+            </button>
+          </div>
           {errors.barcode_id && (
             <p className="mt-1 text-xs text-mfp-error">{errors.barcode_id.message}</p>
           )}
         </div>
+
+        {scanning && (
+          <div
+            role="dialog"
+            aria-label="Scan barcode"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex flex-col"
+            style={{ background: '#000' }}
+          >
+            <div className="flex items-center justify-between px-4 py-3">
+              <p className="text-sm font-semibold text-white">Scan barcode</p>
+              <button
+                type="button"
+                onClick={() => setScanning(false)}
+                aria-label="Close scanner"
+                className="text-white text-2xl leading-none px-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            {scanError ? (
+              <div className="px-4 py-6">
+                <p className="text-sm text-white">{scanError}</p>
+                <p className="text-xs mt-2" style={{ color: '#bdbdbd' }}>
+                  The scanner needs the app over https, or the camera permission.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setScanning(false)}
+                  className="mt-4 w-full py-3 rounded-xl text-sm font-semibold"
+                  style={{ background: '#185ADB', color: '#fff' }}
+                >
+                  Type the code instead
+                </button>
+              </div>
+            ) : (
+              <div className="flex-1 min-h-0">
+                <BarcodeScanner
+                  onDetected={(code) => {
+                    setValue('barcode_id', code, { shouldDirty: true })
+                    setScanning(false)
+                  }}
+                  onUnavailable={(reason) => setScanError(reason)}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Buttons */}
         <div className="flex gap-3 pt-2">

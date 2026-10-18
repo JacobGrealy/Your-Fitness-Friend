@@ -43,6 +43,20 @@ def _remove_photo_file(photo_url):
         pass
 
 
+def _clean_barcode(value):
+    """Normalise a supplied barcode, treating blank as absent (FF-0081).
+
+    An empty string is not a barcode. Three write paths used to store one - the log PUT
+    checked `is not None`, which an empty string passes - so saving the edit form with a
+    blank field destroyed a code that had come from the scanner, and the linked Food
+    followed when the log was synced.
+    """
+    if value is None:
+        return None
+    cleaned = str(value).strip()
+    return cleaned or None
+
+
 def _sync_linked_food(log):
     """Copy edited nutrition onto the linked Food record.
 
@@ -64,8 +78,8 @@ def _sync_linked_food(log):
     food.serving_size = log.serving_size
     if log.brand is not None:
         food.brand = log.brand
-    if log.barcode_id is not None:
-        food.barcode_id = log.barcode_id
+    if _clean_barcode(log.barcode_id) is not None:
+        food.barcode_id = _clean_barcode(log.barcode_id)
 
 
 @bp.route('', methods=['GET'])
@@ -211,7 +225,9 @@ def create_food():
             food.fat_g = fat_g
             food.serving_size = serving_size
             food.brand = brand
-            food.barcode_id = barcode_id
+            cleaned = _clean_barcode(barcode_id)
+            if cleaned is not None:
+                food.barcode_id = cleaned
     else:
         food = Food(
             user_id=current_user.id,
@@ -222,7 +238,7 @@ def create_food():
             fat_g=fat_g,
             serving_size=serving_size,
             brand=brand,
-            barcode_id=barcode_id
+            barcode_id=_clean_barcode(barcode_id)
         )
         db.session.add(food)
     
@@ -388,7 +404,9 @@ def create_food_log():
             food.carbs_g = data.get('carbs_g', food.carbs_g)
             food.fat_g = data.get('fat_g', food.fat_g)
             food.brand = data.get('brand', food.brand)
-            food.barcode_id = data.get('barcode_id', food.barcode_id)
+            incoming = _clean_barcode(data.get('barcode_id'))
+            if incoming is not None:
+                food.barcode_id = incoming
             if serving_size is not None:
                 food.serving_size = serving_size
             db.session.commit()
@@ -396,7 +414,7 @@ def create_food_log():
             barcode_id = food.barcode_id
     else:
         brand = data.get('brand')
-        barcode_id = data.get('barcode_id')
+        barcode_id = _clean_barcode(data.get('barcode_id'))
     
     food_log = FoodLog(
         user_id=current_user.id,
@@ -539,8 +557,10 @@ def update_food_log(log_id):
         log.serving_size = data['serving_size']
     if data.get('brand') is not None:
         log.brand = data['brand']
-    if data.get('barcode_id') is not None:
-        log.barcode_id = data['barcode_id']
+    if 'barcode_id' in data:
+        cleaned = _clean_barcode(data.get('barcode_id'))
+        if cleaned is not None:
+            log.barcode_id = cleaned
     if data.get('photo_url') is not None:
         log.photo_url = data['photo_url']
 
