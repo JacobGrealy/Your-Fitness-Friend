@@ -6,6 +6,7 @@ import uuid
 import os
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db
+from app.utils.uploads import stored_file_path, upload_dir
 from app.models.user import User
 from app.utils.bmr_calculator import calculate_bmr_and_macros
 from app.utils.nutrition_service import calculate_calorie_goal, recalculate_user_calories
@@ -322,10 +323,8 @@ def upload_profile_photo():
         return jsonify({'error': 'File too large. Maximum size is 10MB.'}), 400
 
     if current_user.profile_photo_path:
-        old_path = os.path.join(
-            current_app.root_path,
-            'uploads',
-            current_user.profile_photo_path
+        old_path = stored_file_path(
+            os.path.join('profile_photos', current_user.profile_photo_path)
         )
         if os.path.exists(old_path):
             try:
@@ -335,12 +334,7 @@ def upload_profile_photo():
 
     unique_filename = f"{uuid.uuid4().hex}.{extension}"
 
-    upload_folder = os.path.join(
-        current_app.root_path,
-        'uploads',
-        'profile_photos'
-    )
-    os.makedirs(upload_folder, exist_ok=True)
+    upload_folder = upload_dir('profile_photos')
     filepath = os.path.join(upload_folder, unique_filename)
     file.save(filepath)
 
@@ -357,10 +351,8 @@ def upload_profile_photo():
 def delete_profile_photo():
     """Delete the user's profile photo."""
     if current_user.profile_photo_path:
-        file_path = os.path.join(
-            current_app.root_path,
-            'uploads',
-            current_user.profile_photo_path
+        file_path = stored_file_path(
+            os.path.join('profile_photos', current_user.profile_photo_path)
         )
         if os.path.exists(file_path):
             try:
@@ -377,8 +369,7 @@ def delete_profile_photo():
 @login_required
 def serve_profile_photo(filename):
     """Serve an uploaded profile photo."""
-    upload_folder = os.path.join(current_app.root_path, 'uploads', 'profile_photos')
-    filepath = os.path.join(upload_folder, filename)
+    filepath = stored_file_path(os.path.join('profile_photos', filename))
     if os.path.exists(filepath):
         return send_file(filepath)
     return jsonify({'error': 'File not found'}), 404

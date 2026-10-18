@@ -54,8 +54,11 @@ class Config:
     APP_RELEASE_DIR = os.environ.get('APP_RELEASE_DIR') or os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'releases')
 
-    # Upload Configuration
-    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+    # Upload Configuration. Environment-driven so a throwaway server can keep its photos
+    # in a temp directory next to its database copy instead of writing into app/uploads
+    # (FF-0079). Unset means the historical location.
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'uploads')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
     
     # Allowed file extensions

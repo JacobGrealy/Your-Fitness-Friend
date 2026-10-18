@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-18T11:45
+  updated_at: 2026-10-18T11:53
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2778,4 +2778,58 @@ intake:
     cards for PhotoLog''s capture step. Converted LogWeight, EditWeight, EditFoodLog, UploadPhoto, Profile
     (keeping its crop step and narrower accept) and refactored PhotoLog onto it. capture= now appears
     in exactly one file. Barcode scanner untouched. 8 new tests. Verified in-browser on each path.'
+  comments: []
+- id: FF-0079
+  title: Make uploads relocatable and give verification its own directory
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-18T11:47
+  updated_at: 2026-10-18T11:53
+  completed_at: 2026-10-18T11:53
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: verification runs against a copied database still write into the real app/uploads
+    directory, so browser checks pollute production photos - twice now, once with three stray weigh-in
+    PNGs and once with a sweep that had to be restored from a snapshot. There should be one switch that
+    relocates uploads, and a documented way to start a throwaway server that uses it.
+
+
+    2) Technical Details: the mechanism half exists and is unevenly applied. app/config.py:58 defines
+    UPLOAD_FOLDER but hard-codes it (not environment-driven). app/routes/food_routes.py (_uploads_root)
+    and app/routes/weight.py already honour current_app.config[''UPLOAD_FOLDER'']; every other module
+    hard-codes os.path.join(current_app.root_path, ''uploads'', ...): meals.py:84,93,212, auth.py:327,340,362,380,
+    meals_ai_log.py:33,163. That last directory is exactly where the 68 deleted ai_food_logs images lived,
+    so the one path that could never be relocated is the one that got swept. Work: (a) add app/utils/uploads.py
+    with uploads_root() and upload_dir(kind) reading current_app.config[''UPLOAD_FOLDER''] and falling
+    back to app/uploads, then point ALL of those call sites at it, deleting the two local helpers so there
+    is one implementation; (b) make the config value environment-driven - os.environ.get(''UPLOAD_FOLDER'')
+    or the current default - so prod is unchanged while a throwaway server sets UPLOAD_FOLDER=/tmp/...
+    next to its DATABASE_URL copy; (c) add scripts/dev-server.sh that starts gunicorn on a free port with
+    a copied database AND an isolated uploads directory, prints the URL, and cleans up on exit (--keep
+    to retain, --port to pin), because the missing piece was never the config, it was a command that uses
+    it; (d) extend the tooling gate to fail when a module under app/ joins ''uploads'' by hand outside
+    app/utils/uploads.py, which is what let the two implementations drift.
+
+
+    3) Acceptance Criteria: UPLOAD_FOLDER set in the environment relocates every upload write and read,
+    including profile photos, meal photos and ai_food_logs; unset, the app behaves exactly as today; scripts/dev-server.sh
+    serves a working app whose uploads land in a temp directory and whose writes never touch app/uploads;
+    the tooling gate fails on a new hard-coded uploads path; ./scripts/gates.sh green. Also update AGENTS.md
+    so the next session uses the script instead of copying a database by hand.
+
+
+
+    Closed: app/utils/uploads.py is the single home (uploads_root/upload_dir/stored_file_path with escape
+    rejection); UPLOAD_FOLDER is now environment-driven; all 11 call sites converted including meals_ai_log
+    (the ai_food_logs directory that could never be relocated before). scripts/dev-server.sh runs an isolated
+    server (copied db + temp uploads, free port, prints paths, cleans up on exit, --port/--keep). New
+    uploads gate fails on hand-joined paths and was verified against a deliberate probe. Also found and
+    fixed: the smoke gate had no UPLOAD_FOLDER, and the pytest suite was writing profile photos into production
+    on every run - app fixture now uses a scratch dir. 200 backend tests; gates leave app/uploads unchanged
+    (786 before/after). AGENTS.md documents the script.'
   comments: []

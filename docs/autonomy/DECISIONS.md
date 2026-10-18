@@ -798,3 +798,35 @@ ran an "unreferenced uploads" sweep across every upload folder instead of the
 `weight_photos` folder the owner had authorised, and deleted ~470 files (profile, meal and
 AI food-log images). Unreferenced is not the same as safe to delete — the restore was
 possible only because the tree is snapshotted before destructive changes.
+
+## 2026-10-18 — Verification gets its own data, and `UPLOAD_FOLDER` is a real switch
+
+Twice, browser verification against a *copied* database wrote photos into the real
+`app/uploads/` tree: three stray weigh-in PNGs the first time, and the second time a
+cleanup had to be restored from a snapshot. The database copy made the run feel disposable;
+the uploads directory was not.
+
+The mechanism half existed. `app/config.py` defined `UPLOAD_FOLDER` and two modules honoured
+it, while five hard-coded `current_app.root_path/uploads` — including `ai_food_logs`, the one
+directory that could never be relocated and the one a sweep damaged. So:
+
+**One home.** `app/utils/uploads.py` provides `uploads_root()`, `upload_dir(kind)` and
+`stored_file_path(stored)`, which refuses paths that escape the root. Every module uses it;
+the two local copies are gone. A new `uploads` gate fails the build if a module joins
+`root_path` with `'uploads'` or writes the literal anywhere outside that helper and the
+config default.
+
+**Environment-driven.** `UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or <default>`, so
+production is unchanged when unset and a throwaway server can point uploads beside its
+database copy.
+
+**A command, not a convention.** The missing piece was never the config, it was something
+that *uses* it: `scripts/dev-server.sh` copies the database, allocates a free port, sets
+both variables, prints the paths, and deletes the tree on exit. Port 5181 is deliberately
+never used — that is the ticket board.
+
+**Everything self-isolates.** The pytest `app` fixture points `UPLOAD_FOLDER` at a scratch
+directory and removes it, and the smoke gate sets its own. The standing check is behaviour,
+not promise: `./scripts/gates.sh` must leave `find app/uploads -type f | wc -l` unchanged.
+It did not before this change — the 191-test suite was writing profile photos into
+production on every run.

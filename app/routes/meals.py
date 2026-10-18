@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from app import db
+from app.utils.uploads import stored_file_path, upload_dir
 from app.models.meal_photo import MealPhoto
 from app.utils.qwen_client import qwen_client
 from app.config import Config
@@ -79,18 +80,14 @@ def upload_photo():
         return jsonify({'error': 'No file selected'}), 400
     
     # Save file
-    upload_folder = os.path.join(
-        current_app.root_path,
-        'uploads',
-        'meal_photos'
-    )
+    upload_folder = upload_dir('meal_photos')
     
     photo_path, error = save_uploaded_file(file, upload_folder)
     if error:
         return jsonify({'error': error}), 400
     
     # Read and encode file
-    full_path = os.path.join(current_app.root_path, 'uploads', photo_path)
+    full_path = stored_file_path(photo_path)
     try:
         image_base64 = encode_file_to_base64(full_path)
     except ValueError as e:
@@ -207,11 +204,7 @@ def delete_meal_photo(photo_id):
     
     # Delete file from filesystem
     if photo.photo_path:
-        file_path = os.path.join(
-            current_app.root_path,
-            'uploads',
-            photo.photo_path
-        )
+        file_path = stored_file_path(photo.photo_path)
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)

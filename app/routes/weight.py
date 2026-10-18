@@ -6,6 +6,7 @@ from app.models.weight_log import WeightLog
 from app.utils.weight_calculator import calculate_weight_trend, calculate_weight_change
 from app.utils.nutrition_service import recalculate_from_weight_log
 from app.config import Config
+from app.utils.uploads import upload_dir, uploads_root
 import os
 import uuid
 
@@ -210,18 +211,6 @@ def allowed_weight_file(filename):
     return extension in Config.ALLOWED_EXTENSIONS.get('meal_photos', set())
 
 
-def _uploads_root():
-    """Absolute path to the uploads directory.
-
-    Honours UPLOAD_FOLDER so tests can relocate it instead of writing into
-    app/uploads.
-    """
-    configured = current_app.config.get('UPLOAD_FOLDER')
-    if configured:
-        return os.path.abspath(configured)
-    return os.path.abspath(os.path.join(current_app.root_path, 'uploads'))
-
-
 @bp.route('/photo', methods=['POST'])
 @login_required
 def upload_photo():
@@ -235,8 +224,7 @@ def upload_photo():
 
     extension = file.filename.rsplit('.', 1)[1].lower()
     unique_filename = f"{uuid.uuid4().hex}.{extension}"
-    upload_folder = os.path.join(_uploads_root(), 'weight_photos')
-    os.makedirs(upload_folder, exist_ok=True)
+    upload_folder = upload_dir('weight_photos')
     filepath = os.path.join(upload_folder, unique_filename)
     file.save(filepath)
 
@@ -253,10 +241,10 @@ def serve_upload(filename):
     ``weight_photos/<file>.jpg``), so resolve there first. The weight_photos
     subfolder is tried second so a caller passing a bare filename still works.
     """
-    uploads_root = _uploads_root()
+    root = uploads_root()
     for candidate in (
-        os.path.join(uploads_root, filename),
-        os.path.join(uploads_root, 'weight_photos', filename),
+        os.path.join(root, filename),
+        os.path.join(root, 'weight_photos', filename),
     ):
         if os.path.isfile(candidate):
             return send_file(candidate)

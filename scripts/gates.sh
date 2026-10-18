@@ -77,6 +77,31 @@ gate_tooling() {
     python3 tasks/scripts/test_tasks.py
 }
 
+gate_uploads() {
+    # Upload paths have one home: app/utils/uploads.py. Anything else joining
+    # `root_path` with 'uploads' writes to a directory that a throwaway server cannot
+    # relocate, which is how verification runs ended up polluting production photos
+    # (FF-0079).
+    local offenders
+    offenders=$(grep -rn "root_path, *'uploads'\|root_path, *\"uploads\"" --include=*.py app/ \
+        | grep -v '^app/utils/uploads.py:' || true)
+    if [ -n "$offenders" ]; then
+        echo "hand-joined upload paths found:"
+        echo "$offenders"
+        return 1
+    fi
+
+    # A literal 'uploads' segment in a join is the same mistake spelled differently.
+    local literals
+    literals=$(grep -rn "'uploads'" --include=*.py app/ \
+        | grep -vE '^app/(utils/uploads|config)\.py:' || true)
+    if [ -n "$literals" ]; then
+        echo "literal 'uploads' paths found outside app/utils/uploads.py:"
+        echo "$literals"
+        return 1
+    fi
+}
+
 gate_smoke() {
     local tmp port pid rc=0
     tmp=$(mktemp -d "${TMPDIR:-/tmp}/ff-gates.XXXXXX") || return 1
@@ -92,6 +117,7 @@ gate_smoke() {
 
     FLASK_ENV=production \
     DATABASE_URL="sqlite:///$tmp/smoke.db" \
+    UPLOAD_FOLDER="$tmp/uploads" \
     SECRET_KEY="gates-smoke-not-a-secret" \
     ./venv/bin/gunicorn --bind "127.0.0.1:$port" --workers 1 --threads 1 \
         --timeout 60 --error-logfile "$tmp/gunicorn.log" \
@@ -160,15 +186,17 @@ case "${1:-all}" in
     frontend) run_gate jest gate_jest; run_gate tsc gate_tsc; run_gate layout gate_layout ;;
     smoke)    run_gate smoke   gate_smoke ;;
     tooling)  run_gate tooling gate_tooling ;;
+    uploads)  run_gate uploads gate_uploads ;;
     all)
         run_gate backend gate_backend
         run_gate jest    gate_jest
         run_gate layout  gate_layout
+        run_gate uploads gate_uploads
         run_gate tsc     gate_tsc
         run_gate smoke   gate_smoke
         run_gate tooling gate_tooling
         ;;
-    *) echo "usage: $0 [all|backend|frontend|smoke|tooling]" >&2; exit 2 ;;
+    *) echo "usage: $0 [all|backend|frontend|smoke|tooling|uploads]" >&2; exit 2 ;;
 esac
 
 printf '\n---------------------------------------------\n'

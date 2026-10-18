@@ -95,6 +95,22 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
 - The route tests stub `qwen_client` so the suite never calls the local model.
   Keep that up: a real model call makes tests slow and nondeterministic.
 
+## Verification against a throwaway server
+
+- **`./scripts/dev-server.sh` starts an isolated server**: it copies the live database and
+  points `UPLOAD_FOLDER` at a temp directory, prints both paths and the URL, and removes
+  the whole tree on exit (`--port` to pin, `--keep` to keep). Use it for any browser or
+  curl check.
+- Two incidents motivated it: verification runs copied the database by hand and still
+  wrote photos into the real `app/uploads/`, and a later cleanup that swept "unreferenced"
+  files had to be restored from a snapshot.
+- Tests and gates are isolated too: the `app` fixture points `UPLOAD_FOLDER` at a scratch
+  directory, and the smoke gate sets its own. `./scripts/gates.sh` must leave
+  `find app/uploads -type f | wc -l` unchanged — check it if you touch uploads.
+- Upload paths have **one home**, `app/utils/uploads.py`. The `uploads` gate fails on a
+  module that joins `root_path` with `'uploads'` or writes the literal anywhere except
+  `app/utils/uploads.py` and `app/config.py`.
+
 ## Runtime topology
 - **Production** — `fitnessfriend.service`: gunicorn on `0.0.0.0:5001`, serving
   both the Flask API and the built SPA from `app/static`.

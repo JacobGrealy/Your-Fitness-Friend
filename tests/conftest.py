@@ -1,6 +1,8 @@
 import pytest
 import sys
 import os
+import shutil
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -17,17 +19,25 @@ from app.models.meal_photo import MealPhoto
 @pytest.fixture
 def app():
     app = create_app('testing')
+    # Tests upload real files; they must land in a scratch directory rather than
+    # app/uploads, where they would be indistinguishable from production photos
+    # (FF-0079 — this is how the real tree accumulated unreferenced images).
+    uploads = tempfile.mkdtemp(prefix='ff-tests-uploads-')
     app.config.update({
         'TESTING': True,
         'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
         'SECRET_KEY': 'test-secret-key-for-testing-only',
-        'WTF_CSRF_ENABLED': False
+        'WTF_CSRF_ENABLED': False,
+        'UPLOAD_FOLDER': uploads,
     })
 
     with app.app_context():
         db.create_all()
-        yield app
-        db.drop_all()
+        try:
+            yield app
+        finally:
+            db.drop_all()
+            shutil.rmtree(uploads, ignore_errors=True)
 
 
 @pytest.fixture
