@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-18T12:09
+  updated_at: 2026-10-18T12:15
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue:
-- FF-0080
+queue: []
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -2841,11 +2840,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-18T11:53
-  updated_at: 2026-10-18T11:53
-  completed_at: null
+  updated_at: 2026-10-18T12:15
+  completed_at: 2026-10-18T12:15
   waiting_on: null
   parent_id: null
   notes: '1) User Story: Uploading a profile photo leaves unreferenced files in app/uploads/profile_photos
@@ -2869,7 +2868,17 @@ intake:
 
     3) Acceptance Criteria: uploading or replacing an avatar leaves exactly one referenced file per user
     and no unreferenced leftovers; cancelling the crop leaves nothing behind; a test covers the chosen-once
-    case; ./scripts/gates.sh green.'
+    case; ./scripts/gates.sh green.
+
+
+    Closed: mtime analysis shows the bulk were the pytest suite writing 3 profile photos per gate run
+    for months (files in multiples of 3 across 34 hour-buckets, May to October) - already stopped by FF-0079''s
+    scratch uploads fixture; this round''s gates left the tree unchanged (788 -> 788). Two real leaks
+    fixed in the endpoint: a failed commit left the new file on disk (now rolls back and removes it),
+    and the previous photo was deleted before the new one committed, so a failed upload could destroy
+    the existing avatar (now deleted only after a successful commit). Client also guards against a second
+    confirm while uploads are in flight. 4 new tests covering both failure paths. The ~590 historic unreferenced
+    files are left in place pending the owner''s decision.'
   comments: []
 - id: FF-0081
   title: A blank barcode field wipes the stored barcode, and the edit form needs a scan button

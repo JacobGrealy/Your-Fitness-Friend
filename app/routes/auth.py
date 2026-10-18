@@ -322,15 +322,7 @@ def upload_profile_photo():
     if file.content_length and file.content_length > 10 * 1024 * 1024:
         return jsonify({'error': 'File too large. Maximum size is 10MB.'}), 400
 
-    if current_user.profile_photo_path:
-        old_path = stored_file_path(
-            os.path.join('profile_photos', current_user.profile_photo_path)
-        )
-        if os.path.exists(old_path):
-            try:
-                os.remove(old_path)
-            except Exception:
-                pass
+    previous_photo = current_user.profile_photo_path
 
     unique_filename = f"{uuid.uuid4().hex}.{extension}"
 
@@ -339,7 +331,26 @@ def upload_profile_photo():
     file.save(filepath)
 
     current_user.profile_photo_path = unique_filename
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        # Never leave a file on disk that nothing references (FF-0080).
+        db.session.rollback()
+        try:
+            os.remove(filepath)
+        except OSError:
+            pass
+        raise
+
+    # Only now is the old file unreferenced: deleting it earlier meant a failed upload
+    # could wipe the avatar the user already had.
+    if previous_photo and previous_photo != unique_filename:
+        old_path = stored_file_path(os.path.join('profile_photos', previous_photo))
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+            except OSError:
+                pass
 
     return jsonify({
         'profile_photo_url': unique_filename

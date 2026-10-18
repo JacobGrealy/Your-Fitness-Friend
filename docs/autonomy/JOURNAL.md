@@ -1602,3 +1602,32 @@ any hand-joined upload path, and I verified it catches a deliberate probe rather
 trusting that it would.
 
 200 backend tests, all gates green, prod uploads byte-for-byte unchanged across the run.
+
+## Round 70 — 2026-10-18 — FF-0080 the profile-photo dir was a test artifact dump
+
+The observation from Round 68 explained itself once I looked at modification times: 596
+files in `app/uploads/profile_photos/` arriving in **multiples of three** across 34
+hour-buckets from May to October. That is the pytest suite, uploading a profile photo three
+times per run for months — already stopped by FF-0079's scratch-directory fixture, which is
+why the count did not grow during this round's gates (788 → 788).
+
+Two genuine leaks remained in the endpoint, both about ordering:
+
+**A failed commit left the file behind.** The file was saved, then the path assigned, then
+committed; if the commit failed the new file stayed on disk with nothing referencing it.
+Now the commit is wrapped, and a failure rolls back and removes the file.
+
+**The old photo was deleted *before* the new one was committed.** A failed upload could
+therefore leave a user with no avatar at all — worse than the orphan. The previous path is
+now captured first and the old file deleted only after a successful commit.
+
+Client side, `handleCropComplete` returns early if an upload is already in flight, since two
+rapid confirms would write two files and orphan the first. The Crop button was already
+disabled while cropping, so this is belt and braces.
+
+4 new tests, including the two failure paths (commit raises → no orphan; commit raises →
+existing avatar survives). Gates leave prod uploads unchanged.
+
+The ~590 historic files are still there. They are unreferenced and predate the fix, but
+deleting other people's files without being asked is exactly the mistake of Round 67, so
+they stay until the owner says otherwise.
