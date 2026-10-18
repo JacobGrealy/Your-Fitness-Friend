@@ -60,7 +60,11 @@ export default function WeightHistory() {
   }
 
   return (
-    <div className="p-4 pb-24" style={{ backgroundColor: '#f2f2f2', minHeight: '100vh' }}>
+    // No viewport height here: the shell owns it (FF-0051). This used to set an
+    // inline minHeight: 100vh, which the class-based sweep and gate both missed,
+    // leaving Progress as the one screen that scrolled 136px into nothing (FF-0052).
+    // pb-24 was a duplicate of the shell's own bottom-nav clearance.
+    <div className="p-4" style={{ backgroundColor: '#f2f2f2' }}>
       {/* Weight Goal Card */}
       {goalWeight && currentWeight !== null && (
         <div className="bg-white rounded-lg p-4 mb-4 border border-[#e0e0e0]">

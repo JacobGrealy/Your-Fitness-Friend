@@ -52,7 +52,9 @@ export default function LogExercise() {
   const inputClass = "w-full border border-mfp-border rounded-lg px-3 py-2 text-mfp-text bg-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-mfp-blue focus:border-transparent"
 
   return (
-    <div className="bg-white pb-20 sm:pb-0 pt-14 sm:pt-0">
+    // Bottom clearance comes from the shell (FF-0052); pt-14 clears this page's
+    // own fixed header.
+    <div className="bg-white pt-14 sm:pt-0">
       {error && (
           <div className="px-4 pt-4">
             <div className="bg-mfp-error/10 border border-mfp-error/20 rounded-lg p-3">
