@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-18T11:18
+  updated_at: 2026-10-18T11:22
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0074
 - FF-0075
 intake:
 - id: FF-0001
@@ -2540,11 +2539,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-18T09:43
-  updated_at: 2026-10-18T09:43
-  completed_at: null
+  updated_at: 2026-10-18T11:22
+  completed_at: 2026-10-18T11:22
   waiting_on: null
   parent_id: null
   notes: "1) User Story: tapping an entry in Weight History should show me the entry - weight, date, notes,\
@@ -2579,7 +2578,14 @@ intake:
     \n4) Depends on / overlaps FF-0073: that ticket fixes the photo disappearing entirely, and a read-only\
     \ view is pointless while the entry's photo is being silently nulled by any save. It touches EditWeight.tsx\
     \ and WeightHistory.tsx, which FF-0073 also touches, so run the two sequentially in one lane and land\
-    \ FF-0073 first. Frontend-only: ships in a rebuilt app/static, no backend restart.\n"
+    \ FF-0073 first. Frontend-only: ships in a rebuilt app/static, no backend restart.\n\n\nClosed: read-only\
+    \ screen at weight/history/:id (frontend/src/pages/Weight/WeightLogView.tsx), history row now opens\
+    \ it, Edit is an explicit button. Local day via localDateOf, photo hidden on onError with a distinct\
+    \ 'No photo' empty state, deleted behind the same confirm modal, back returns to history. Extracted\
+    \ utils/photoUrl.ts and used it in all four places (EditWeight, ThenAndNow, WeightTimelapse, the new\
+    \ view) as asked. 8 new tests in frontend/tests/pages/WeightLogView.test.tsx, including one asserting\
+    \ no mutating request fires on mount. Verified live: /weight/history/13 renders weight/date/notes/photo,\
+    \ zero number inputs, enlarge works, Edit leads to the form. Frontend-only."
   comments: []
 - id: FF-0075
   title: A stale photo URL in shared store state silently cancels a food-log photo upload

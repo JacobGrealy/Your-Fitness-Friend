@@ -10,6 +10,7 @@ import Card from '@/components/common/Card'
 import { MAX_WEIGHT_LOG_NOTES } from '@/utils/constants'
 import Spinner from '@/components/common/Spinner'
 import { localDateOf } from '@/utils/localDate'
+import { weightPhotoUrl } from '@/utils/photoUrl'
 
 export default function EditWeight() {
   const navigate = useNavigate()
@@ -65,12 +66,7 @@ export default function EditWeight() {
     useWeightStore.getState().fetchLog(id).then((log) => {
       if (log) {
         const dateStr = localDateOf(log.recorded_at)
-        let photoUrl: string | null = log.photo_url
-        if (photoUrl) {
-          const backendUrl = `${window.location.origin}/api`
-          photoUrl = `${backendUrl}/weight/uploads/${photoUrl}`
-        }
-        setInitialPhotoUrl(photoUrl)
+        setInitialPhotoUrl(log.photo_url ? weightPhotoUrl(log.photo_url) : null)
         setValue('date', dateStr)
         setValue('weight', log.weight)
         setFormDataLoaded(true)

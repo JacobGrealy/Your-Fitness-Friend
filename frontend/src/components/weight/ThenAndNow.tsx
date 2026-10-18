@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
 import type { WeightLog } from '@/types'
+import { weightPhotoUrl } from '@/utils/photoUrl'
 
 interface ThenAndNowProps {
   logs: WeightLog[]
 }
-
-const photoSrc = (photoUrl: string) => `${window.location.origin}/api/weight/uploads/${photoUrl}`
 
 const label = (log: WeightLog) => ({
   date: new Date(log.recorded_at).toLocaleDateString(undefined, {
@@ -78,7 +77,7 @@ export default function ThenAndNow({ logs }: ThenAndNowProps) {
                   {caption}
                 </figcaption>
                 <img
-                  src={photoSrc(log.photo_url as string)}
+                  src={weightPhotoUrl(log.photo_url as string)}
                   alt={`${caption}: ${meta.weight} on ${meta.date}`}
                   className="w-full aspect-square object-cover rounded-lg bg-[#f2f2f2]"
                   loading="lazy"

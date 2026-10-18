@@ -3,7 +3,7 @@ import Layout from './components/layout/Layout'
 import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
 import Dashboard from './pages/Dashboard'
-import { Weight, LogWeight, WeightHistory, EditWeight } from './pages/Weight'
+import { Weight, LogWeight, WeightHistory, EditWeight, WeightLogView } from './pages/Weight'
 import { Exercise, ExerciseLibrary, LogExercise, ExerciseHistory } from './pages/Exercise'
 import { DailyFood, LogFood, CustomFoods, PhotoLog, FoodLogSelect, EditFoodLog } from './pages/Food'
 import { Meals, UploadPhoto, PhotoGallery } from './pages/Meals'
@@ -44,6 +44,15 @@ export const router = createBrowserRouter([
         element: (
           <AuthGuard>
             <WeightHistory />
+          </AuthGuard>
+        ),
+      },
+      {
+        // Read-only view; editing is an explicit step from here (FF-0074).
+        path: 'weight/history/:id',
+        element: (
+          <AuthGuard>
+            <WeightLogView />
           </AuthGuard>
         ),
       },

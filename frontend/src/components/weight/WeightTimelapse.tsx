@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { WeightLog } from '@/types'
+import { weightPhotoUrl } from '@/utils/photoUrl'
 
 interface WeightTimelapseProps {
   logs: WeightLog[]
   /** Milliseconds each frame is shown while playing. */
   frameMs?: number
 }
-
-const photoSrc = (photoUrl: string) => `${window.location.origin}/api/weight/uploads/${photoUrl}`
 
 /**
  * Weight-photo timelapse (FF-0028).
@@ -39,7 +38,7 @@ export default function WeightTimelapse({ logs, frameMs = 900 }: WeightTimelapse
   // Preload exactly one frame ahead.
   useEffect(() => {
     if (!open || !nextFrame?.photo_url) return
-    const src = photoSrc(nextFrame.photo_url)
+    const src = weightPhotoUrl(nextFrame.photo_url)
     if (preloaded.current === src) return
     preloaded.current = src
     const img = new Image()
@@ -107,7 +106,7 @@ export default function WeightTimelapse({ logs, frameMs = 900 }: WeightTimelapse
           <div className="relative">
             <img
               key={current.id}
-              src={photoSrc(current.photo_url as string)}
+              src={weightPhotoUrl(current.photo_url as string)}
               alt={`${meta.weight} on ${meta.date}`}
               className="w-full aspect-square object-cover rounded-lg bg-[#f2f2f2]"
             />

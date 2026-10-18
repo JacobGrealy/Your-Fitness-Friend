@@ -137,7 +137,7 @@ export default function WeightHistory() {
           {sortedLogs.map((log, index) => (
             <div
               key={log.id}
-              onClick={() => navigate(`/weight/history/${log.id}/edit`)}
+              onClick={() => navigate(`/weight/history/${log.id}`)}
               className="cursor-pointer px-4 py-3 flex items-center justify-between"
               style={{
                 borderBottom: index < sortedLogs.length - 1 ? '1px solid #e0e0e0' : 'none',
