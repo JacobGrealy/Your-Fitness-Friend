@@ -630,3 +630,29 @@ must **not** carry a weekday, because for them daily is correct.
 Already-scheduled notifications repair themselves on the next app open: the reminders
 card re-applies on mount, and `applyReminders` cancels the fixed ids before scheduling,
 so the stray daily weigh-in is replaced rather than duplicated.
+
+## 2026-10-18 — Streaks are the habit, badges are the collection, and days are judged by their own goal
+
+The owner set the shape: a Sunday–Saturday strip on the diary **and** Home, best streak
+only in More, and three nested week badges — perfect week (7/7 closed), on target week
+(≥5/7 within 10%, still requiring 7/7 closed) and **golden week** (7/7 within 10%).
+Badges are **repeatable**: each qualifying week adds to a count, so they are a
+collection rather than a one-time checklist.
+
+Two consequences worth stating:
+
+**Days are judged by the goal that applied then.** `within_goal` compared every
+historical day against the *current* goal, so changing the goal silently rewrote the
+past: a 1600 kcal day closed against a 1500 goal would stop being "on target" the
+moment the goal was raised to 3000. `diary_completions.goal_calories` now records the
+goal in force at close time (migration `cef99f51c9d7`, backfilled from the user's goal),
+and every evaluation reads the stored value with the current goal only as a fallback.
+
+**Badges are derived, never stored.** Counts are computed from the completion history,
+so there is no badge table to drift out of sync, no "earned at" timestamp to migrate,
+and changing badge rules is a code change rather than a data repair. The cost is that
+history must remain interpretable — which is exactly why the per-day goal is stored.
+
+Weeks are Sunday-start because `date.weekday()` counts from Monday (Sunday is 6), and
+the badge *and* the strip must agree on where a week begins or the reward contradicts
+the evidence. `week_start()` is the single definition.

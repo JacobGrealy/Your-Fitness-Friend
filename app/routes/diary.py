@@ -6,11 +6,13 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
 
 from app.utils.diary_completion import (
+    badges,
     build_completion,
     completion_streaks,
     get_completion,
     summarise_record,
     undo_completion,
+    weekly_summary,
 )
 
 bp = Blueprint('diary', __name__)
@@ -56,6 +58,9 @@ def completion():
             'streaks': completion_streaks(
                 current_user.id, target_date, current_user.daily_calorie_goal
             ),
+            # The strip is drawn from the same request the diary and Home already
+            # make, so it appears before the day is closed too (FF-0071).
+            'week': weekly_summary(current_user.id, target_date),
         })
     return jsonify(summarise_record(current_user, record))
 
@@ -69,3 +74,13 @@ def undo():
         return error
     removed = undo_completion(current_user.id, target_date)
     return jsonify({'date': target_date.isoformat(), 'completed': False, 'removed': removed})
+
+
+@bp.route('/badges', methods=['GET'])
+@login_required
+def badge_list():
+    """Week badges, repeatable, with counts and lifetime stats (FF-0071)."""
+    target_date, error = _requested_date()
+    if error:
+        return error
+    return jsonify(badges(current_user.id, target_date, current_user.daily_calorie_goal))

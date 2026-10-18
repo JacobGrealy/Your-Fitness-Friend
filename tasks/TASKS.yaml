@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-18T09:23
+  updated_at: 2026-10-18T09:39
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2338,4 +2338,50 @@ intake:
     conversion, with tests over the whole map plus the inverse rule that meal reminders must not carry
     a weekday. Existing scheduled notifications repair on next app open because RemindersCard re-applies
     and applyReminders cancels fixed ids first. Frontend-only: no APK rebuild.'
+  comments: []
+- id: FF-0071
+  title: 'Week and badge data: per-day goal, Sunday weeks, and the three week badges'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-18T09:37
+  updated_at: 2026-10-18T09:39
+  completed_at: 2026-10-18T09:39
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: Streaks and badges need to judge each closed day by the calorie goal that applied
+    on that day, and the app needs one place that knows about weeks (Sunday to Saturday) so both the strip
+    and the badges agree.
+
+
+    2) Technical Details: (a) MIGRATION - add goal_calories (Integer, nullable) to diary_completions and
+    backfill existing rows from users.daily_calorie_goal, because within-10% is currently evaluated against
+    the CURRENT goal, which silently rewrites history when the goal changes. The completion row records
+    the goal in force when the day was closed. (b) app/utils/diary_completion.py - week_start()/week_days()
+    using date.weekday() (Mon=0, so Sunday is 6) for Sunday-start weeks; weekly_summary(user_id, as_of)
+    returning the seven days with a per-day state of on_target / closed / open / missed / future plus
+    closed and on_target counts and this week''s badge flags; badges(user_id, as_of) computing, for every
+    Sunday-Saturday week whose seven days are all closed, whether it earned perfect week (7/7 closed),
+    on target week (>=5 of 7 within 10%) and golden week (7/7 within 10%) - the three nest, so a golden
+    week also earns the other two - with counts per badge plus the current week''s progress for locked
+    display; lifetime stats days_closed and best_streak. Per-row goal is used when present, falling back
+    to the user''s current goal. (c) ENDPOINTS - extend GET /api/food/diary/completion with a ''week''
+    block so the diary and Home both render the strip from the call they already make, and add GET /api/food/diary/badges
+    for the More page returning week, badges and stats. Tests: Sunday-start week maths across a month
+    boundary, per-day states including a future day on a Sunday, badge nesting (a golden week counts all
+    three), 5/7 earning on-target but not golden, a week with an open day earning nothing, best_streak
+    across gaps, per-day goal being respected when the current goal differs, and the endpoints'' shapes.
+
+
+    Closed: migration cef99f51c9d7 adds diary_completions.goal_calories with a backfill from users.daily_calorie_goal,
+    so each day is judged by the goal in force then (previously a goal change silently rewrote past on-target
+    days). Added week_start/week_days (Sunday-start, date.weekday() Sunday=6), weekly_summary (seven dots:
+    on_target/closed/open/missed/future + counts), badges() with the three nested repeatable week badges
+    (perfect 7/7 closed, on target >=5/7, golden 7/7, all requiring a full closed week) and longest_streak.
+    GET /completion now returns a week block; new GET /api/food/diary/badges for More. 44 tests in the
+    file (11 new). Backend: needs a restart.'
   comments: []
