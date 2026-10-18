@@ -85,11 +85,16 @@ real 3.8 MB file, not the SPA shell any more).
 
 ## Waiting on you
 
-Two things, both small; nothing else blocks the queue.
+Three things, all small; nothing else blocks the queue.
 
-1. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
+1. **Restart the backend** — Complete Diary (FF-0054) added `/api/food/diary/*`,
+   and blueprint registration only happens at import, so those routes 404 until
+   `sudo systemctl restart fitnessfriend`. Everything else is already in place: the
+   migration `1ed0f5b7343d` is applied to the live database and `app/static` is
+   rebuilt, so the new button will appear and fail politely until then.
+2. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
    "awaiting restart", and only you can restart the service.
-2. **Verify the camera scanner on the phone** (FF-0030): the decode path is unit
+3. **Verify the camera scanner on the phone** (FF-0030): the decode path is unit
    tested with a stubbed decoder, but holding a real barcode in front of a real
    lens is unverified from this host.
 
@@ -97,8 +102,8 @@ Two things, both small; nothing else blocks the queue.
 ## Current state, for when you have a minute
 
 - **Queue:** FF-0044 (one-tap in-app update) is the only open ticket. 36 done, 7
-  cancelled as already implemented, **0 blocked**. Gates green: 131 backend, 201
-  frontend, tsc, smoke, toolkit.
+  cancelled as already implemented, **0 blocked**. Gates green: 154 backend, 214
+  frontend, layout, tsc, smoke, toolkit.
 - **Live server:** current with `master` as of the 19:18:38 EDT restart —
   `/api/app/version` and `/download/awefit.apk` answer correctly.
 - **One-tap update (FF-0044):** **verified on the phone** — the banner appeared on
