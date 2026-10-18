@@ -253,6 +253,39 @@ def create_food():
     }), 201
 
 
+@bp.route('/<int:food_id>', methods=['DELETE'])
+@login_required
+def delete_food(food_id):
+    """Delete one of the user's own custom foods (FF-0065).
+
+    The UI has always called this; the handler did not exist, so the trash can did
+    nothing. Shared foods (user_id NULL) are not the user's to delete, and a food
+    belonging to someone else must not be distinguishable from one that does not
+    exist — both answer 404.
+
+    Diary entries that reference this food are snapshots of what was eaten, so they
+    are detached rather than deleted: tidying up a custom food must never make a
+    logged meal disappear from the diary.
+    """
+    food = Food.query.filter_by(id=food_id, user_id=current_user.id).first()
+    if not food:
+        return jsonify({'error': 'Food not found'}), 404
+
+    logs_kept = FoodLog.query.filter_by(user_id=current_user.id, food_id=food.id).update(
+        {'food_id': None}, synchronize_session=False
+    )
+    db.session.delete(food)
+    db.session.commit()
+
+    # Report how many diary entries were detached, so the UI can say what happened
+    # instead of leaving the user to notice that their diary is unchanged.
+    return jsonify({
+        'message': 'Food deleted',
+        'id': food_id,
+        'logs_kept': logs_kept or 0,
+    }), 200
+
+
 @bp.route('/log', methods=['GET'])
 @login_required
 def get_food_logs():

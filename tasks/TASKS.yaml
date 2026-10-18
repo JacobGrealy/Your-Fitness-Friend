@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T21:21
+  updated_at: 2026-10-17T21:25
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2107,4 +2107,48 @@ intake:
     Closed: waiting list now names both pending backend changes (FF-0060 lookup canonicalisation, FF-0063
     per-serving nutrition) and records that the four mis-scaled cached foods were deleted after a backup
     with no food_logs referencing them; notes the repair script and that food_logs are never rewritten.'
+  comments: []
+- id: FF-0065
+  title: 'Deleting a custom food does nothing: the DELETE endpoint does not exist'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T21:22
+  updated_at: 2026-10-17T21:25
+  completed_at: 2026-10-17T21:25
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: Deleting a custom food does nothing. The owner taps the trash can, confirms Delete,
+    and the item stays in the list - so a wrong entry cannot be removed from the app at all.
+
+
+    2) Technical Details: frontend/src/pages/Food/CustomFoods.tsx calls foodStore.deleteFood -> foodApi.deleteFood
+    -> DELETE /api/food/<id>, and the store then filters the list and shows a toast. But app/routes/food_routes.py
+    has no such route: its only DELETE handlers are /log/<log_id> and /log/<log_id>/photo, so the call
+    404s (or falls into the SPA catch-all). That is why nothing happens - the failure is invisible because
+    the toast reads error.response.data.message while our API returns {''error'': ...}, so even the error
+    text is empty. Fix: add DELETE /<int:food_id> to the food blueprint, scoped to the current user, returning
+    404 for a food that is not theirs or is a shared (user_id NULL) row - deliberately the same response
+    for both so ownership is not probeable. Logs that reference the food are snapshots: detach them (food_id
+    -> None) rather than cascade-delete, so a diary entry never vanishes because a custom food was tidied
+    up. Return {''message'': ''Food deleted'', ''id'': id}. Frontend: read .error as well as .message
+    so a failure says something. Tests: owner deletes (200, row gone), another user''s food is 404 and
+    still present, a shared food is 404, a log referencing it survives with its own values and a null
+    food_id, and a second delete is 404. Backend change: needs a restart. Separately, the owner''s cached
+    Honey roasted peanuts row was re-created by a scan after the earlier cleanup because the FF-0063 parser
+    fix is still not live; remove that row once more as part of this ticket.
+
+
+    Closed: DELETE /api/food/<id> never existed, so the trash can 404ed invisibly (the store also read
+    .message while the API returns .error). Added the route scoped to the owner: another user''s or a
+    shared user_id-NULL food returns the same 404 so ownership is not probeable. OWNER DECISION - detach,
+    do not cascade: food_logs rows keep their snapshotted values and lose only food_id, and the response
+    returns logs_kept so the toast says ''Food deleted - 3 diary entries kept their own values''. Also
+    fixed the string/number comparison in the store''s list filter and the blank error message. 5 backend
+    + 5 store tests. Removed the re-created stale Honey roasted peanuts row (unreferenced). Backend: needs
+    a restart.'
   comments: []
