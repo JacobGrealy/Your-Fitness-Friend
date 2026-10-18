@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-18T11:53
+  updated_at: 2026-10-18T12:09
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2870,4 +2870,78 @@ intake:
     3) Acceptance Criteria: uploading or replacing an avatar leaves exactly one referenced file per user
     and no unreferenced leftovers; cancelling the crop leaves nothing behind; a test covers the chosen-once
     case; ./scripts/gates.sh green.'
+  comments: []
+- id: FF-0081
+  title: A blank barcode field wipes the stored barcode, and the edit form needs a scan button
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-18T12:04
+  updated_at: 2026-10-18T12:09
+  completed_at: 2026-10-18T12:09
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: (a) The owner scanned the barcode for Eggo french toaster sticks, but opening
+    the entry to edit it now shows an empty barcode field. (b) The edit form should also offer a barcode-shaped
+    button next to that field which opens the camera scanner and fills the id in, so a missing or wrong
+    code can be fixed on the spot.
+
+
+    2) Evidence: on the live box, foods.id=24 (french toaster STICKS Cinnamon, Eggo) has barcode_id =
+    '''' and food_logs.id=64 (linked to it) has barcode_id = ''''. foods 17, 18 and 20 are also '''',
+    while foods 21 and 22 hold real codes (0016000140912, 0011110660329) - both added after FF-0060/FF-0063.
+    So codes survive the scan and are lost later.
+
+
+    3) Root cause - an empty string is treated as a value by three write paths: (i) app/routes/food_routes.py:542
+    `if data.get(''barcode_id'') is not None: log.barcode_id = data[''barcode_id'']` in the PUT handler
+    - '''' passes, so opening the edit form (whose field is blank) and saving anything wipes the log''s
+    code; (ii) food_routes.py:67 `_sync_linked_food` does `if log.barcode_id is not None: food.barcode_id
+    = log.barcode_id`, so the emptied log then wipes the Food''s real code too; (iii) food_routes.py:391
+    `food.barcode_id = data.get(''barcode_id'', food.barcode_id)` on the log-create path, same problem,
+    plus food_routes.py:214 sets it unconditionally on food update. Note food_routes.py:378 also resets
+    barcode_id = None after reading it at :342, which is why the else-branch has to re-read it. The frontend
+    contributes: EditFoodLog.tsx:150 always sends `barcode_id: data.barcode_id`, which is '''' when the
+    field is empty.
+
+
+    4) Fix shape: normalise on write - a blank or whitespace-only barcode means "no change" and is never
+    stored as ''''. Store NULL when a value is genuinely absent. In the PUT handler and _sync_linked_food
+    use a truthiness check rather than `is not None`. In the frontend omit the key entirely when the field
+    is blank, the same pattern FF-0073 used for photo_url (do not rely on axios dropping undefined - build
+    the payload conditionally). Add normalisation in one helper so the four server paths cannot drift.
+
+
+    5) New UI: in frontend/src/pages/Food/EditFoodLog.tsx the barcode field (~line 443) gets a square
+    barcode-icon button that opens the existing scanner (frontend/src/components/food/BarcodeScanner.tsx,
+    props onDetected(code), onUnavailable(reason)) in a small modal, sets the barcode_id form value on
+    a successful decode, and closes. Give the button aria-label="Scan barcode", size it as a touch target
+    next to the input, and keep the existing text input usable for typing a code by hand. The scanner
+    requires a secure context - on the HTTPS Tailscale origin it works; in a plain-HTTP browser tab it
+    reports unavailable, so surface that reason rather than failing silently.
+
+
+    6) Tests: backend - editing a log without a barcode key preserves the stored code; sending '''' does
+    not clear it; sending a real code sets it; _sync_linked_food never copies a blank; a blank is stored
+    as NULL on create. Frontend - the edit form omits barcode_id from the update payload when the field
+    is blank and includes it when filled; the scan button opens the scanner and a decode populates the
+    field. Keep gates green.
+
+
+    7) Data: the original code for foods 24 / food_logs 64 is not recoverable from the database once wiped
+    - the user can re-scan it with the new button, which is exactly the flow being added.
+
+
+    Closed: one _clean_barcode() normaliser across all four backend write paths (blank = no change, absent
+    = NULL). The log PUT used ''is not None'' so the edit form''s empty field wiped scanned codes, and
+    _sync_linked_food then wiped the Food row too; the frontend now omits barcode_id when blank, the same
+    rule FF-0073 set for photo_url. Added a barcode-shaped button beside the field that opens the existing
+    BarcodeScanner and fills the code, with an explanatory overlay when the camera is unavailable. Verified
+    the reported scenario on the isolated dev server (the code survives a PUT with barcode_id='''') plus
+    a browser check. 6 backend + 5 frontend tests. Codes already wiped are not recoverable - re-scan with
+    the new button. Backend + frontend: needs a restart.'
   comments: []
