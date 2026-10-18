@@ -19,6 +19,29 @@ from app.utils import openfoodfacts
 bp = Blueprint('barcode', __name__)
 
 
+def canonical_code(code):
+    """The 13-digit form of a code, so UPC-A and EAN-13 are one product.
+
+    A UPC-A (12 digits) is an EAN-13 with a leading zero — and ZXing reports a
+    leading-zero EAN-13 as UPC-A, so the same shelf item arrives as either form
+    depending on the symbology the decoder matched (FF-0060). Storing the 13-digit
+    form keeps one row per product instead of two, and searching both forms means a
+    row cached before this existed is still found.
+    """
+    if code is None:
+        return None
+    return '0' + code if len(code) == 12 else code
+
+
+def code_variants(code):
+    """Every form a stored barcode for this product might use."""
+    canonical = canonical_code(code)
+    variants = [canonical]
+    if canonical and len(canonical) == 13 and canonical.startswith('0'):
+        variants.append(canonical[1:])
+    return [variant for variant in variants if variant]
+
+
 def _local_food(code):
     """The user's own food for this barcode, or a shared (user-less) one."""
     return Food.query.filter(
@@ -34,12 +57,15 @@ def lookup(code):
     if not normalised:
         return jsonify({'error': 'Barcode must be 6 to 14 digits'}), 400
 
-    food = _local_food(normalised)
-    if food:
-        return jsonify({'food': food.to_dict(), 'source': 'local', 'barcode': normalised})
+    canonical = canonical_code(normalised)
+
+    for variant in code_variants(normalised):
+        food = _local_food(variant)
+        if food:
+            return jsonify({'food': food.to_dict(), 'source': 'local', 'barcode': variant})
 
     try:
-        product = openfoodfacts.lookup_barcode(normalised)
+        product = openfoodfacts.lookup_barcode(canonical)
     except openfoodfacts.OpenFoodFactsUnavailable as exc:
         # Not the user's problem, and not a 500: report it as "couldn't look it
         # up" so the client can offer manual entry instead of a stack trace.
@@ -65,7 +91,7 @@ def lookup(code):
         fat_g=product['fat_g'],
         serving_size=product['serving_size'],
         brand=product['brand'],
-        barcode_id=normalised,
+        barcode_id=canonical,
     )
     db.session.add(food)
     db.session.commit()

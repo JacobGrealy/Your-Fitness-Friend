@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T21:01
+  updated_at: 2026-10-17T21:06
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1929,4 +1929,48 @@ intake:
     FoodLogSelect x2, LogWeight, and EditWeight''s display of a stored timestamp. 4 tests including an
     instant where UTC and local disagree, guarded against passing vacuously at UTC+0. Frontend-only: no
     APK rebuild or migration.'
+  comments: []
+- id: FF-0060
+  title: 'Barcode scanner cannot read product barcodes: jsQR only decodes QR codes'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T21:02
+  updated_at: 2026-10-17T21:06
+  completed_at: 2026-10-17T21:06
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The camera opens and points at a food packet, but the scanner never recognises
+    the barcode, so scanning cannot be used to log a product.
+
+
+    2) Technical Details: src/components/food/BarcodeScanner.tsx decodes with jsQR, which understands
+    QR codes only. Product barcodes are 1D symbologies (EAN-13/UPC-A/Code-128) and jsQR returns null for
+    them, so no amount of aiming or lighting makes it work - the decoder is the wrong tool, not misconfigured.
+    Proved locally with a hand-built valid EAN-13 module pattern (3017620422003, checksum computed): @zxing/library
+    decodes it and reports format EAN_13, while jsQR returns null on the identical pixel buffer. Fix:
+    replace jsQR with @zxing/library MultiFormatReader (already installed as ^0.21.3) restricted to EAN_13,
+    EAN_8, UPC_A, UPC_E, CODE_128, CODE_39, ITF and QR_CODE so QR still works; drop the jsqr dependency.
+    Important implementation detail found while testing: ZXing''s RGBLuminanceSource treats a Uint8ClampedArray
+    as ONE BYTE PER PIXEL, not RGBA (it only converts when BYTES_PER_ELEMENT is 4, i.e. Int32Array), so
+    the canvas ImageData must be converted to a grayscale Uint8ClampedArray (or ARGB Int32Array) first
+    or every frame silently fails to decode. Structure: put the grayscale conversion and the reader factory
+    in src/utils/barcode.ts as pure functions, keep the component''s camera plumbing untouched, and add
+    a real decode test in jest using a synthetic EAN-13 bitmap (this works in node, no camera needed).
+    Also downscale the canvas to at most ~800px wide before decoding, since TRY_HARDER on a full-resolution
+    frame is slow. Frontend-only: no APK rebuild and no migration.
+
+
+    Closed: jsQR is QR-only, so product barcodes never decoded (proved: hand-built EAN-13 3017620422003
+    decodes via ZXing, null via jsQR on the same buffer). Switched to @zxing/library MultiFormatReader
+    (EAN-13/EAN-8/UPC-A/EAN-8/Code128/Code39/ITF/QR), jsQR uninstalled, frames downscaled to 800px. Key
+    trap: ZXing''s RGBLuminanceSource only unpacks Int32Array (BYTES_PER_ELEMENT 4), so canvas RGBA must
+    be converted to grayscale - toLuminance() does it and has its own test. Found via test that a leading-zero
+    EAN-13 decodes as 12-digit UPC-A, so the server now canonicalises to 13 digits, stores that, and searches
+    both forms (legacy 12-digit rows still resolve). 16 jest decode tests with real bitmaps + 3 backend
+    tests. Frontend+backend; needs a backend restart for the lookup change.'
   comments: []

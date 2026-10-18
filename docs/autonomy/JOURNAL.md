@@ -1254,3 +1254,30 @@ Worth naming the shape of this one: nothing threw, no gate could have failed, an
 the data was written correctly — to the wrong day. It took the owner's duplicate
 attempts in the database to make it visible, which is exactly what the journal is
 for.
+
+## Round 56 — 2026-10-17 — FF-0060 the scanner was reading the wrong symbology
+
+Camera opened, aimed, never detected. The decoder was jsQR, which reads **QR codes
+only**; a food packet carries EAN-13/UPC-A. Not a tuning problem — a wrong tool.
+Confirmed both ways with a hand-built, checksum-correct EAN-13 pattern: ZXing returns
+the digits, jsQR returns `null` on the same buffer.
+
+Replaced with `@zxing/library`'s MultiFormatReader (EAN-13/EAN-8/UPC-A/UPC-E/Code-128/
+Code-39/ITF/QR), jsQR uninstalled, frames downscaled to 800px before decoding because
+TRY_HARDER at full resolution is slow.
+
+Two findings from writing the test rather than the feature:
+
+1. **ZXing silently rejects RGBA.** `RGBLuminanceSource` only converts when
+   `BYTES_PER_ELEMENT === 4`, i.e. an `Int32Array`; given a `Uint8ClampedArray` it
+   treats each byte as a pixel, so the image is noise and nothing ever decodes. My
+   own first probe failed for this exact reason and I nearly concluded ZXing could
+   not read EAN-13. `toLuminance()` handles it, and the conversion has its own test.
+2. **A leading-zero EAN-13 comes back as UPC-A** (12 digits). The test expectation
+   failed with `123456789012` vs `0123456789012`, which is correct ZXing behaviour and
+   a real bug for US products: the cached row would not match the next scan. The
+   server now canonicalises to 13 digits, stores that form, and searches both, so a
+   pre-existing 12-digit row still resolves — with three backend tests.
+
+The decode is now covered by real bitmaps in jest (16 tests), which is the first time
+this path has been verified without a phone.
