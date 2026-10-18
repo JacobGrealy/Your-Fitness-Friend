@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T21:49
+  updated_at: 2026-10-18T09:21
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2265,4 +2265,36 @@ intake:
     Fixed a bug found by screenshot: the modal re-popped on every load of a closed day (split closedSummary
     from completion). Verified in-browser and on a throwaway server (3 closed days -> closed 3, within
     3). Tests: 33 backend in the diary file, 16 frontend. Backend half needs a restart.'
+  comments: []
+- id: FF-0069
+  title: Record FF-0068 as live and what the streaks should show
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-18T09:20
+  updated_at: 2026-10-18T09:21
+  completed_at: 2026-10-18T09:21
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The backend has been restarted again, so the closed-day streaks and the new diary
+    payload (FF-0068) are live; the waiting list still implies a restart is outstanding.
+
+
+    2) Technical Details: verified from the host. fitnessfriend ActiveEnterTimestamp is 2026-10-18 09:20:03
+    EDT, after the FF-0068 merge at 2026-10-17 21:49:55. Live data implies the counters the owner should
+    now see: one completion (2026-10-17, 1727 kcal) against a 2000 kcal goal, so closed_days = 1 and within_goal_days
+    = 1, and with the latest closed day one day old both runs are still alive - today''s open diary should
+    show the nudge ''1 day closed in a row - close today to keep it going''. Update docs/autonomy/QUESTIONS.md:
+    drop any remaining restart item, record FF-0068 as live with those expected numbers, and leave the
+    three owner checks (sudoers drop-in, camera capture, reminder delivery) plus the note that the rogue
+    tomorrow-dated entries were removed.
+
+
+    Closed: restart verified (2026-10-18 09:20:03 EDT after the FF-0068 merge), recorded the expected
+    counters from live data (closed_days 1, within_goal_days 1, both alive), and replaced the duplicate-Nuts
+    note with the fact that they were removed.'
   comments: []

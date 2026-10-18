@@ -97,9 +97,9 @@ Three things; the last two need your phone rather than your password.
    phone and the schedule itself is unit tested, but whether one actually arrives at
    12:30 is only knowable on the device (Android may delay for doze).
 
-Also open, and only you can decide it: the **six duplicate "Nuts" entries** on
-`2026-10-18`, left over from the evening UTC-date bug. The first Nuts log was real and
-is untouched on `2026-10-17`; the six are retries. Say the word and they go.
+The six duplicate "Nuts" entries on `2026-10-18` were removed at your direction
+(backup first); the real Nuts log on `2026-10-17` is untouched. New logs land on the
+local day since the FF-0059 fix.
 
 ## Current state, for when you have a minute
 
@@ -120,6 +120,12 @@ is untouched on `2026-10-17`; the six are retries. Say the word and they go.
 - **Deleting custom foods (FF-0065):** **live and confirmed on the phone.** Deleting detaches diary entries
   (they keep their snapshot) and the toast reports how many were kept — the owner's
   choice over cascade-deleting history.
+- **Closed-day streaks (FF-0068):** **live** since the **2026-10-18 09:20:03 EDT**
+  restart. With one completion (`2026-10-17`, 1727 kcal, goal 2000) the counters are
+  `closed_days = 1` and `within_goal_days = 1`, and both runs are alive because the
+  latest closed day is one day old — today's open diary shows the nudge "1 day closed
+  in a row — close today to keep it going". Closing today at or under 2200 kcal makes
+  both 2.
 - **Complete Diary (FF-0054):** live end to end since the 20:38:11 EDT restart —
   `POST /api/food/diary/complete` answers 401 unauthenticated rather than 404, and
   the migration `1ed0f5b7343d` is applied.
