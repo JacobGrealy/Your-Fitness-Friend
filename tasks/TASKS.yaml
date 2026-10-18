@@ -1,10 +1,12 @@
 meta:
-  updated_at: 2026-10-18T09:41
+  updated_at: 2026-10-18T09:43
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
+- FF-0073
 - FF-0072
+- FF-0074
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -2439,4 +2441,116 @@ intake:
     \ and falls back to the email initial leaving no orphan file in app/uploads/profile_photos/; re-cropping\
     \ twice from the retained original can still reach any part of it; the pencil badge still starts the\
     \ new-photo flow with exactly one prompt; ./scripts/gates.sh green.\n"
+  comments: []
+- id: FF-0073
+  title: Opening a saved weight entry shows no photo, and saving it deletes the photo it had
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-18T09:43
+  updated_at: 2026-10-18T09:43
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: "1) User Story: I attach a photo to a weigh-in, then later open that saved entry from Weight\
+    \ History and the photo is not there - it shows the \"Tap to take a photo\" placeholder. Sometimes\
+    \ the entry I remember having a photo has lost it entirely. Either way the photo I took is unreachable\
+    \ from the app, which is the whole point of taking it.\n\n2) Evidence on the live box (read-only,\
+    \ instance/fitness_friend.db): app/uploads/weight_photos/ holds 6 files but only 2 are referenced\
+    \ by any weight_logs row - 24212fcc..., 32280147..., 4bab93d9... and f74e4c9a... are orphans. Only\
+    \ 2 of 10 rows have a photo_url at all, including the two newest (2026-10-17, 2026-10-18). Uploads\
+    \ that never got attached are the fingerprint of the bug family below.\n\n3) Technical Details - three\
+    \ separate defects, all in frontend/src/pages/Weight/EditWeight.tsx, all one root cause: the store\
+    \ field `uploadedPhotoUrl` is used as both \"did I just upload\" and \"what should be saved\".\n\n\
+    \   a) DESTRUCTIVE SAVE, the likely cause of the reported symptom. onSubmit (line ~104) sends `photo_url:\
+    \ uploadedPhotoUrl || null`. That field is zustand state set only by an upload in the current session,\
+    \ and it is NOT reset when EditWeight mounts. So for an entry that already has a photo: open it, change\
+    \ nothing (or just the weight), save - the PUT carries photo_url: null. app/routes/weight.py update_log\
+    \ does `if 'photo_url' in data: log.photo_url = data['photo_url']`, so the key being present with\
+    \ null erases the column, while the file stays on disk as an orphan. Every later open then shows no\
+    \ photo. That is silent data loss and it matches \"it was there and now it is gone\".\n\n   b) STALE\
+    \ CLOSURE when saving with a freshly picked file. `if (selectedFile && !uploadedPhotoUrl) await handleUploadPhoto()`\
+    \ - handleUploadPhoto returns nothing, and `uploadedPhotoUrl` inside onSubmit is the value captured\
+    \ at render time, so the photo_url line below still reads null. Picking a file and pressing Save (instead\
+    \ of tapping the separate \"Upload Photo\" button first) uploads the bytes and then writes null: an\
+    \ orphan file plus an entry that ignores it. The same pattern is in frontend/src/pages/Weight/LogWeight.tsx\
+    \ onSubmit and handleReplace (create path).\n\n   c) STALE STATE HIDES A SAVED PHOTO. The render guard\
+    \ is `initialPhotoUrl && !uploadedPhotoUrl` (line ~187). Because uploadedPhotoUrl is module-level\
+    \ store state that survives navigation - only logWeight/replaceEntry clear it, updateLog does not\
+    \ - an upload from an earlier screen in the session makes the entry's real photo fall through to the\
+    \ \"Tap to take a photo\" placeholder. This is the purely-cosmetic version of the report and is fixed\
+    \ by the same change.\n\n   Fix shape: stop reading store state for photo decisions. Hold photo intent\
+    \ locally in EditWeight - initialPhotoUrl from the fetched log, an optional new File, and an explicit\
+    \ removal flag - and only include photo_url in the PUT when the user actually changed the photo; send\
+    \ an explicit null only for a deliberate removal. Make the upload hand back its URL (`const url =\
+    \ await uploadPhoto(file)`) instead of re-reading the closure. Reset the store field on mount so it\
+    \ cannot leak into the next screen. Give the same treatment to LogWeight.\n\n   Backend: `if 'photo_url'\
+    \ in data` in update_log is the correct preserve-by-omitting hook - do NOT relax it to data.get('photo_url')\
+    \ with a default, or every client that omits the key starts wiping photos. If the replaced file should\
+    \ be cleaned up, delete it server-side on update; the 4 orphans above are what falling short of that\
+    \ looks like.\n\n   Tests: there is no EditWeight test today (frontend/tests/pages/ has no weight-edit\
+    \ spec). Add frontend/tests/pages/EditWeight.photo.test.tsx with at least: an entry with a photo renders\
+    \ the img on mount (even when the store still holds a stale uploadedPhotoUrl); saving without touching\
+    \ the photo sends a body with NO photo_url key; picking a file then pressing Save once sends the uploaded\
+    \ URL; explicit Remove sends null. Mock axios the way the other page tests do, and keep the qwen_client\
+    \ stub convention (route tests never call the local model).\n\n4) Acceptance Criteria: opening an\
+    \ entry that has a photo shows it, every visit, regardless of what other screens did earlier in the\
+    \ session; saving without touching the photo leaves it intact (assert the PUT body omits photo_url);\
+    \ picking a new photo and pressing Save attaches it in one step with no leftover orphan file; explicit\
+    \ Remove clears it; LogWeight's create path behaves the same; gates green via ./scripts/gates.sh.\n\
+    \n5) Note for scheduling: this is frontend-only unless update_log changes, so the fix ships in a rebuilt\
+    \ app/static with no gunicorn restart. It touches EditWeight.tsx and WeightHistory.tsx, which FF-0074\
+    \ also touches - run those two in the same lane, sequentially, never in parallel.\n"
+  comments: []
+- id: FF-0074
+  title: Open a saved weight entry in a read-only view, with Edit as an explicit step
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-18T09:43
+  updated_at: 2026-10-18T09:43
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: "1) User Story: tapping an entry in Weight History should show me the entry - weight, date, notes,\
+    \ and the photo at a size I can actually look at - instead of dropping me into an editable form. Right\
+    \ now every tap lands in edit mode, so simply reviewing an old weigh-in puts live number inputs under\
+    \ my thumb, and the photo I wanted to see is buried under a \"Tap to change photo\" overlay.\n\n2)\
+    \ Technical Details: frontend/src/pages/Weight/WeightHistory.tsx line ~140 sends the row click to\
+    \ navigate(`/weight/history/${log.id}/edit`). Add a read-only route `weight/history/:id` in frontend/src/router.tsx\
+    \ (edit stays at `weight/history/:id/edit`, line ~51) and point the row at it. The screen fetches\
+    \ through the store's existing fetchLog(id) - no new backend work - and renders the photo, weight,\
+    \ date, notes, plus Edit and Delete as explicit actions. Delete already exists on the history row\
+    \ (stopPropagation + confirm Modal at the bottom of WeightHistory.tsx); if it moves to the view screen,\
+    \ keep it behind that same confirmation, and keep the row's trash button working so nothing regresses\
+    \ on the list.\n\n   Date handling: render the date with utils/localDate localDateOf, not from the\
+    \ UTC ISO string - FF-0059 was exactly that class of bug and a second hand-rolled date path is how\
+    \ it comes back.\n\n   Photo URL: EditWeight.tsx already builds `${window.location.origin}/api/weight/uploads/${photo_url}`,\
+    \ and WeightTimelapse.tsx / ThenAndNow.tsx hand-roll the same builder. This screen is the fourth copy,\
+    \ so extract one shared helper and use it in all four places - four copies is where it drifts. The\
+    \ serve route takes both `weight_photos/x.jpg` and a bare filename, so pass photo_url through unchanged.\n\
+    \n   Traps: the serve route answers a missing file with a JSON 404, so an entry whose file was deleted\
+    \ (there are 4 orphan files and 10 rows today, and the live rows for 2026-10-17/18 have no photo at\
+    \ all) will otherwise render a broken-image icon - add onError that hides the photo block, and a quiet\
+    \ \"no photo\" empty state. Keep the photo's empty state distinct from the notes-empty state so the\
+    \ screen still reads as complete. Make the screen strictly read-only: no mutating request on mount,\
+    \ no autosave, nothing that can change an entry by being looked at.\n\n3) Acceptance Criteria: tapping\
+    \ a history row opens the view screen showing weight, date (local day), notes, and the photo when\
+    \ the entry has one; the photo renders at a readable size and can be enlarged; Edit is an explicit\
+    \ button leading to the existing form; Back returns to Weight History with the list intact; Delete\
+    \ still asks for confirmation; an entry with no photo - or with a file that 404s - shows a clean empty\
+    \ state and no broken image; the view makes no mutating requests; ./scripts/gates.sh green, with the\
+    \ new screen covered in frontend/tests/pages/ (tests live in frontend/tests/, never beside sources).\n\
+    \n4) Depends on / overlaps FF-0073: that ticket fixes the photo disappearing entirely, and a read-only\
+    \ view is pointless while the entry's photo is being silently nulled by any save. It touches EditWeight.tsx\
+    \ and WeightHistory.tsx, which FF-0073 also touches, so run the two sequentially in one lane and land\
+    \ FF-0073 first. Frontend-only: ships in a rebuilt app/static, no backend restart.\n"
   comments: []
