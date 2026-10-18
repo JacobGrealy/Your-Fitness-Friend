@@ -685,3 +685,37 @@ progress through the *current* week rather than a grey mystery.
 One implementation note: `StreakStrip` is a single component used by the diary (open
 state), the closed panel and Home — one visual language, one set of states, and the only
 per-screen difference is which container it sits in.
+
+## 2026-10-18 — A photo save states its intent; it never infers it from shared state
+
+One expression caused the whole FF-0073 bug family:
+`photo_url: uploadedPhotoUrl || null`. That single line conflated three different
+intents and got all three wrong:
+
+| Intent | What it must send | What it sent |
+|---|---|---|
+| untouched | nothing (omit the key) | `null` — **erased the photo** |
+| new file | the uploaded URL | `null` — the closure held the pre-upload value, leaving an orphan file |
+| removed | `null` | `null` — correct by accident |
+
+The replacement states each intent explicitly in `onSubmit`: a picked file is uploaded
+*before* the save and its returned URL used; an explicit removal sends `null`; an
+untouched photo omits the key. The omission is built into the object rather than left to
+axios dropping `undefined`, because the backend's rule is `'photo_url' in data` — the
+presence of the key is the instruction, so whether the key exists must not depend on a
+client library's serialisation behaviour.
+
+Two things were tangled into that same field and are now gone:
+
+**`uploadedPhotoUrl` was cross-page state doing double duty** as "did I just upload" and
+"what should be saved". It survived navigation, so an upload from an earlier screen made
+a saved photo fall through to the "Tap to take a photo" placeholder, and it could attach
+one entry's photo to another. Both pages now decide locally and clear the shared slot on
+mount.
+
+**A saved photo had no remove control at all.** The ✕ existed only on the freshly picked
+preview, so an already-saved photo could not be removed from the UI — the "explicit
+Remove" path in the ticket was unreachable before this fix added the control.
+
+Also fixed while proving it: a failed upload now aborts the save quietly instead of
+rejecting, which was surfacing as an unhandled promise rejection on the phone.

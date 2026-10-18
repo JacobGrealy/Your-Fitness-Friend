@@ -152,12 +152,19 @@ export const useWeightStore = create<WeightState>((set, get) => ({
   updateLog: async (id: string, data: WeightLogCreate) => {
     set({ isLoading: true, error: null })
     try {
-      await weightApi.updateLog(id, {
+      // The key is built conditionally on purpose: the backend treats `'photo_url' in
+      // data` as "change the photo", so an untouched photo must not send the key at all.
+      // Relying on axios to drop `undefined` would work today and break silently if the
+      // client ever changes (FF-0073).
+      const payload: Record<string, unknown> = {
         weight: data.weight,
         date: data.date,
         notes: data.notes,
-        photo_url: data.photo_url,
-      })
+      }
+      if (data.photo_url !== undefined) {
+        payload.photo_url = data.photo_url
+      }
+      await weightApi.updateLog(id, payload as Omit<WeightLogCreate, 'photo'>)
       get().fetchLogs()
       get().fetchStatistics()
       set({ isLoading: false })

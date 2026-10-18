@@ -14,7 +14,7 @@ import { localDateOf } from '@/utils/localDate'
 export default function EditWeight() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { updateLog, uploadPhoto, error, isLoading, uploadedPhotoUrl } = useWeightStore()
+  const { updateLog, uploadPhoto, error, isLoading } = useWeightStore()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -22,6 +22,8 @@ export default function EditWeight() {
   const [photoUploading, setPhotoUploading] = useState(false)
   const [initialPhotoUrl, setInitialPhotoUrl] = useState<string | null>(null)
   const [formDataLoaded, setFormDataLoaded] = useState(false)
+  // True once the user explicitly removed the stored photo; decides `photo_url: null`.
+  const [photoRemoved, setPhotoRemoved] = useState(false)
 
   useEffect(() => {
     return () => {
@@ -51,6 +53,13 @@ export default function EditWeight() {
     },
   })
 
+  // The store's uploadedPhotoUrl is cross-page state that updateLog never cleared, so
+  // a photo uploaded on an earlier screen leaked into this one (FF-0073). This page now
+  // owns its photo decision locally; clearing the slot stops it infecting other pages.
+  useEffect(() => {
+    useWeightStore.setState({ uploadedPhotoUrl: null })
+  }, [])
+
   // Fetch log data on mount
   useEffect(() => {
     useWeightStore.getState().fetchLog(id).then((log) => {
@@ -69,18 +78,26 @@ export default function EditWeight() {
     })
   }, [id, setValue])
 
+  // Previewing a picked file, else the photo already on the entry. The old guard
+  // included the store's cross-page upload slot, which hid a real photo (FF-0073).
+  const shownPhotoUrl = previewUrl ?? (photoRemoved ? null : initialPhotoUrl)
+
   const handleFileSelect = useCallback((file: File) => {
     setSelectedFile(file)
     setPreviewUrl(URL.createObjectURL(file))
+    setPhotoRemoved(false)
   }, [])
 
   const handleRemovePhoto = useCallback(() => {
     setSelectedFile(null)
     setPreviewUrl(null)
+    // Explicit intent, so the save can send photo_url: null. Without this, removing
+    // the photo and saving changed nothing (FF-0073).
+    setPhotoRemoved((prev) => prev || Boolean(initialPhotoUrl))
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
-  }, [])
+  }, [initialPhotoUrl])
 
   const handleUploadPhoto = useCallback(async () => {
     if (!selectedFile) return
@@ -94,14 +111,39 @@ export default function EditWeight() {
 
   const onSubmit = async (data: WeightLogCreate) => {
     if (!id) return
-    if (selectedFile && !uploadedPhotoUrl) {
-      await handleUploadPhoto()
+
+    /**
+     * Three outcomes, stated explicitly (FF-0073):
+     *   new file   -> upload now, save the URL that came back
+     *   removed    -> save null, so the backend clears the column
+     *   untouched  -> omit the key entirely, so the backend keeps what is there
+     *
+     * The old code sent `uploadedPhotoUrl || null` for all three: it erased photos the
+     * user never touched, and when a file had just been picked it saved null anyway
+     * because the closure still held the pre-upload value.
+     */
+    let photoUrl: string | null | undefined
+    if (selectedFile) {
+      setPhotoUploading(true)
+      try {
+        photoUrl = await uploadPhoto(selectedFile)
+      } catch {
+        // The store has already shown the reason. Abandon the save rather than writing
+        // a weight entry with no photo, and do not reject: that surfaced as an unhandled
+        // rejection on the phone (FF-0073).
+        return
+      } finally {
+        setPhotoUploading(false)
+      }
+    } else if (photoRemoved) {
+      photoUrl = null
     }
+
     await updateLog(id, {
       weight: data.weight,
       date: data.date,
       notes: data.notes,
-      photo_url: uploadedPhotoUrl || null,
+      photo_url: photoUrl,
     })
     navigate(-1)
   }
@@ -184,16 +226,28 @@ export default function EditWeight() {
                   }
                 }}
               >
-                {initialPhotoUrl && !uploadedPhotoUrl ? (
+                {shownPhotoUrl ? (
                   <div className="relative w-full">
                     <img
-                      src={initialPhotoUrl}
+                      src={shownPhotoUrl}
                       alt="Current photo"
                       className="w-full max-h-[200px] object-contain rounded-lg"
                     />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-lg">
                       <p className="text-sm text-white font-medium">Tap to change photo</p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        // The card itself opens the picker; removing must not do that.
+                        event.stopPropagation()
+                        handleRemovePhoto()
+                      }}
+                      aria-label="Remove photo"
+                      className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/80 rounded-full text-mfp-textSecondary hover:text-mfp-text shadow-sm"
+                    >
+                      ✕
+                    </button>
                   </div>
                 ) : (
                   <>
@@ -236,25 +290,24 @@ export default function EditWeight() {
                   <button
                     type="button"
                     onClick={handleRemovePhoto}
+                    aria-label="Remove photo"
                     className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-white/80 rounded-full text-mfp-textSecondary hover:text-mfp-text shadow-sm"
                   >
                     ✕
                   </button>
                 </div>
-                {!uploadedPhotoUrl && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    fullWidth
-                    loading={photoUploading}
-                    onClick={handleUploadPhoto}
-                  >
-                    Upload Photo
-                  </Button>
-                )}
-                {uploadedPhotoUrl && (
-                  <p className="text-sm text-mfp-success mt-2">Photo uploaded</p>
-                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  fullWidth
+                  loading={photoUploading}
+                  onClick={handleUploadPhoto}
+                >
+                  Upload now
+                </Button>
+                <p className="text-xs text-mfp-textSecondary mt-2">
+                  Saving will attach the photo for you.
+                </p>
               </div>
             </Card>
           )}
