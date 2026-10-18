@@ -85,14 +85,19 @@ real 3.8 MB file, not the SPA shell any more).
 
 ## Waiting on you
 
-Three things; the last two need your phone rather than your password.
+Four things; the last two need your phone rather than your password.
 
-1. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
+1. **Restart the backend** — the barcode lookup change from FF-0060
+   (`app/routes/barcode_lookup.py`) is Python, so it loads only on restart. The
+   scanner itself is frontend code and is already live after a reload; the restart
+   is what makes UPC-A and EAN-13 resolve to the same cached product.
+2. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
    "awaiting restart", and only you can restart the service.
-2. **Verify the camera scanner on the phone** (FF-0030): the decode path is unit
-   tested with a stubbed decoder, but holding a real barcode in front of a real
-   lens is unverified from this host.
-3. **Turn on a reminder and wait for it** — local notifications are scheduled by the
+3. **Verify the scanner on the phone** (FF-0030/FF-0060): decoding is now covered by
+   real bitmaps rather than a stub — an EAN-13 decoded end to end in the test suite —
+   so what remains unverified is the camera side: framing, focus, and whether your
+   phone's camera app permission prompt was accepted.
+4. **Turn on a reminder and wait for it** — local notifications are scheduled by the
    phone and the schedule itself is unit tested, but whether one actually arrives at
    12:30 is only knowable on the device (Android may delay for doze).
 
@@ -100,7 +105,7 @@ Three things; the last two need your phone rather than your password.
 ## Current state, for when you have a minute
 
 - **Queue:** FF-0044 (one-tap in-app update) is the only open ticket. 36 done, 7
-  cancelled as already implemented, **0 blocked**. Gates green: 154 backend, 214
+  cancelled as already implemented, **0 blocked**. Gates green: 157 backend, 250
   frontend, layout, tsc, smoke, toolkit.
 - **Live server:** current with `master` as of the 19:18:38 EDT restart —
   `/api/app/version` and `/download/awefit.apk` answer correctly.
@@ -113,7 +118,9 @@ Three things; the last two need your phone rather than your password.
 - **Persistent login (FF-0043):** live and **verified on the phone** — the session
   cookie now carries a 30-day `Expires` and the remember token 365 days, so the app
   no longer asks for a password on launch.
-- **APK:** `releases/awefit.apk` — **0.1.6 (versionCode 7)**, adds local reminders, signed `CN=AweFit`,
+- **APK:** `releases/awefit.apk` — **0.1.7 (versionCode 8)**: local reminders (0.1.6)
+  and the camera permission plus `<queries>` that make "Take photo" and the barcode
+  scanner possible at all (0.1.7)., signed `CN=AweFit`,
   3.7 MB, baked server
   `https://home-server-1.tail96ee52.ts.net` with `cleartext: false`. Install it to
   get the camera scanner and a working login.
