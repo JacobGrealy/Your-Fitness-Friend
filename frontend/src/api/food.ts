@@ -10,7 +10,7 @@ export const foodApi = {
   createFood: (data: FoodCreate) =>
     api.post<Food>('/food', data).then(res => res.data),
   deleteFood: (id: string) =>
-    api.delete(`/food/${id}`).then(res => res.data),
+    api.delete<{ message: string; id: number; logs_kept: number }>(`/food/${id}`).then(res => res.data),
 
   // Barcode lookup: local foods first, OpenFoodFacts second (server side).
   // 404 = unknown product, 503 = lookup service unreachable, 400 = bad code.

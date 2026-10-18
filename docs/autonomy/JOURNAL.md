@@ -1310,3 +1310,30 @@ after confirming no `food_logs` referenced them.
 
 Deliberately not rewritten: `food_logs`. Those are a record of what was believed when
 the food was logged; fixing history is a different decision, and the ticket says so.
+
+## Round 58 — 2026-10-17 — FF-0065 the trash can called nothing, and what a delete should mean
+
+"Click trashcan, then delete, but it doesn't go away." The endpoint had never existed:
+`foodApi.deleteFood` calls `DELETE /api/food/<id>`, and the blueprint only had DELETE
+for `/log/<log_id>` and `/log/<log_id>/photo`. The 404 was swallowed twice over — the
+store read `error.response.data.message` while the API returns `.error`, so even the
+failure message was blank.
+
+The design question came from the owner rather than being decided quietly: what
+happens to diary entries that reference the food? Weighed detach / refuse / cascade /
+archive and chose **detach** — entries keep their own snapshotted values and only lose
+the `food_id`, so tidying the food list never changes what your diary says you ate, and
+cleanup is never blocked by history. `food_logs` already behaved like this in reverse
+(`delete_food_log` prunes an orphaned food by name), so the tables stay symmetric.
+
+The response now returns `logs_kept` and the toast reads "Food deleted — 3 diary
+entries kept their own values": the outcome is stated, not left to be discovered.
+
+Also fixed while here: the store compared `food.id !== id` where the API sends numbers
+and the UI passes strings, so even a successful delete could leave the row on screen
+until a refetch; and the stale `Honey roasted peanuts` row that a scan had re-created
+(the parser fix still awaited its restart) was removed — no logs referenced it.
+
+5 backend tests (owner deletes, double delete, another user's food, shared food, a
+logged meal surviving) and 5 store tests (list update, plural/singular count, numeric
+id matching, API error surfaced).

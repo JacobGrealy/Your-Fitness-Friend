@@ -297,16 +297,24 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   deleteFood: async (id: string) => {
     set({ isLoading: true, error: null })
     try {
-      await foodApi.deleteFood(id)
-      const foods = get().foods.filter(food => food.id !== id)
+      const result = await foodApi.deleteFood(id)
+      const foods = get().foods.filter(food => String(food.id) !== String(id))
       set({ foods, isLoading: false })
-      useUIStore.getState().showToast('Food deleted', 'success')
+
+      // Deleting a food never deletes diary entries (FF-0065): they are snapshots
+      // and keep their own values, so say so rather than leaving it to be noticed.
+      const kept = result?.logs_kept ?? 0
+      const suffix = kept === 0
+        ? ''
+        : kept === 1
+          ? ' — 1 diary entry kept its own values'
+          : ` — ${kept} diary entries kept their own values`
+      useUIStore.getState().showToast(`Food deleted${suffix}`, 'success')
     } catch (error: any) {
-      set({
-        error: error.response?.data?.message || 'Failed to delete food',
-        isLoading: false,
-      })
-      useUIStore.getState().showToast(error.response?.data?.message || 'Failed to delete food', 'error')
+      // The API answers {'error': ...}; reading only .message left this blank.
+      const message = error.response?.data?.error || error.response?.data?.message || 'Failed to delete food'
+      set({ error: message, isLoading: false })
+      useUIStore.getState().showToast(message, 'error')
     }
   },
 

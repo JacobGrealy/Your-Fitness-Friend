@@ -545,3 +545,27 @@ Consequences worth stating plainly:
   four affected rows were products they never logged, so they were deleted instead.
 - **`food_logs` are not rewritten.** A logged entry records what was believed at the
   time; correcting history is a different decision from correcting a lookup.
+
+## 2026-10-17 — Deleting a custom food detaches diary entries, it never deletes them
+
+The Custom Foods trash can called `DELETE /api/food/<id>`, which **did not exist** — the
+route only ever had DELETE for food *logs* — so deleting a custom food did nothing at
+all, and the failure was invisible because the toast read `.message` while the API
+returns `.error`.
+
+The interesting part was the semantics, decided deliberately rather than by accident.
+A `food_logs` row copies its own name, calories and macros at the time of logging, so
+a food and its entries are already loosely coupled in that direction — and
+`delete_food_log` already prunes an orphaned food by name, so the pair is symmetric.
+
+Options weighed: **detach** (keep the entries, drop the link), **refuse** while entries
+exist, **cascade** delete the entries, **archive** the food. Chosen: **detach**,
+because a tidy-up of the food list must never quietly change what your diary says you
+ate, and because it is the only option that neither destroys history nor blocks
+cleanup. The response carries `logs_kept`, and the toast says
+"Food deleted — 3 diary entries kept their own values", so the outcome is stated
+rather than left to be noticed.
+
+Ownership rules keep the answer honest: another user's food, or a shared
+`user_id IS NULL` food, returns the *same* 404 as one that does not exist, so
+ownership cannot be probed. The shared foods stay; only your own are deletable.
