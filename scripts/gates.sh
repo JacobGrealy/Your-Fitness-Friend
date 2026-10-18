@@ -53,14 +53,17 @@ gate_layout() {
     # live in a padded shell, so a page that declares min-h-screen (100vh) makes the
     # document a viewport taller than the screen and every short page scrolls into
     # empty space. Auth pages sit outside the shell and are allowed to.
-    offenders=$(grep -rl 'min-h-screen' frontend/src/pages --include='*.tsx' 2>/dev/null \
-        | grep -v 'pages/Auth/' || true)
+    # Both spellings count: a Tailwind class, or an inline style. Progress shipped
+    # the inline form and slipped past the class-only check (FF-0052).
+    offenders=$(grep -rEl "min-h-screen|minHeight:[[:space:]]*'100(vh|svh)'|minHeight:[[:space:]]*\"100(vh|svh)\"" \
+        frontend/src/pages --include='*.tsx' 2>/dev/null | grep -v 'pages/Auth/' || true)
     if [ -n "$offenders" ]; then
-        echo "pages inside the shell must not claim the viewport height:" >&2
+        echo "pages inside the shell must not claim the viewport height" >&2
+        echo "(the shell in components/layout/Layout.tsx owns it):" >&2
         echo "$offenders" >&2
         return 1
     fi
-    echo "no page inside the shell declares min-h-screen"
+    echo "no page inside the shell claims the viewport height (class or inline style)"
 }
 
 gate_tooling() {

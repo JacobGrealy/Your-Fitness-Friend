@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T19:57
+  updated_at: 2026-10-17T20:06
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1595,4 +1595,42 @@ intake:
     Auth pages keep theirs; 100vh->100svh in index.css. Re-measured: 0 overflow on dashboard/more/weight/exercise/food-custom/food-log;
     /food/daily''s remaining 36px is real content. Added a layout gate to gates.sh (fails when a non-Auth
     page declares min-h-screen) and proved it trips on a probe file.'
+  comments: []
+- id: FF-0052
+  title: 'Progress screen still scrolls: its viewport height is an inline style, not a class'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T20:01
+  updated_at: 2026-10-17T20:06
+  completed_at: 2026-10-17T20:06
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The scroll fix worked on Home but the Progress screen still scrolls into empty
+    space, so the app still feels unsteady on the tab the owner looks at most for charts.
+
+
+    2) Technical Details: FF-0051 fixed pages that declared the Tailwind class min-h-screen, and a gate
+    was added to catch that class. Progress is the bottom nav''s second tab and opens /weight/history
+    -> frontend/src/pages/Weight/WeightHistory.tsx, whose root element uses an INLINE style instead: style={{
+    backgroundColor: ''#f2f2f2'', minHeight: ''100vh'' }} at line 63. Measured at 390x844: the page reports
+    height 844 starting at y=56 inside main, so main becomes 980 and the document overflows by 136px -
+    the identical bug, hidden from both the sweep and the gate because it is a style rather than a class.
+    It also carries pb-24 (96px), a duplicate of the shell''s own 80px bottom-nav clearance. Fix: drop
+    the inline minHeight and the redundant pb-24 so the page is content-height inside the shell, and widen
+    the layout gate to also fail on inline minHeight/height values of 100vh or 100svh in files under frontend/src/pages
+    (excluding pages/Auth). Verify by measuring /weight/history plus every other bottom-nav destination
+    for 0 overflow, and confirm the gate trips on an inline-style probe as well as a class probe.
+
+
+    Closed: WeightHistory.tsx set minHeight 100vh as an inline style (not the class), so the FF-0051 sweep
+    and gate both missed it. Removed the inline height and the duplicate pb-24; widened the layout gate
+    to match inline minHeight/height of 100vh/100svh as well as min-h-screen, and verified BOTH probes
+    fail it. Also removed two more duplicate bottom clearances (LogExercise pb-20, PhotoLog review pb-32).
+    Final sweep: 8 navigable destinations report doc==viewport; /weight/log''s 36px and /exercise/log''s
+    168px are genuine content.'
   comments: []

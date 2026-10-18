@@ -1074,3 +1074,27 @@ Guarded by a new `layout` gate in `./scripts/gates.sh` (the contract is easy to
 break by habit and the symptom is a subtle jitter). Proved it trips: with a
 throwaway page declaring `min-h-screen` the gate printed the offending file and
 failed the run; removing it restored green.
+
+## Round 50 — 2026-10-17 — FF-0052 Progress was the one page I missed, and the gate was why
+
+The owner reported the scroll fix working everywhere except Progress. Measured
+`/weight/history` at 390×844: page height 844 starting at y=56 inside `main`, so
+`main` grew to 980 and the document overflowed by the same 136px as before.
+
+Cause: `WeightHistory.tsx:63` set its viewport height as an **inline style** —
+`style={{ backgroundColor: '#f2f2f2', minHeight: '100vh' }}` — not the Tailwind
+class. My sweep grepped for the class and my new gate matched the class only, so
+both walked straight past the one page that still had the bug. The gate was
+guarding the spelling, not the rule.
+
+Fixed the page (dropping the inline height and its redundant `pb-24`), then widened
+the gate to match the class *and* inline `minHeight`/`height` of `100vh`/`100svh`,
+and proved both probes fail it before trusting it. Also removed two more duplicate
+bottom clearances that had the same effect (`LogExercise`'s `pb-20`, `PhotoLog`'s
+review-step `pb-32`).
+
+Final sweep of every bottom-nav destination and the two log forms: `dashboard`,
+`weight/history`, `weight`, `exercise`, `exercise/history`, `more`, `food/custom`
+and `food/log` all report document height equal to the viewport. `/weight/log`
+keeps 36px and `/exercise/log` 168px — content that genuinely exceeds the screen,
+which is what scrolling is for.

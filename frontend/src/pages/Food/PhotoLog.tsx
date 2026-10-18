@@ -280,7 +280,8 @@ export default function PhotoLog() {
 
       {/* Review Step */}
       {step === 'review' && (
-        <div className="px-4 space-y-4 pb-32">
+        // no pb here: the shell already clears the bottom nav (FF-0052)
+        <div className="px-4 space-y-4">
           {/* Photo preview */}
           {previewUrl && (
             <div className="bg-white rounded-xl p-3">

@@ -382,6 +382,20 @@ whole time a URL bar is visible, which would reintroduce the same overshoot in t
 browser even though the WebView is stable.
 
 `scripts/gates.sh` gains a `layout` gate that fails when a file under
-`frontend/src/pages` (excluding `pages/Auth/`) declares `min-h-screen` — the
-contract is easy to break again by habit, and the failure mode is a subtle
-scroll jitter rather than something a test would otherwise catch.
+`frontend/src/pages` (excluding `pages/Auth/`) claims the viewport height — the
+contract is easy to break again by habit, and the failure mode is a subtle scroll
+jitter rather than something a test would otherwise catch.
+
+**The gate must match both spellings.** The first version only looked for the
+Tailwind class, and Progress shipped the same bug as an inline
+`style={{ minHeight: '100vh' }}` — invisible to a class-based grep, and the one
+screen still scrolling after the "fix" (FF-0052). It now matches the class *and*
+inline `minHeight`/`height` of `100vh`/`100svh`, and both probes were confirmed to
+fail the gate.
+
+Also settled there: a page's own bottom padding must not duplicate the shell's
+80px bottom-nav clearance. Two pages carried it (`pb-20`, `pb-32`), which is extra
+scrollable emptiness on top of the shell's. The 36px still reported by
+`/weight/log` is *not* that — it is the clearance that lets the submit button
+scroll out from behind the fixed nav, and removing it would strand the button
+under the bar.
