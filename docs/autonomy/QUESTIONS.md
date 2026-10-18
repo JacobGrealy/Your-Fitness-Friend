@@ -87,12 +87,16 @@ real 3.8 MB file, not the SPA shell any more).
 
 Four things; the last two need your phone rather than your password.
 
-1. **Restart the backend** — two Python changes are waiting on it: the UPC-A/EAN-13
-   canonicalisation from FF-0060 (`app/routes/barcode_lookup.py`) and the
-   per-serving nutrition fix from FF-0063 (`app/utils/openfoodfacts.py`). Until then
-   a scan can still come back with per-100g calories. Everything frontend — the
-   scanner decoder, rotation, torch, the Complete Diary button, reminders, local
-   dates — is already live after a reload.
+1. **Restart the backend** — three Python changes are waiting on it, and one restart
+   clears all three:
+   - FF-0060 UPC-A/EAN-13 canonicalisation (`app/routes/barcode_lookup.py`)
+   - FF-0063 per-serving nutrition (`app/utils/openfoodfacts.py`) — until then a scan
+     still returns per-100g calories
+   - FF-0065 `DELETE /api/food/<id>` (`app/routes/food_routes.py`) — until then the
+     Custom Foods trash can still does nothing
+
+   Everything frontend — scanner decoder, rotation and torch, the kept-entries toast,
+   Complete Diary, reminders, local dates — is already live after a reload.
 2. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
    "awaiting restart", and only you can restart the service.
 3. **Verify the scanner on the phone** (FF-0030/FF-0060): decoding is now covered by
@@ -112,9 +116,14 @@ Four things; the last two need your phone rather than your password.
 - **Live server:** current with `master` as of the 19:18:38 EDT restart —
   `/api/app/version` and `/download/awefit.apk` answer correctly.
 - **Scanned-product calories (FF-0063):** fixed in code, awaiting the restart above.
-  The four mis-scaled cached products were deleted at your direction (nothing
-  referenced them); `scripts/refresh-barcode-foods.py` repairs any that were genuinely
-  logged, and `food_logs` are never rewritten — re-log to pick up corrected numbers.
+  The mis-scaled cached products were deleted at your direction (nothing referenced
+  them), including one that a later scan re-created because the parser fix was not
+  live yet; `scripts/refresh-barcode-foods.py` repairs any that were genuinely logged,
+  and `food_logs` are never rewritten — re-log to pick up corrected numbers.
+- **Deleting custom foods (FF-0065):** the endpoint existed only after this merge, so
+  the button works once the restart above lands. Deleting detaches diary entries
+  (they keep their snapshot) and the toast reports how many were kept — the owner's
+  choice over cascade-deleting history.
 - **Complete Diary (FF-0054):** live end to end since the 20:38:11 EDT restart —
   `POST /api/food/diary/complete` answers 401 unauthenticated rather than 404, and
   the migration `1ed0f5b7343d` is applied.
