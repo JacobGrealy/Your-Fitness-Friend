@@ -31,9 +31,12 @@ export default function BarcodeScanner({ onDetected, onUnavailable }: BarcodeSca
   const streamRef = useRef<MediaStream | null>(null)
   const detectedRef = useRef(false)
   const rafRef = useRef<number | null>(null)
+  const trackRef = useRef<MediaStreamTrack | null>(null)
 
   const [phase, setPhase] = useState<Phase>('starting')
   const [message, setMessage] = useState('Point the camera at a barcode')
+  const [torchAvailable, setTorchAvailable] = useState(false)
+  const [torchOn, setTorchOn] = useState(false)
 
   const stop = useCallback(() => {
     if (rafRef.current !== null) {
@@ -43,6 +46,19 @@ export default function BarcodeScanner({ onDetected, onUnavailable }: BarcodeSca
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
   }, [])
+
+  const toggleTorch = useCallback(async () => {
+    const track = trackRef.current
+    if (!track) return
+    const next = !torchOn
+    try {
+      // `torch` is real but not in the DOM typings, so it needs the cast.
+      await track.applyConstraints({ advanced: [{ torch: next }] } as unknown as MediaTrackConstraints)
+      setTorchOn(next)
+    } catch {
+      setTorchAvailable(false)
+    }
+  }, [torchOn])
 
   useEffect(() => {
     let cancelled = false
@@ -64,7 +80,12 @@ export default function BarcodeScanner({ onDetected, onUnavailable }: BarcodeSca
       let stream: MediaStream
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
+          video: {
+            facingMode: { ideal: 'environment' },
+            // Enough detail for a small barcode without making every frame expensive.
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
           audio: false,
         })
       } catch (err: any) {
@@ -85,6 +106,15 @@ export default function BarcodeScanner({ onDetected, onUnavailable }: BarcodeSca
       }
 
       streamRef.current = stream
+
+      // Most phone cameras expose a torch. Kitchens at night are exactly where a
+      // barcode will not decode, so offer it when the device has one (FF-0062).
+      const track = stream.getVideoTracks?.()[0]
+      const capabilities = (track?.getCapabilities?.() ?? {}) as { torch?: boolean }
+      if (track && capabilities.torch) {
+        setTorchAvailable(true)
+        trackRef.current = track
+      }
       const video = videoRef.current
       if (!video) return
       video.srcObject = stream
@@ -96,8 +126,10 @@ export default function BarcodeScanner({ onDetected, onUnavailable }: BarcodeSca
       setPhase('scanning')
 
       const reader = createBarcodeReader()
+      let ticks = 0
 
       const tick = () => {
+        ticks += 1
         if (cancelled || detectedRef.current) return
         const canvas = canvasRef.current
         if (video.readyState === video.HAVE_ENOUGH_DATA && canvas) {
@@ -115,7 +147,11 @@ export default function BarcodeScanner({ onDetected, onUnavailable }: BarcodeSca
             if (context) {
               context.drawImage(video, 0, 0, width, height)
               const image = context.getImageData(0, 0, width, height)
-              const code = decodeFrame(reader, image)
+              // Upright frames are ~1ms; a rotated one costs ~20ms each, so try
+              // every orientation only every third tick (FF-0062).
+              const code = decodeFrame(reader, image, {
+                quarterTurns: ticks % 3 === 0 ? [0, 1, 2, 3] : [0],
+              })
               if (code) {
                 detectedRef.current = true
                 if (typeof navigator.vibrate === 'function') navigator.vibrate?.(40)
@@ -163,6 +199,21 @@ export default function BarcodeScanner({ onDetected, onUnavailable }: BarcodeSca
       </div>
 
       <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
+
+      {torchAvailable && (
+        <button
+          type="button"
+          onClick={() => void toggleTorch()}
+          className="w-full py-2 rounded-lg text-sm font-medium border"
+          style={{
+            borderColor: torchOn ? '#185ADB' : '#e0e0e0',
+            background: torchOn ? '#E8F0FE' : '#fff',
+            color: torchOn ? '#185ADB' : '#757575',
+          }}
+        >
+          {torchOn ? 'Light on' : 'Turn light on'}
+        </button>
+      )}
 
       <p
         className="text-sm text-center"

@@ -1,5 +1,5 @@
 import { BarcodeFormat } from '@zxing/library'
-import { createBarcodeReader, decodeFrame, toLuminance } from '@/utils/barcode'
+import { createBarcodeReader, decodeFrame, rotateLuminance, toLuminance } from '@/utils/barcode'
 
 // FF-0060: the real decode test. The scanner used to decode with jsQR, which only
 // reads QR codes, so a product barcode was never recognised no matter how well it
@@ -30,7 +30,10 @@ function ean13Bits(code: string): string {
 }
 
 /** Render a bit pattern into an RGBA buffer the way a camera would see it. */
-function renderBits(bits: string, options: { width?: number; height?: number; modules?: number } = {}) {
+function renderBits(
+  bits: string,
+  options: { width?: number; height?: number; modules?: number; sideways?: boolean } = {}
+) {
   const moduleWidth = options.modules ?? 5
   const quiet = 10 * moduleWidth
   const width = options.width ?? quiet * 2 + bits.length * moduleWidth
@@ -39,8 +42,14 @@ function renderBits(bits: string, options: { width?: number; height?: number; mo
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
-      const index = Math.floor((x - quiet) / moduleWidth)
-      const isBar = x >= quiet && index >= 0 && index < bits.length && bits[index] === '1'
+      // `sideways` draws the bars vertically: the barcode is rotated a quarter turn,
+      // which is how it arrives from a phone held in portrait.
+      const along = options.sideways ? y : x
+      const index = Math.floor((along - quiet) / moduleWidth)
+      const within = options.sideways
+        ? along >= quiet && along < quiet + bits.length * moduleWidth && x >= quiet && x < width - quiet
+        : along >= quiet && index >= 0 && index < bits.length && bits[index] === '1'
+      const isBar = options.sideways ? within && bits[index] === '1' : within
       const value = isBar ? 0 : 255
       const offset = (y * width + x) * 4
       data[offset] = value
@@ -102,4 +111,45 @@ describe('decodeFrame (FF-0060)', () => {
     expect(decodeFrame(createBarcodeReader(), empty)).toBeNull()
   })
 
+})
+
+describe('rotateLuminance (FF-0062)', () => {
+  // A 2x3 buffer so transposition is visible:  a b / c d / e f
+  const source = new Uint8ClampedArray([1, 2, 3, 4, 5, 6])
+
+  it('leaves the buffer alone for zero turns', () => {
+    const rotated = rotateLuminance(source, 2, 3, 0)
+    expect(rotated.width).toBe(2)
+    expect(rotated.height).toBe(3)
+    expect(Array.from(rotated.data)).toEqual([1, 2, 3, 4, 5, 6])
+  })
+
+  it('transposes the dimensions for a quarter turn', () => {
+    const rotated = rotateLuminance(source, 2, 3, 1)
+    expect(rotated.width).toBe(3)
+    expect(rotated.height).toBe(2)
+    // clockwise: e c a / f d b
+    expect(Array.from(rotated.data)).toEqual([5, 3, 1, 6, 4, 2])
+  })
+
+  it('reverses for a half turn and restores on a full turn', () => {
+    expect(Array.from(rotateLuminance(source, 2, 3, 2).data)).toEqual([6, 5, 4, 3, 2, 1])
+    const once = rotateLuminance(source, 2, 3, 1)
+    const full = rotateLuminance(once.data, once.width, once.height, 3)
+    expect(Array.from(full.data)).toEqual([1, 2, 3, 4, 5, 6])
+  })
+})
+
+describe('decoding a barcode held the wrong way up (FF-0062)', () => {
+  it('misses when only the upright orientation is tried', () => {
+    const code = '301762042200' + checkDigit('301762042200')
+    const frame = renderBits(ean13Bits(code), { sideways: true, height: 600, width: 400 })
+
+    // Upright-only decoding cannot see it: ZXing's 1D readers scan horizontal rows.
+    expect(decodeFrame(createBarcodeReader(), frame, { quarterTurns: [0] })).toBeNull()
+
+    // Trying the other orientations finds it — the whole point of FF-0062.
+    const found = decodeFrame(createBarcodeReader(), frame, { quarterTurns: [0, 1, 2, 3] })
+    expect([code, code.slice(1)]).toContain(found)
+  })
 })
