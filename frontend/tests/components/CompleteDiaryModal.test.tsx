@@ -20,6 +20,13 @@ const base: DiaryCompletionSummary = {
     start_weight_lbs: 176.3,
   },
   streak: 4,
+  streaks: {
+    closed_days: 4,
+    within_goal_days: 2,
+    closed_today: true,
+    within_goal_today: true,
+    tolerance_pct: 10,
+  },
   message: 'Based on this day, repeated for five weeks.',
 }
 
@@ -28,7 +35,7 @@ const renderModal = (overrides: Partial<DiaryCompletionSummary> = {}) =>
     <CompleteDiaryModal
       summary={{ ...base, ...overrides }}
       onClose={jest.fn()}
-      onUndo={jest.fn()}
+      onReopen={jest.fn()}
     />
   )
 
@@ -85,22 +92,32 @@ describe('CompleteDiaryModal (FF-0054)', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/nothing to project/)
   })
 
-  it('shows the completed streak only once it is worth mentioning', () => {
-    renderModal({ streak: 4 })
+  it('shows the run in the header only once it is worth mentioning', () => {
+    renderModal()
     expect(screen.getByText(/4 days in a row/)).toBeInTheDocument()
     cleanup()
-    renderModal({ streak: 1 })
+    renderModal({
+      streaks: { closed_days: 1, within_goal_days: 1, closed_today: true, within_goal_today: true, tolerance_pct: 10 },
+    })
     expect(screen.queryByText(/days in a row/)).not.toBeInTheDocument()
   })
 
-  it('offers undo and done, wired to their handlers', () => {
+  it('offers reopen and done, wired to their handlers', () => {
     const onClose = jest.fn()
-    const onUndo = jest.fn()
-    render(<CompleteDiaryModal summary={base} onClose={onClose} onUndo={onUndo} />)
+    const onReopen = jest.fn()
+    render(<CompleteDiaryModal summary={base} onClose={onClose} onReopen={onReopen} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
-    expect(onUndo).toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Reopen' }))
+    expect(onReopen).toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Done' }))
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('celebrates both streaks', () => {
+    renderModal()
+    expect(screen.getByText('4')).toBeInTheDocument()
+    expect(screen.getByText('days closed in a row')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+    expect(screen.getByText('within 10% of goal')).toBeInTheDocument()
   })
 })

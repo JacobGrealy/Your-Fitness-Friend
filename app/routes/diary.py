@@ -7,7 +7,9 @@ from flask_login import current_user, login_required
 
 from app.utils.diary_completion import (
     build_completion,
+    completion_streaks,
     get_completion,
+    summarise_record,
     undo_completion,
 )
 
@@ -46,18 +48,16 @@ def completion():
         return error
     record = get_completion(current_user.id, target_date)
     if record is None:
-        return jsonify({'date': target_date.isoformat(), 'completed': False})
-    return jsonify({
-        'date': record.date.isoformat(),
-        'completed': True,
-        'completed_at': record.completed_at.isoformat() if record.completed_at else None,
-        'totals': {
-            'calories': record.calories,
-            'protein_g': record.protein_g,
-            'carbs_g': record.carbs_g,
-            'fat_g': record.fat_g,
-        },
-    })
+        # Streaks still come back for an open day: the diary shows the run that is
+        # alive right now, which is the nudge to close today (FF-0068).
+        return jsonify({
+            'date': target_date.isoformat(),
+            'completed': False,
+            'streaks': completion_streaks(
+                current_user.id, target_date, current_user.daily_calorie_goal
+            ),
+        })
+    return jsonify(summarise_record(current_user, record))
 
 
 @bp.route('/complete', methods=['DELETE'])

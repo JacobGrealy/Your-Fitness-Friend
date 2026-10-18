@@ -233,3 +233,160 @@ class TestCompleteDiaryRoute:
     def _user_id(self, app):
         with app.app_context():
             return User.query.filter_by(email='diaryroute@test.local').first().id
+
+
+class TestStreaks:
+    """The two counters the diary shows once the day is closed (FF-0068)."""
+
+    def _close(self, app, user_id, day, calories):
+        """Record a closed day directly, with `calories` eaten."""
+        with app.app_context():
+            db.session.add(DiaryCompletion(
+                user_id=user_id,
+                date=day,
+                calories=calories,
+                protein_g=0,
+                carbs_g=0,
+                fat_g=0,
+            ))
+            db.session.commit()
+
+    def _streaks(self, app, user_id, as_of, goal=2000):
+        with app.app_context():
+            user = db.session.get(User, user_id)
+            from app.utils.diary_completion import completion_streaks
+            return completion_streaks(user.id, as_of, goal)
+
+    def test_counts_consecutive_closed_days(self, app, user):
+        today = date.today()
+        for offset in (0, 1, 2):
+            self._close(app, user, today - timedelta(days=offset), 2000)
+
+        streaks = self._streaks(app, user, today)
+
+        assert streaks['closed_days'] == 3
+        assert streaks['closed_today'] is True
+
+    def test_a_gap_resets_the_run(self, app, user):
+        today = date.today()
+        self._close(app, user, today, 2000)
+        self._close(app, user, today - timedelta(days=2), 2000)   # yesterday missing
+
+        assert self._streaks(app, user, today)['closed_days'] == 1
+
+    def test_the_run_survives_until_it_is_two_days_stale(self, app, user):
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        self._close(app, user, yesterday, 2000)
+        self._close(app, user, today - timedelta(days=2), 2000)
+
+        # Yesterday counts as "still alive" — today is not closed yet.
+        assert self._streaks(app, user, today)['closed_days'] == 2
+
+        # Two days without closing reads as broken, not as a stale total.
+        later = today + timedelta(days=2)
+        assert self._streaks(app, user, later)['closed_days'] == 0
+
+    def test_within_goal_counts_under_and_slightly_over(self, app, user):
+        today = date.today()
+        self._close(app, user, today, 1200)                        # under
+        self._close(app, user, today - timedelta(days=1), 2200)    # exactly 110%
+        self._close(app, user, today - timedelta(days=2), 900)     # under
+
+        streaks = self._streaks(app, user, today, goal=2000)
+
+        assert streaks['within_goal_days'] == 3
+        assert streaks['closed_days'] == 3
+
+    def test_ten_percent_over_is_the_boundary(self, app, user):
+        today = date.today()
+        self._close(app, user, today, 2201)   # 110.05% — outside
+
+        streaks = self._streaks(app, user, today, goal=2000)
+
+        assert streaks['within_goal_days'] == 0
+        assert streaks['closed_days'] == 1        # still a closed day, just not on target
+
+    def test_a_closed_day_with_nothing_logged_is_not_on_target(self, app, user):
+        today = date.today()
+        self._close(app, user, today, 0)
+
+        streaks = self._streaks(app, user, today, goal=2000)
+
+        assert streaks['closed_days'] == 1
+        assert streaks['within_goal_days'] == 0
+
+    def test_over_goal_today_leaves_yesterdays_on_target_run_intact(self, app, user):
+        """The on-target run ended yesterday, and yesterday still counts as current.
+
+        Reporting 0 here would erase a real achievement the moment the user goes over;
+        the closed-day count keeps counting either way, which is the difference the
+        two streaks exist to show.
+        """
+        today = date.today()
+        self._close(app, user, today, 3000)                        # over goal
+        self._close(app, user, today - timedelta(days=1), 2000)
+        self._close(app, user, today - timedelta(days=2), 2000)
+
+        streaks = self._streaks(app, user, today, goal=2000)
+
+        assert streaks['within_goal_days'] == 2
+        assert streaks['within_goal_today'] is False
+        assert streaks['closed_days'] == 3
+
+    def test_no_completions_at_all(self, app, user):
+        streaks = self._streaks(app, user, date.today())
+        assert streaks == {
+            'closed_days': 0,
+            'within_goal_days': 0,
+            'closed_today': False,
+            'within_goal_today': False,
+            'tolerance_pct': 10,
+        }
+
+
+class TestClosedDayPayload:
+    def test_get_returns_the_projection_and_streaks_for_a_closed_day(self, client, app):
+        client.post('/api/auth/register', json={
+            'email': 'payload@test.local', 'password': 'password123', 'name': 'Payload',
+        })
+        client.post('/api/auth/logout')
+        client.post('/api/auth/login', json={
+            'email': 'payload@test.local', 'password': 'password123',
+        })
+        client.put('/api/auth/profile', json={
+            'age': 35, 'gender': 'male', 'height': 180, 'weight': 80,
+            'activity_level': 'moderate',
+        })
+        with app.app_context():
+            user_id = User.query.filter_by(email='payload@test.local').first().id
+            db.session.add(FoodLog(
+                user_id=user_id, food_name='Oats', calories=2000,
+                protein_g=10, carbs_g=20, fat_g=5,
+                meal_type='lunch', date=date.today(),
+            ))
+            db.session.commit()
+
+        client.post('/api/food/diary/complete')
+        closed = client.get('/api/food/diary/completion').get_json()
+
+        assert closed['completed'] is True
+        assert closed['projection']['change_lbs'] is not None
+        assert closed['streaks']['closed_days'] == 1
+        assert closed['streaks']['within_goal_days'] == 1
+        assert closed['totals']['calories'] == 2000
+
+    def test_get_for_an_open_day_still_reports_the_live_streak(self, client, app):
+        client.post('/api/auth/register', json={
+            'email': 'open@test.local', 'password': 'password123', 'name': 'Open',
+        })
+        client.post('/api/auth/logout')
+        client.post('/api/auth/login', json={
+            'email': 'open@test.local', 'password': 'password123',
+        })
+
+        body = client.get('/api/food/diary/completion').get_json()
+
+        assert body['completed'] is False
+        assert body['streaks']['closed_days'] == 0
+        assert 'tolerance_pct' in body['streaks']

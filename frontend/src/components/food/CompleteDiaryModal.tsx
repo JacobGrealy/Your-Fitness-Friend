@@ -3,8 +3,8 @@ import type { DiaryCompletionSummary } from '@/api/diary'
 interface Props {
   summary: DiaryCompletionSummary
   onClose: () => void
-  onUndo: () => void
-  undoing?: boolean
+  onReopen: () => void
+  reopening?: boolean
 }
 
 const BLUE = '#185ADB'
@@ -24,8 +24,10 @@ function pounds(value: number | null): string {
  * (nothing logged, or intake low enough that projecting loss would encourage
  * under-eating) this screen shows the reason instead of a figure.
  */
-export default function CompleteDiaryModal({ summary, onClose, onUndo, undoing = false }: Props) {
-  const { totals, projection, status, message, goal_calories: goal, streak } = summary
+export default function CompleteDiaryModal({ summary, onClose, onReopen, reopening = false }: Props) {
+  const { totals, projection, status, message, goal_calories: goal } = summary
+  const closedDays = summary.streaks?.closed_days ?? summary.streak ?? 0
+  const onTargetDays = summary.streaks?.within_goal_days ?? 0
   const hasProjection = projection.change_lbs !== null && projection.change_lbs !== undefined
   const losing = (projection.change_lbs ?? 0) < 0
 
@@ -45,7 +47,7 @@ export default function CompleteDiaryModal({ summary, onClose, onUndo, undoing =
           <p className="text-white text-lg font-semibold">Diary complete</p>
           <p className="text-white/80 text-xs mt-0.5">
             {summary.date}
-            {streak && streak > 1 ? ` · ${streak} days in a row` : ''}
+            {closedDays > 1 ? ` · ${closedDays} days in a row` : ''}
           </p>
         </div>
 
@@ -90,6 +92,23 @@ export default function CompleteDiaryModal({ summary, onClose, onUndo, undoing =
             </div>
           ) : null}
 
+          {closedDays > 0 && (
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="rounded-lg py-2" style={{ background: '#E8F5E9' }}>
+                <p className="text-lg font-bold" style={{ color: '#2E7D32' }}>{closedDays}</p>
+                <p className="text-[10px]" style={{ color: GREY }}>
+                  {closedDays === 1 ? 'day closed' : 'days closed'} in a row
+                </p>
+              </div>
+              <div className="rounded-lg py-2" style={{ background: '#E8F0FE' }}>
+                <p className="text-lg font-bold" style={{ color: BLUE }}>{onTargetDays}</p>
+                <p className="text-[10px]" style={{ color: GREY }}>
+                  within {summary.streaks?.tolerance_pct ?? 10}% of goal
+                </p>
+              </div>
+            </div>
+          )}
+
           {status !== 'ok' && (
             <div
               className="rounded-lg p-3 text-xs"
@@ -111,12 +130,12 @@ export default function CompleteDiaryModal({ summary, onClose, onUndo, undoing =
         <div className="px-5 pb-5 pt-1 flex gap-2">
           <button
             type="button"
-            onClick={onUndo}
-            disabled={undoing}
+            onClick={onReopen}
+            disabled={reopening}
             className="flex-1 py-3 rounded-xl text-sm font-medium border border-[#e0e0e0] disabled:opacity-50"
             style={{ color: '#212121' }}
           >
-            {undoing ? 'Undoing…' : 'Undo'}
+            {reopening ? 'Reopening…' : 'Reopen'}
           </button>
           <button
             type="button"

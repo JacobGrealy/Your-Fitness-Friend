@@ -36,6 +36,10 @@ STATUS_UNDER_EATING = 'under_eating'
 STATUS_TOO_LOW = 'too_low'
 STATUS_EMPTY = 'empty'
 
+#: How far over the goal still counts as "on target". Being under always counts —
+#: a day at 60% of goal is within 10% by this rule's intent (FF-0068).
+WITHIN_GOAL_TOLERANCE = 0.10
+
 
 def evaluate_intake(calories, gender):
     """Classify a day's intake against the under-eating thresholds.
@@ -80,6 +84,55 @@ def current_weight_lbs(user):
     return round(user.weight * 2.20462, 1)
 
 
+def _streak_length(qualifies, completed_dates, as_of):
+    """Consecutive qualifying days ending at the most recent qualifying day.
+
+    "Current" rather than "longest": the count restarts from the latest qualifying
+    day and is 0 once that day is older than yesterday, so a broken streak reads as
+    broken instead of showing yesterday's total forever.
+    """
+    qualifying = sorted((day for day in completed_dates if qualifies(day)), reverse=True)
+    if not qualifying:
+        return 0
+    latest = qualifying[0]
+    if (as_of - latest).days > 1:
+        return 0
+
+    count = 0
+    cursor = latest
+    while cursor in completed_dates and qualifies(cursor):
+        count += 1
+        cursor = cursor - timedelta(days=1)
+    return count
+
+
+def completion_streaks(user_id, as_of, goal_calories):
+    """Both streak counters the diary shows once the day is closed.
+
+    `within_goal_days` counts closed days whose calories were above zero and no more
+    than 10% over the goal. A closed day with nothing logged is excluded: it is not
+    evidence of eating on target.
+    """
+    rows = DiaryCompletion.query.filter_by(user_id=user_id).all()
+    completed_dates = {row.date: int(row.calories or 0) for row in rows}
+    goal = goal_calories or 0
+    ceiling = goal * (1 + WITHIN_GOAL_TOLERANCE)
+
+    def within_goal(day):
+        calories = completed_dates.get(day, 0)
+        if goal <= 0:
+            return False
+        return 0 < calories <= ceiling
+
+    return {
+        'closed_days': _streak_length(lambda day: True, completed_dates, as_of),
+        'within_goal_days': _streak_length(within_goal, completed_dates, as_of),
+        'closed_today': as_of in completed_dates,
+        'within_goal_today': within_goal(as_of),
+        'tolerance_pct': round(WITHIN_GOAL_TOLERANCE * 100),
+    }
+
+
 def completed_streak(user_id, ending_on):
     """Consecutive completed days ending on `ending_on`, counting backwards."""
     completions = DiaryCompletion.query.filter_by(user_id=user_id).all()
@@ -90,6 +143,55 @@ def completed_streak(user_id, ending_on):
         streak += 1
         cursor = cursor - timedelta(days=1)
     return streak
+
+
+def summarise_record(user, record):
+    """The closed-day payload, assembled from a stored record.
+
+    Used by both the POST that closes the day and the GET the diary page reads on
+    load, so the projection panel renders from one request instead of a second
+    round trip (FF-0068).
+    """
+    calories = int(record.calories or 0)
+    tdee = maintenance_calories(user)
+    status = evaluate_intake(calories, user.gender)
+    if calories <= 0:
+        status = STATUS_EMPTY
+
+    change_lbs = None
+    projected_weight_lbs = None
+    if status in (STATUS_OK, STATUS_UNDER_EATING):
+        change_lbs = project_weight_change(calories, tdee)
+        start = current_weight_lbs(user)
+        if change_lbs is not None and start is not None:
+            projected_weight_lbs = round(start + change_lbs, 1)
+
+    streaks = completion_streaks(user.id, record.date, user.daily_calorie_goal)
+
+    return {
+        'date': record.date.isoformat(),
+        'completed': True,
+        'completed_at': record.completed_at.isoformat() if record.completed_at else None,
+        'totals': {
+            'calories': calories,
+            'protein_g': record.protein_g,
+            'carbs_g': record.carbs_g,
+            'fat_g': record.fat_g,
+        },
+        'goal_calories': user.daily_calorie_goal,
+        'maintenance_calories': tdee,
+        'status': status,
+        'projection': {
+            'days': PROJECTION_DAYS,
+            'change_lbs': change_lbs,
+            'projected_weight_lbs': projected_weight_lbs,
+            'start_weight_lbs': current_weight_lbs(user),
+        },
+        'streaks': streaks,
+        # Kept as an alias: the completion modal and older callers read `streak`.
+        'streak': streaks['closed_days'],
+        'message': status_message(status, change_lbs),
+    }
 
 
 def build_completion(user, target_date):
@@ -127,29 +229,9 @@ def build_completion(user, target_date):
     completion.change_lbs = change_lbs
     db.session.commit()
 
-    return {
-        'date': target_date.isoformat(),
-        'completed': True,
-        'completed_at': completion.completed_at.isoformat() if completion.completed_at else None,
-        'totals': {
-            'calories': calories,
-            'protein_g': completion.protein_g,
-            'carbs_g': completion.carbs_g,
-            'fat_g': completion.fat_g,
-            'log_count': totals['log_count'],
-        },
-        'goal_calories': user.daily_calorie_goal,
-        'maintenance_calories': tdee,
-        'status': status,
-        'projection': {
-            'days': PROJECTION_DAYS,
-            'change_lbs': change_lbs,
-            'projected_weight_lbs': projected_weight_lbs,
-            'start_weight_lbs': current_weight_lbs(user),
-        },
-        'streak': completed_streak(user.id, target_date),
-        'message': status_message(status, change_lbs),
-    }
+    payload = summarise_record(user, completion)
+    payload['totals']['log_count'] = totals['log_count']
+    return payload
 
 
 def status_message(status, change_lbs):

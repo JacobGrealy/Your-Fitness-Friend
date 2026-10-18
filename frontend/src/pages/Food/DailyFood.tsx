@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
-import { diaryApi, type DiaryCompletionSummary } from '@/api/diary'
+import { diaryApi, type DiaryCompletionSummary, type DiaryStreaks } from '@/api/diary'
 import CompleteDiaryModal from '@/components/food/CompleteDiaryModal'
+import ClosedDayPanel from '@/components/food/ClosedDayPanel'
 import { useFoodStore } from '@/store/foodStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { MealType, FoodLog } from '@/types'
@@ -150,8 +151,13 @@ export default function DailyFood() {
   const [collapsedMeals, setCollapsedMeals] = useState<Set<MealType>>(new Set())
   const [currentDate, setCurrentDate] = useState(new Date())
   const [isNavigating, setIsNavigating] = useState(false)
+  // `closedSummary` feeds the panel on load; `completion` drives the celebration and
+  // is set only when the user closes the day, so revisiting a closed diary does not
+  // re-pop the modal (FF-0068).
+  const [closedSummary, setClosedSummary] = useState<DiaryCompletionSummary | null>(null)
   const [completion, setCompletion] = useState<DiaryCompletionSummary | null>(null)
   const [completedToday, setCompletedToday] = useState(false)
+  const [streaks, setStreaks] = useState<DiaryStreaks | null>(null)
   const [completing, setCompleting] = useState(false)
   const [undoing, setUndoing] = useState(false)
 
@@ -166,8 +172,21 @@ export default function DailyFood() {
     ]).finally(() => setIsNavigating(false))
     // Whether this day was already declared finished (FF-0054).
     diaryApi.getCompletion(dateStr)
-      .then((state) => setCompletedToday(state.completed))
-      .catch(() => setCompletedToday(false))
+      .then((state) => {
+        if (state.completed) {
+          setCompletedToday(true)
+          setClosedSummary(state)
+        } else {
+          setCompletedToday(false)
+          setClosedSummary(null)
+        }
+        setStreaks(state.streaks ?? null)
+      })
+      .catch(() => {
+        setCompletedToday(false)
+        setClosedSummary(null)
+        setStreaks(null)
+      })
   }, [currentDate, fetchDailyTotals, fetchFoodLogs])
 
   useEffect(() => {
@@ -181,19 +200,24 @@ export default function DailyFood() {
     setCompleting(true)
     try {
       const summary = await diaryApi.complete(format(currentDate, 'yyyy-MM-dd'))
+      setClosedSummary(summary)
       setCompletion(summary)
       setCompletedToday(true)
+      setStreaks(summary.streaks ?? null)
     } finally {
       setCompleting(false)
     }
   }, [currentDate])
 
-  const undoCompletion = useCallback(async () => {
+  const reopenDiary = useCallback(async () => {
     setUndoing(true)
     try {
-      await diaryApi.undo(format(currentDate, 'yyyy-MM-dd'))
+      const state = await diaryApi.undo(format(currentDate, 'yyyy-MM-dd'))
       setCompletion(null)
+      setClosedSummary(null)
       setCompletedToday(false)
+      // Reopening keeps yesterday's run: the streak only breaks if the day stays open.
+      if (state?.streaks) setStreaks(state.streaks)
     } finally {
       setUndoing(false)
     }
@@ -275,6 +299,10 @@ export default function DailyFood() {
           />
         )}
 
+        {completedToday && closedSummary && (
+          <ClosedDayPanel summary={closedSummary} onReopen={reopenDiary} reopening={undoing} />
+        )}
+
         <div className="space-y-4">
           {MEAL_TYPES.map(meal => {
             const logs = groupedLogs[meal]
@@ -298,27 +326,18 @@ export default function DailyFood() {
         </div>
       </div>
 
-      {/* Complete Diary sits at the end of the content rather than in a fixed bar:
-          a floating element has to clear the bottom nav itself, and that mistake
-          cost three rounds (FF-0051, FF-0053). */}
-      <div className="px-4 pt-2 pb-2">
-        {completedToday ? (
-          <div className="flex items-center gap-2">
-            <div className="flex-1 rounded-xl bg-white border border-[#e0e0e0] px-4 py-3 flex items-center gap-2">
-              <span className="text-[#2E7D32] text-sm">✓</span>
-              <span className="text-sm" style={{ color: '#212121' }}>Diary complete</span>
-            </div>
-            <button
-              type="button"
-              onClick={undoCompletion}
-              disabled={undoing}
-              className="px-4 py-3 rounded-xl text-sm font-medium border border-[#e0e0e0] bg-white disabled:opacity-50"
-              style={{ color: '#757575' }}
-            >
-              {undoing ? '…' : 'Undo'}
-            </button>
-          </div>
-        ) : (
+      {/* Once the day is closed the panel above owns it — Reopen lives there, so
+          this row disappears rather than offering a second way to undo (FF-0068).
+          Kept inline rather than in a fixed bar: a floating element has to clear the
+          bottom nav itself, and that mistake cost three rounds (FF-0051, FF-0053). */}
+      {!completedToday && (
+        <div className="px-4 pt-2 pb-2">
+          {streaks && streaks.closed_days > 0 && (
+            <p className="text-xs text-center mb-2" style={{ color: '#757575' }}>
+              {streaks.closed_days} {streaks.closed_days === 1 ? 'day' : 'days'} closed in a row
+              — close today to keep it going
+            </p>
+          )}
           <button
             type="button"
             onClick={completeDiary}
@@ -328,15 +347,15 @@ export default function DailyFood() {
           >
             {completing ? 'Completing…' : 'Complete Diary'}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {completion && (
         <CompleteDiaryModal
           summary={completion}
           onClose={() => setCompletion(null)}
-          onUndo={undoCompletion}
-          undoing={undoing}
+          onReopen={reopenDiary}
+          reopening={undoing}
         />
       )}
 

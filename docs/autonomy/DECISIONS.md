@@ -569,3 +569,41 @@ rather than left to be noticed.
 Ownership rules keep the answer honest: another user's food, or a shared
 `user_id IS NULL` food, returns the *same* 404 as one that does not exist, so
 ownership cannot be probed. The shared foods stay; only your own are deletable.
+
+## 2026-10-17 — Closing the diary is a finish line, so the payoff lives on the diary
+
+The completion modal was a dead end: the projection appeared once, inside a window
+that then closed, and nothing accumulated. The owner asked for streaks and for the
+closed state to be part of the diary itself — explicitly to make closing feel like
+something you protect rather than a button you press and forget.
+
+Three decisions:
+
+**The projection moved under the goal / food / exercise line.** That is where the eye
+already is when someone is deciding whether to add one more thing, and it is the one
+place where "if every day were like today" can argue against eating more. It renders
+from the load request — `GET /api/food/diary/completion` now returns the whole closed
+summary rather than just totals — so no second round trip and no flash of empty panel.
+
+**Reopen lives inside the closed panel, and the bottom row is gone.** One way out, in
+the place that says the day is closed. The old bottom "Diary complete / Undo" row
+disappeared entirely: two ways to undo one action is how a finish line stops feeling
+like one.
+
+**Two streaks, counting differently on purpose.** `closed_days` counts consecutive
+closed days whatever you ate; `within_goal_days` counts consecutive closed days whose
+intake was above zero and at most 10% over the goal (so under-goal always counts).
+Both use *current-run* semantics: count back from the most recent qualifying day, and
+return 0 once that day is older than yesterday — a broken streak must read as broken,
+not as yesterday's total stuck on screen forever.
+
+One deliberate asymmetry, found by writing the test: if you close today **over** goal
+after two days on target, the on-target streak shows **2**, not 0. Reporting 0 would
+erase a real achievement the moment someone goes over, which is precisely the moment
+they are most likely to abandon the app. The run ended yesterday, and yesterday still
+counts as current. The closed-day counter keeps counting either way — that difference
+is what the two numbers are for.
+
+The modal still celebrates (it is the moment of closure) and now shows both counters,
+but it is bound to the act of closing: revisiting an already-closed diary shows the
+panel, not the modal.
