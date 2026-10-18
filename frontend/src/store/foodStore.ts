@@ -22,7 +22,7 @@ interface FoodState {
   logFood: (data: FoodLogCreate) => Promise<FoodLog | void>
   updateFoodLog: (id: string, data: Partial<FoodLogCreate>) => Promise<void>
   getFoodLogById: (id: string) => Promise<FoodLog | null>
-  uploadFoodLogPhoto: (id: string, file: File) => Promise<void>
+  uploadFoodLogPhoto: (id: string, file: File) => Promise<string>
   deleteFoodLogPhoto: (id: string) => Promise<void>
   uploadedPhotoUrl: string | null
   deleteFood: (id: string) => Promise<void>
@@ -266,12 +266,16 @@ export const useFoodStore = create<FoodState>((set, get) => ({
         ),
       }))
       useUIStore.getState().showToast('Photo uploaded', 'success')
+      return photo_url
     } catch (error: any) {
       const message = error.response?.data?.error
         || error.response?.data?.message
         || 'Failed to upload photo'
       set({ error: message })
       useUIStore.getState().showToast(message, 'error')
+      // Rethrow, like weightStore.uploadPhoto: swallowing the failure let the caller
+      // carry on and navigate away as if the photo had been saved (FF-0075).
+      throw error
     }
   },
 

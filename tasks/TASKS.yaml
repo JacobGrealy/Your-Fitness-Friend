@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-18T11:22
+  updated_at: 2026-10-18T11:27
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue:
-- FF-0075
+queue: []
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -2594,11 +2593,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-18T09:46
-  updated_at: 2026-10-18T09:46
-  completed_at: null
+  updated_at: 2026-10-18T11:27
+  completed_at: 2026-10-18T11:27
   waiting_on: null
   parent_id: null
   notes: "1) User Story: I open a saved food log entry, pick a photo, press Save, and go back - and the\
@@ -2649,7 +2648,13 @@ intake:
     \ frontend/src/store/foodStore.ts and a new test, so it is FILE-DISJOINT from FF-0073/FF-0074 (Weight\
     \ pages, weightStore) and from FF-0072 (Profile.tsx) and can run as its own parallel lane. Frontend-only:\
     \ ships in a rebuilt app/static, no backend restart. Same root cause as FF-0073 - if that ticket ends\
-    \ up introducing a shared photo-state helper, this one should use it rather than invent a second pattern.\n"
+    \ up introducing a shared photo-state helper, this one should use it rather than invent a second pattern.\n\
+    \n\nClosed: EditFoodLog no longer reads the store's uploadedPhotoUrl for control flow - it keeps local\
+    \ uploadedThisVisit state (set only by its own upload) and clears the store slot on mount, so attaching\
+    \ photos to two entries in a row attaches both. uploadFoodLogPhoto now returns the URL and rethrows,\
+    \ matching weightStore, so a failed upload keeps the user on the page instead of navigating away as\
+    \ success. Removed the 'Photo uploaded' text that replaced the image. 5 new tests in frontend/tests/pages/EditFoodLog.photo.test.tsx.\
+    \ Frontend-only."
   comments: []
 - id: FF-0076
   title: Streak strip on diary and Home, badges collection on More
