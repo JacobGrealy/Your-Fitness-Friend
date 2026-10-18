@@ -7,6 +7,7 @@ import type { WeightLogCreate } from '@/types'
 import { useWeightStore } from '@/store/weightStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { MAX_WEIGHT_LOG_NOTES } from '@/utils/constants'
+import { todayLocal } from '@/utils/localDate'
 
 export default function LogWeight() {
   const { setTitle } = usePageTitle()
@@ -30,7 +31,7 @@ export default function LogWeight() {
     }
   }, [previewUrl])
 
-  const getTodayDate = () => new Date().toISOString().split('T')[0]
+  const getTodayDate = () => todayLocal()
 
   const {
     register,

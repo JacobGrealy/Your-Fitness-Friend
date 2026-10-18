@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { weightApi } from '@/api/weight'
 import type { WeightLog, WeightStatistics, WeightTrend, WeightLogCreate, WeightFilter } from '@/types'
 import { useUIStore } from './uiStore'
+import { todayLocal } from '@/utils/localDate'
 
 interface WeightState {
   logs: WeightLog[]
@@ -91,7 +92,7 @@ export const useWeightStore = create<WeightState>((set, get) => ({
   logWeight: async (data: WeightLogCreate) => {
     set({ isLoading: true, error: null })
     try {
-      const dateStr = data.date || new Date().toISOString().split('T')[0]
+      const dateStr = data.date || todayLocal()
       const duplicate = await get().checkDuplicate(dateStr)
 
       if (duplicate) {

@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T20:52
+  updated_at: 2026-10-17T21:01
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1887,4 +1887,46 @@ intake:
     scanner (FF-0030) was broken on every build so far. APK 0.1.7 (versionCode 8) verified with aapt2:
     CAMERA is an uses-permission and the merged manifest carries both queries intents. On-device confirmation
     still needed.'
+  comments: []
+- id: FF-0059
+  title: 'Evening food logs are filed on tomorrow: dates derived from UTC instead of local time'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T20:59
+  updated_at: 2026-10-17T21:01
+  completed_at: 2026-10-17T21:01
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: In the evening, adding a food to today''s diary appears to do nothing - the entry
+    never shows up, so the owner retries and ends up with five identical logs. Same bug would hit weight
+    logs.
+
+
+    2) Technical Details: diagnosed from the live database rather than guessed. The owner''s five "Nuts
+    160 snack" attempts are stored with date 2026-10-18 while created_at is 2026-10-18 00:54-00:58 UTC
+    (20:54-20:58 EDT on 2026-10-17). Cause: seven places derive "today" with new Date().toISOString().split(''T'')[0],
+    which is the UTC calendar date; after 20:00 EDT (00:00 UTC) that returns tomorrow, so the log is filed
+    on a day the diary is not showing and the user sees nothing happen. Locations: store/foodStore.ts:135,
+    store/weightStore.ts:94, pages/Food/FoodLogSelect.tsx:48 and :157, pages/Weight/LogWeight.tsx:33,
+    and pages/Weight/EditWeight.tsx:57 (which formats a stored timestamp the same way, so a log made after
+    20:00 shows tomorrow''s date). Fix: one helper, src/utils/localDate.ts, returning the LOCAL calendar
+    date (getFullYear/getMonth/getDate, not toISOString), used everywhere; add tests that assert the local
+    date for an instant where UTC and local disagree (guard the assertion when the host runs at UTC+0),
+    and that a late-evening instant maps to the earlier local day. Frontend-only change: no APK rebuild,
+    no migration. Verify by posting through the UI late in the local evening and confirming the row lands
+    on the local date.
+
+
+    Closed: seven call sites used new Date().toISOString().split(''T'')[0] (UTC), so west of Greenwich
+    any log after 20:00 EDT was filed on tomorrow and never appeared in the visible diary - the owner''s
+    five Nuts attempts are stored as 2026-10-18 with created_at 00:54-00:58 UTC on the 17th. Added src/utils/localDate.ts
+    (todayLocal/localDateOf from local getters) and replaced every UTC derivation: foodStore, weightStore,
+    FoodLogSelect x2, LogWeight, and EditWeight''s display of a stored timestamp. 4 tests including an
+    instant where UTC and local disagree, guarded against passing vacuously at UTC+0. Frontend-only: no
+    APK rebuild or migration.'
   comments: []
