@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-18T12:15
+  updated_at: 2026-10-18T12:16
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0082
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -2953,4 +2954,114 @@ intake:
     the reported scenario on the isolated dev server (the code survives a PUT with barcode_id='''') plus
     a browser check. 6 backend + 5 frontend tests. Codes already wiped are not recoverable - re-scan with
     the new button. Backend + frontend: needs a restart.'
+  comments: []
+- id: FF-0082
+  title: Copy a meal from any date and meal type to any other
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-18T12:15
+  updated_at: 2026-10-18T12:15
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: Copy a whole meal - every food logged in it - from any meal on any date to any
+    meal on any date, the way MyFitnessPal does. The entry point should be the meal itself in the diary,
+    not a separate screen: you look at Breakfast, see it was a good day, and duplicate it onto today''s
+    lunch.
+
+
+    2) Behaviour: the copy control belongs on each meal section in the diary (frontend/src/pages/Food/DailyFood.tsx,
+    which renders MEAL_TYPES through MealSection.tsx). Tapping it opens a small sheet with two choices
+    - destination date and destination meal type - defaulting to TODAY (utils/localDate.todayLocal(),
+    never an ISO-split) and to the meal type being copied from, so the common case is one tap plus confirm.
+    Everything logged in that meal on that date is duplicated onto the destination.
+
+
+    3) Technical Details: no new endpoint is strictly required - POST /api/food/log already creates a
+    log from a name/macros payload - but a batch route is better: one request, one transaction, so a copy
+    is all-or-nothing and does not fire N separate toast and refresh cycles. Suggested shape: POST /api/food/log/copy
+    with {from_date, from_meal_type, to_date, to_meal_type}, owner-scoped, returning the created logs.
+    Copy each log''s own snapshot (food_name, macros, number_of_servings, serving_size, brand, barcode_id)
+    rather than re-reading the linked Food, because a log deliberately keeps its own nutrition snapshot
+    (see the Edit Food Log design in DECISIONS.md) and a copy must not silently change what was eaten.
+    Do NOT copy photo_url: a meal photo belongs to that meal on that day and duplicating the path would
+    point two rows at one file with no clear owner - decide this explicitly and note it. Handle the destination
+    meal already having entries (append, do not replace) and say so in the confirmation. Watch the date
+    boundary: use localDateOf/todayLocal, the FF-0059 bug class.
+
+
+    4) UX detail: show how many items will be copied in the confirmation ("Copy 3 items to Lunch on Today?"),
+    disable the action when the source meal is empty, and confirm with a toast naming the destination.
+    Consider also offering "copy to same meal, next day" as a shortcut later - out of scope now.
+
+
+    5) Tests: backend - copies all items of the source meal onto the destination, leaves the source untouched,
+    appends rather than replaces, refuses another user''s data, handles an empty source, and copies the
+    snapshot rather than the linked food''s current macros. Frontend - the sheet defaults to today and
+    the source meal type, the action is disabled for an empty meal, and a successful copy reports the
+    destination. Gates green.'
+  comments: []
+- id: FF-0083
+  title: Split edit into log-serving and food-detail screens, and make the macro unit explicit
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-18T12:16
+  updated_at: 2026-10-18T12:16
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: changing Number of Servings while editing a food log does not change the macros,
+    although it does on create. More broadly the owner wants the edit flow split in two: landing on a
+    LOG screen (adjust the serving) with a button through to a FOOD screen (macros per serving, name,
+    brand), and the food screen must not offer Number of Servings because that is a log property.
+
+
+    2) Root cause - three inconsistent paths, verified in the code and in live data. (a) frontend/src/store/foodStore.ts:139-148
+    logFood multiplies only when the food is present in the store: totalCalories = round(food.calories
+    * quantity). (b) When the food is NOT in the store the else-branch posts data.calories as typed, so
+    the unit is ambiguous. (c) frontend/src/pages/Food/EditFoodLog.tsx sends calories and number_of_servings
+    verbatim with no scaling, so the field does nothing. Live proof: food_logs 64 holds 110 kcal at number_of_servings
+    0.5 where the food is 110 kcal per serving (should be 55), and log 62 holds 38 kcal at 0.2 servings
+    (food is 38) - both carry per-serving numbers with a multiplier that was never applied. So food_logs.calories
+    sometimes means a total and sometimes a per-serving value: that ambiguity is the real bug.
+
+
+    3) Proposed model: make the unit explicit by storing per-serving nutrition on the log. Add calories_per_serving,
+    protein_per_serving, carbs_per_serving, fat_per_serving to food_logs, keep the existing columns as
+    TOTALS (so every consumer - diary sums, dashboard, streaks - keeps working unchanged), and define
+    totals = per_serving * number_of_servings everywhere. Backfill: per_serving = totals / servings for
+    rows with servings > 0, else totals; flag the rows where that heuristic disagrees with the linked
+    Food (logs 62 and 64 above) for review rather than silently rewriting them. One helper computes both
+    directions so no client does the arithmetic.
+
+
+    4) Proposed UX - two screens. LOG screen (weighted first, reached from the diary row): servings control
+    with live totals updating as it changes, plus date, meal type, photo, notes, and the barcode as read-only.
+    Buttons: Save, Edit food details, Delete. FOOD screen (reached from that button): name, brand, serving
+    size, calories and macros PER SERVING, and NO servings field. Saving the food screen recomputes this
+    log''s totals at its current servings.
+
+
+    5) Open questions for the owner (asked in the conversation, not decided here): whether saving the
+    FOOD screen should also update the saved Food so future logs use it (always / ask via a ''use for
+    future logs'' toggle defaulting on / never); the servings control shape (free decimal vs stepper plus
+    quick chips); whether the LOG screen should also allow moving the entry to another date or meal; what
+    to do for logs with no food reference (hide the food screen or let it edit the log''s own snapshot);
+    whether to repair logs 62 and 64 during the migration; and rounding rules (whole calories, one decimal
+    for macros).
+
+
+    6) Interaction with FF-0082: a copied meal must copy snapshots, including the per-serving values,
+    so this lands before or with the copy feature to avoid a second migration. Also touches the create
+    screen labels (''per serving'' vs ''total'') which should match the new model.'
   comments: []
