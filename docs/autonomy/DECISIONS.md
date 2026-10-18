@@ -516,3 +516,32 @@ unit test rather than something only a phone could check.
 EAN-13 as UPC-A — discovered by the test, not by reasoning. So the server canonicalises
 12-digit codes to 13 digits, stores that form, and searches both: one product stays
 one row, and a row cached before this existed is still found.
+
+## 2026-10-17 — Nutrition is stored per serving, and the label must agree
+
+Scanned products read several times too high (the owner's peanuts were 536 kcal for a
+28 g serving; real value ~150). `parse_product` read OpenFoodFacts' **per-100g**
+nutriments and attached the product's `serving_size` label to them, so a 100 g figure
+wore a serving label. `Coffee mate` — a 2 g serving — was 50× out.
+
+Three sources of truth, in order, and the label always matches the numbers:
+
+1. **OFF's own per-serving fields** (`energy-kcal_serving`, `proteins_serving`, …)
+   when published. Authoritative: OFF already knows the serving mass and its own
+   rounding. Verified against the live API — crisps at 536 kcal/100 g and 152 kcal
+   per 28.349 g portion, which our arithmetic also produced.
+2. **Scale per-100g by the serving mass**, from `serving_quantity` or a mass parsed
+   out of `serving_size` (`15 g`, `250ml`, `1.5 oz`). A mass is required; "1 cup" or
+   "1 bar" cannot be converted without inventing a density, and guessing is the bug.
+3. **Keep per-100g numbers and label them `100 g`.** Honest and unscaled beats
+   confident and wrong.
+
+Consequences worth stating plainly:
+
+- **The cache serves stale numbers forever.** A `Food` row cached from a barcode is
+  never refreshed, which is what makes scanning instant and offline-capable — and it
+  is why fixing the parser does not fix rows already written.
+  `scripts/refresh-barcode-foods.py` re-reads them (`--apply` to write). The owner's
+  four affected rows were products they never logged, so they were deleted instead.
+- **`food_logs` are not rewritten.** A logged entry records what was believed at the
+  time; correcting history is a different decision from correcting a lookup.

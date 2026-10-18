@@ -1281,3 +1281,32 @@ Two findings from writing the test rather than the feature:
 
 The decode is now covered by real bitmaps in jest (16 tests), which is the first time
 this path has been verified without a phone.
+
+## Round 57 — 2026-10-17 — FF-0063 per-100g numbers wearing a serving label
+
+"The calories listed is super high, like at least 4 times what it is." That number was
+the clue: `parse_product` read OpenFoodFacts' per-100g nutriments and attached the
+product's `serving_size` label to them, so a 100 g figure was presented as one
+serving. Their own cached rows made it concrete — peanuts stored as 536 kcal for a
+28 g serving (~150 real, 3.6×), creamy peanut butter 576 for 33 g (2.9×), and Coffee
+mate 500 for a **2 g** serving (50×).
+
+Now: prefer OFF's own `*_serving` fields when published, else scale per-100g by the
+serving mass (`serving_quantity`, or a mass parsed from the label), else keep
+per-100g numbers and *say* `100 g` in the label. The last branch matters: a label that
+matches its number is worth more than a number that looks per-serving.
+
+Checked against the live API rather than trusting the arithmetic: crisps publish
+536 kcal/100 g and 152 kcal per 28.349 g, and our scaled value is also 152. Nutella
+publishes no serving size at all, so it correctly reads 539 kcal per `100 g` — the
+old test fixture's `15 g` had been invented and is now fixed to match reality.
+
+The cache is the other half of this bug: a `Food` row cached from a barcode is never
+refreshed (that is what makes scanning instant and offline), so the parser fix alone
+would leave the wrong numbers in place forever. `scripts/refresh-barcode-foods.py`
+re-reads them, dry-run by default. The owner's four affected rows were products they
+never logged, so at their direction those were deleted instead — after a backup, and
+after confirming no `food_logs` referenced them.
+
+Deliberately not rewritten: `food_logs`. Those are a record of what was believed when
+the food was logged; fixing history is a different decision, and the ticket says so.

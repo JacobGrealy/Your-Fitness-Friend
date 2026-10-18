@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T21:15
+  updated_at: 2026-10-17T21:20
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2035,4 +2035,45 @@ intake:
     decode that asserts upright-only misses and the four-way attempt finds it (20 barcode tests total).
     Frontend-only: no rebuild, no migration. Verify the rotation path with the synthetic-camera harness
     (canvas.captureStream drawing a rotated EAN-13) rather than the phone.'
+  comments: []
+- id: FF-0063
+  title: Scanned products show per-100g calories as if they were one serving
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T21:16
+  updated_at: 2026-10-17T21:20
+  completed_at: 2026-10-17T21:20
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: Scanning a product gives calories several times too high - roughly 4x for the
+    owner - so a logged portion is wildly wrong and the daily total is meaningless.
+
+
+    2) Technical Details: app/utils/openfoodfacts.py parse_product(). It reads per-100g nutriments (energy-kcal_100g,
+    proteins_100g, carbohydrates_100g, fat_100g) and attaches the product''s serving label (product[''serving_size''],
+    e.g. ''15 g'') to them, so a 15 g serving of a 539 kcal/100 g product is stored as 539 kcal instead
+    of ~81 (6.6x). A 25 g serving gives exactly the 4x the owner saw. Fix: request serving_quantity in
+    _FIELDS, and scale the per-100g values by the declared serving mass - serving_quantity when present,
+    else a mass parsed out of serving_size (''15 g'', ''25g'', ''30 ml'', ''1.5 oz'' via a unit table)
+    - computing calories/protein/carbs/fat for that serving and leaving serving_size as the human label.
+    When the serving is not a mass at all (''1 cup'', ''1 bar''), do NOT scale and label the serving as
+    100 g, so the number and the label agree. Needs a helper serving_mass_g() and tests: 25 g serving
+    of 400 kcal/100 g -> 100 kcal (the exact 4x case), 15 g -> 81, ''1 cup'' -> unscaled with a 100 g
+    label, kJ-only input still converts, and a product with no serving data behaves as before. Also check
+    the search path if it shares parse_product. Backend-only, but it needs a restart, and already-cached
+    Food rows keep their wrong numbers - the ticket should say so rather than pretend otherwise.
+
+
+    Closed: parse_product presented per-100g nutriments under the serving label. Now (1) prefers OFF''s
+    *_serving fields, (2) else scales per-100g by serving mass from serving_quantity or a parsed label,
+    (3) else keeps per-100g and labels it 100 g. Verified against the live API (crisps 536/100g -> 152
+    per 28.349 g both ways; Nutella publishes no serving so reads 539/100 g). 8 new/changed tests. Added
+    scripts/refresh-barcode-foods.py (dry-run default, --apply) because cached Food rows are never refreshed;
+    owner''s 4 affected rows referenced no logs and were deleted at their direction after a backup. food_logs
+    deliberately untouched. Backend: needs a restart.'
   comments: []

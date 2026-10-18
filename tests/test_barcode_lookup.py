@@ -155,13 +155,15 @@ def test_requires_login(client):
 def test_parse_product_maps_macros_and_brand():
     parsed = openfoodfacts.parse_product(NUTELLA)
 
+    # The nutriments are per 100 g and the serving is 15 g, so one serving is
+    # 539 * 0.15 = 81 kcal. Reporting 539 was the FF-0063 bug.
     assert parsed == {
         'name': 'Nutella',
         'brand': 'Ferrero',          # first brand only
-        'calories': 539,
-        'protein_g': 6.3,
-        'carbs_g': 57.5,
-        'fat_g': 30.9,
+        'calories': 81,
+        'protein_g': 0.9,
+        'carbs_g': 8.6,
+        'fat_g': 4.6,
         'serving_size': '15 g',
     }
 
@@ -264,3 +266,120 @@ def test_canonical_code_helper():
     assert canonical_code('40170725') == '40170725'  # EAN-8 stays as it is
     assert code_variants('123456789012') == ['0123456789012', '123456789012']
     assert code_variants('3017620422003') == ['3017620422003']
+
+
+# --- per-serving vs per-100g (FF-0063) ------------------------------------------
+#
+# OpenFoodFacts publishes per-100g nutriments. Treating those as one serving made a
+# 25 g portion read as four times its calories - the owner's report.
+
+
+def _product(**overrides):
+    base = {
+        'status': 1,
+        'code': '4000000000000',
+        'product': {
+            'product_name': 'Test Bar',
+            'brands': 'Test',
+            'nutriments': {
+                'energy-kcal_100g': 400,
+                'proteins_100g': 10,
+                'carbohydrates_100g': 40,
+                'fat_100g': 20,
+            },
+        },
+    }
+    base['product'].update(overrides)
+    return base
+
+
+def test_quarter_serving_is_not_four_times_the_calories():
+    """The reported bug: a 25 g serving shown as the full 100 g values."""
+    parsed = openfoodfacts.parse_product(_product(serving_size='25 g'))
+
+    assert parsed['calories'] == 100        # 400 * 0.25, not 400
+    assert parsed['protein_g'] == 2.5
+    assert parsed['carbs_g'] == 10.0
+    assert parsed['fat_g'] == 5.0
+    assert parsed['serving_size'] == '25 g'
+
+
+def test_serving_quantity_is_preferred_over_the_label():
+    parsed = openfoodfacts.parse_product(
+        _product(serving_size='1 bar', serving_quantity=50)
+    )
+    assert parsed['calories'] == 200
+
+
+def test_mass_units_are_understood():
+    assert openfoodfacts.serving_mass_g({'serving_size': '1.5 oz'}) == pytest.approx(42.52, abs=0.01)
+    assert openfoodfacts.serving_mass_g({'serving_size': '250ml'}) == pytest.approx(250)
+    assert openfoodfacts.serving_mass_g({'serving_size': ' 30G '}) == pytest.approx(30)
+
+
+def test_immeasurable_serving_keeps_per_100g_numbers_and_says_so():
+    """"1 cup" cannot be converted without inventing a density, so the label moves."""
+    parsed = openfoodfacts.parse_product(_product(serving_size='1 cup'))
+
+    assert parsed['calories'] == 400
+    assert parsed['serving_size'] == '100 g'
+
+
+def test_no_serving_data_at_all_stays_per_100g():
+    parsed = openfoodfacts.parse_product(_product())
+    assert parsed['calories'] == 400
+    assert parsed['serving_size'] == '100 g'
+
+
+def test_kilojoules_are_converted_and_then_scaled():
+    parsed = openfoodfacts.parse_product(_product(
+        serving_size='50 g',
+        nutriments={'energy_100g': 1674, 'proteins_100g': 10, 'carbohydrates_100g': 40, 'fat_100g': 20},
+    ))
+    # 1674 kJ / 4.184 = 400 kcal per 100 g, halved for a 50 g serving
+    assert parsed['calories'] == 200
+
+
+def test_published_per_serving_values_win_over_arithmetic():
+    """OFF computes the serving itself; prefer its figure to ours.
+
+    Real numbers from 0038000138416 (Original Potato Crisps): 536 kcal/100 g and
+    152 kcal per 28.349 g portion. Scaling gives 152.0 too, but OFF's own value
+    needs no assumption about rounding.
+    """
+    parsed = openfoodfacts.parse_product({
+        'status': 1,
+        'product': {
+            'product_name': 'Original Potato Crisps',
+            'serving_size': '1 portion (28.349 g)',
+            'serving_quantity': 28.349,
+            'nutriments': {
+                'energy-kcal_100g': 536,
+                'energy-kcal_serving': 152,
+                'proteins_serving': 1.0,
+                'carbohydrates_serving': 16.2,
+                'fat_serving': 9.1,
+            },
+        },
+    })
+
+    assert parsed['calories'] == 152
+    assert parsed['protein_g'] == 1.0
+    assert parsed['carbs_g'] == 16.2
+    assert parsed['fat_g'] == 9.1
+    assert parsed['serving_size'] == '1 portion (28.349 g)'
+
+
+def test_a_product_without_serving_data_is_labelled_per_100g():
+    """Nutella really does publish no serving size; the number must match the label."""
+    parsed = openfoodfacts.parse_product({
+        'status': 1,
+        'product': {
+            'product_name': 'Nutella',
+            'nutriments': {'energy-kcal_100g': 539, 'proteins_100g': 6.3,
+                           'carbohydrates_100g': 57.5, 'fat_100g': 30.9},
+        },
+    })
+
+    assert parsed['calories'] == 539
+    assert parsed['serving_size'] == '100 g'
