@@ -12,13 +12,17 @@ import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
 export default function EditFoodLog() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { getFoodLogById, updateFoodLog, uploadFoodLogPhoto, deleteFoodLogPhoto, error, isLoading, uploadedPhotoUrl } = useFoodStore()
+  const { getFoodLogById, updateFoodLog, uploadFoodLogPhoto, deleteFoodLogPhoto, error, isLoading } = useFoodStore()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [initialPhotoUrl, setInitialPhotoUrl] = useState<string | null>(null)
+  // Which photo this screen is showing, and whether THIS visit already uploaded the
+  // picked file. Local on purpose: the store's uploadedPhotoUrl belongs to whichever
+  // screen wrote it last (FF-0075).
+  const [uploadedThisVisit, setUploadedThisVisit] = useState<string | null>(null)
   const [formDataLoaded, setFormDataLoaded] = useState(false)
 
   useEffect(() => {
@@ -97,15 +101,25 @@ export default function EditFoodLog() {
     }
   }, [])
 
+  useEffect(() => {
+    // Clear the cross-page slot so it cannot steer this screen or the next one.
+    useFoodStore.setState({ uploadedPhotoUrl: null })
+  }, [])
+
   const handleUploadPhoto = useCallback(async () => {
     if (!selectedFile || !id) return
     setPhotoUploading(true)
     try {
-      await uploadFoodLogPhoto(id, selectedFile)
+      const url = await uploadFoodLogPhoto(id, selectedFile)
+      setUploadedThisVisit(url)
+      return url
     } finally {
       setPhotoUploading(false)
     }
   }, [selectedFile, id, uploadFoodLogPhoto])
+
+  // Newly uploaded photo, else the entry's own photo. A picked file previews first.
+  const shownPhotoUrl = previewUrl ?? uploadedThisVisit ?? initialPhotoUrl
 
   const handleDeletePhoto = useCallback(async () => {
     if (!id) return
@@ -115,8 +129,15 @@ export default function EditFoodLog() {
 
   const onSubmit = async (data: FoodLogCreate & { meal_type: MealType }) => {
     if (!id) return
-    if (selectedFile && !uploadedPhotoUrl) {
-      await handleUploadPhoto()
+    // The guard reads this page's own state, not the store field another screen writes:
+    // a stale uploadedPhotoUrl from a previous log silently cancelled the upload here
+    // and the picked file was lost (FF-0075).
+    if (selectedFile && !uploadedThisVisit) {
+      try {
+        await handleUploadPhoto()
+      } catch {
+        return      // stay put: the store has already explained the failure
+      }
     }
     await updateFoodLog(id, {
       food_name: data.food_name,
@@ -321,10 +342,10 @@ export default function EditFoodLog() {
                 }
               }}
             >
-              {initialPhotoUrl && !uploadedPhotoUrl ? (
+              {shownPhotoUrl ? (
                 <div className="relative w-full">
                   <img
-                    src={initialPhotoUrl}
+                    src={shownPhotoUrl}
                     alt="Current photo"
                     className="w-full max-h-[200px] object-contain rounded-lg"
                   />
@@ -343,8 +364,6 @@ export default function EditFoodLog() {
                     ✕
                   </button>
                 </div>
-              ) : uploadedPhotoUrl ? (
-                <p className="text-sm text-mfp-success">Photo uploaded</p>
               ) : (
                 <>
                   <svg
@@ -389,21 +408,21 @@ export default function EditFoodLog() {
                   ✕
                 </button>
               </div>
-              {!uploadedPhotoUrl && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  fullWidth
-                  loading={photoUploading}
-                  onClick={handleUploadPhoto}
-                  className="mt-2"
-                >
-                  Upload Photo
-                </Button>
-              )}
-              {uploadedPhotoUrl && (
-                <p className="text-sm text-mfp-success mt-2">Photo uploaded</p>
-              )}
+              <Button
+                type="button"
+                variant="outline"
+                fullWidth
+                loading={photoUploading}
+                onClick={handleUploadPhoto}
+                className="mt-2"
+              >
+                {uploadedThisVisit ? 'Upload again' : 'Upload now'}
+              </Button>
+              <p className="text-xs text-mfp-textSecondary mt-1">
+                {uploadedThisVisit
+                  ? 'Photo attached. Saving will keep it.'
+                  : 'Saving will attach the photo for you.'}
+              </p>
             </div>
           )}
         </div>

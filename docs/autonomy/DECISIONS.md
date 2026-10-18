@@ -749,3 +749,29 @@ The photo URL now has one home, `utils/photoUrl.ts`. It existed as three hand-ro
 copies (EditWeight, ThenAndNow, WeightTimelapse) and this screen would have been the
 fourth; four copies is where it drifts. The serve route accepts both `weight_photos/x.jpg`
 and a bare filename, so the stored value passes through unchanged.
+
+## 2026-10-18 — Shared state is for reading, never for deciding
+
+FF-0073 and FF-0075 are the same field (`uploadedPhotoUrl`) in two stores, failing in
+opposite directions: in the weight store it was written into a save payload (destroying
+photos), in the food store it was used as a control-flow guard (cancelling uploads).
+Attaching a photo to entry A and then entry B lost B's photo, because B's guard read A's
+value and skipped the upload.
+
+The rule now, in both places: **cross-page store state is not an input to a decision.**
+Each screen holds its own "did I upload *this* file" fact, reset when the file changes,
+and clears the shared slot on mount so it cannot steer a later screen. The shared field
+stays for other readers, but nothing branches on it.
+
+Two supporting fixes:
+
+**Uploads return their URL.** `uploadFoodLogPhoto` now resolves to the photo URL and
+rethrows on failure, matching `weightStore.uploadPhoto`. The asymmetry was the reason the
+skipped upload was invisible: a swallowed error let `onSubmit` carry on to
+`updateFoodLog` and `navigate(-1)`, so the user got a success-flavoured exit while nothing
+was uploaded. A failed upload now keeps the user on the page, with the store's error
+already on screen.
+
+**The photo is the confirmation.** After a successful upload the page used to replace the
+image with the words "Photo uploaded", so the thing the user had just attached appeared to
+vanish. The image now stays.

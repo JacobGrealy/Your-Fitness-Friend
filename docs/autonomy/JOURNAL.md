@@ -1527,3 +1527,23 @@ two buttons (page action and modal confirm) — disambiguated rather than worked
 the test still proves the modal is what fires the delete. And I cleaned up the upload my
 verification wrote into the real `app/uploads/` this time, instead of leaving it for a
 later sweep.
+
+## Round 66 — 2026-10-18 — FF-0075 the guard that cancelled the upload
+
+Same field as FF-0073, opposite failure. There `uploadedPhotoUrl` was written into a save
+payload and destroyed photos; here it was a control-flow guard, so a value left by an
+earlier screen made `!uploadedPhotoUrl` false and the upload was skipped outright. Editing
+two food entries in a row and attaching a photo to each lost the second, silently.
+
+Fixed by removing the shared field from every decision: the page keeps its own
+`uploadedThisVisit` (set only by its own upload, cleared when the file changes) and clears
+the store slot on mount. `uploadFoodLogPhoto` now returns the URL and rethrows on failure,
+matching `weightStore.uploadPhoto` — the swallowed error is what made the skip invisible,
+since `onSubmit` carried on to `updateFoodLog` and `navigate(-1)` regardless.
+
+Also removed the "Photo uploaded" text that replaced the image after an upload: the photo
+the user just attached should not appear to vanish behind a confirmation.
+
+Tests caught one mistake of mine worth noting: the store calls `foodApi.getFoodLog`, not
+`getFoodLogById`, and my mock used the wrong key — every test failed with the page stuck
+on its spinner, which is exactly what a silent undefined would have done in production.
