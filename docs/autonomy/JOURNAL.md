@@ -1098,3 +1098,30 @@ Final sweep of every bottom-nav destination and the two log forms: `dashboard`,
 and `food/log` all report document height equal to the viewport. `/weight/log`
 keeps 36px and `/exercise/log` 168px — content that genuinely exceeds the screen,
 which is what scrolling is for.
+
+## Round 51 — 2026-10-17 — FF-0053 the Accept button was under the nav, and I put it there
+
+Two defects on the photo-log review screen, one of them mine.
+
+**The flat offset.** The floating Accept bar sat at `bottom-16` — a hardcoded 4rem.
+The bottom nav is `bottom-0` with `pb-[env(safe-area-inset-bottom)]`, so its real
+height is 4rem **plus the inset**: on a phone with a gesture bar it grows upward
+over the bar and hides its lower half. In the browser the inset is 0, so the two
+values are identical and nothing looks wrong — which is exactly why I would not
+have caught it without the owner's eyes. It is now
+`bottom-[calc(4rem+env(safe-area-inset-bottom))]`.
+
+**My regression.** FF-0052 removed `pb-32` from the review container as a
+"duplicate of the shell's bottom-nav clearance". On this page it was not clearing
+the nav — it was clearing the *floating Accept bar*, which the shell knows nothing
+about. The last content (the AI chat row) ended up underneath it.
+
+Verified by driving the real review state, not by eye: intercepted
+`POST /api/meals/ai-log` with a canned analysis, uploaded a 1×1 PNG, clicked
+Capture, then measured rects at maximum scroll — nav 787–844, bar 724–780, Accept
+button 736–780 (`acceptFullyVisible: true`), chat input 597–635
+(`chatClearOfBar: true`).
+
+The honest lesson, now twice over: the shell can only clear chrome it owns, and a
+page with its own floating element must clear that too. "Duplicate padding" is not
+a property of a number, it is a property of what the number is for.

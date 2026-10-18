@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T20:06
+  updated_at: 2026-10-17T20:16
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1633,4 +1633,49 @@ intake:
     fail it. Also removed two more duplicate bottom clearances (LogExercise pb-20, PhotoLog review pb-32).
     Final sweep: 8 navigable destinations report doc==viewport; /weight/log''s 36px and /exercise/log''s
     168px are genuine content.'
+  comments: []
+- id: FF-0053
+  title: Photo log Accept button sits under the bottom nav and over the content
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T20:14
+  updated_at: 2026-10-17T20:16
+  completed_at: 2026-10-17T20:16
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: After a food photo is analysed, the Accept button at the bottom of the review
+    screen is half cut off, so the primary action of that screen looks broken and is partly untappable.
+
+
+    2) Technical Details: frontend/src/pages/Food/PhotoLog.tsx. The Accept button lives in a fixed bar:
+    line 428 <div className="fixed bottom-16 sm:bottom-4 left-0 right-0 px-4 bg-[#f2f2f2] pt-3">. The
+    bottom nav (components/layout/BottomNav.tsx line 67) is fixed bottom-0 with pb-[env(safe-area-inset-bottom)]
+    plus a py-1 grid holding a 48px FAB, so its real height is about 4rem PLUS the safe-area inset. bottom-16
+    is a flat 4rem, which ignores the inset: on a phone with a gesture bar the nav grows upward over the
+    bar and hides its lower part. Two defects, both mine to fix in this ticket: (a) the bar must sit at
+    calc(4rem + env(safe-area-inset-bottom)); (b) the review content needs bottom padding to clear the
+    floating bar - FF-0052 removed pb-32 from that container on the assumption it duplicated the shell''s
+    nav clearance, but on this page it was clearing the Accept bar, so the last content item is now underneath
+    it. The needed page-level padding is (bar offset + bar height) - (shell main padding 5rem + inset);
+    because both sides carry the inset, the difference is inset-independent and a plain pb-12 (48px) suffices.
+    Verify by driving the real review state with Playwright: intercept POST **/api/meals/ai-log and return
+    a canned AiLogResponse - logs: [{id: null, food_name: ''Grilled chicken'', calories: 250, protein_g:
+    40, carbs_g: 0, fat_g: 8, meal_type: ''lunch''}], conversation_history: [{role: ''ai'', content: ''Added
+    grilled chicken''}], photo_path: null - then setInputFiles on the photo input and click Capture. Measure
+    that the Accept bar''s rect sits above the nav''s rect with no overlap, that no content element intersects
+    the bar''s rect, and that document height equals the viewport.
+
+
+    Closed: (a) the Accept bar used a flat bottom-16, but the nav is bottom-0 with pb-[env(safe-area-inset-bottom)]
+    so its real height is 4rem PLUS the inset - on a device with a gesture bar the nav covered the button''s
+    lower half while the browser shows no difference (inset 0). Now bottom-[calc(4rem+env(safe-area-inset-bottom))].
+    (b) My FF-0052 removal of pb-32 was wrong on this page: it cleared the floating Accept bar, not the
+    nav; restored as pb-12. Verified by intercepting POST /api/meals/ai-log with a canned analysis and
+    uploading a 1x1 PNG, then measuring at max scroll: nav 787-844, bar 724-780, Accept 736-780 fully
+    visible, chat input 597-635 clear.'
   comments: []

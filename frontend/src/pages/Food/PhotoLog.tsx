@@ -280,8 +280,9 @@ export default function PhotoLog() {
 
       {/* Review Step */}
       {step === 'review' && (
-        // no pb here: the shell already clears the bottom nav (FF-0052)
-        <div className="px-4 space-y-4">
+        // pb clears the floating Accept bar above, not the nav (FF-0053); the
+        // shell's own padding only clears the nav.
+        <div className="px-4 space-y-4 pb-12">
           {/* Photo preview */}
           {previewUrl && (
             <div className="bg-white rounded-xl p-3">
@@ -425,7 +426,7 @@ export default function PhotoLog() {
 
       {/* Accept Button - sticky at bottom */}
       {step === 'review' && logEntries.length > 0 && (
-        <div className="fixed bottom-16 sm:bottom-4 left-0 right-0 px-4 bg-[#f2f2f2] pt-3">
+        <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] sm:bottom-4 left-0 right-0 px-4 bg-[#f2f2f2] pt-3">
           <button
             onClick={handleAccept}
             className="w-full bg-[#185ADB] text-white font-medium py-3 rounded-xl hover:bg-[#1552B6] transition-colors text-sm shadow-lg"
