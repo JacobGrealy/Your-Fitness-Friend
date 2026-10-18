@@ -87,10 +87,12 @@ real 3.8 MB file, not the SPA shell any more).
 
 Four things; the last two need your phone rather than your password.
 
-1. **Restart the backend** — the barcode lookup change from FF-0060
-   (`app/routes/barcode_lookup.py`) is Python, so it loads only on restart. The
-   scanner itself is frontend code and is already live after a reload; the restart
-   is what makes UPC-A and EAN-13 resolve to the same cached product.
+1. **Restart the backend** — two Python changes are waiting on it: the UPC-A/EAN-13
+   canonicalisation from FF-0060 (`app/routes/barcode_lookup.py`) and the
+   per-serving nutrition fix from FF-0063 (`app/utils/openfoodfacts.py`). Until then
+   a scan can still come back with per-100g calories. Everything frontend — the
+   scanner decoder, rotation, torch, the Complete Diary button, reminders, local
+   dates — is already live after a reload.
 2. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
    "awaiting restart", and only you can restart the service.
 3. **Verify the scanner on the phone** (FF-0030/FF-0060): decoding is now covered by
@@ -109,6 +111,10 @@ Four things; the last two need your phone rather than your password.
   frontend, layout, tsc, smoke, toolkit.
 - **Live server:** current with `master` as of the 19:18:38 EDT restart —
   `/api/app/version` and `/download/awefit.apk` answer correctly.
+- **Scanned-product calories (FF-0063):** fixed in code, awaiting the restart above.
+  The four mis-scaled cached products were deleted at your direction (nothing
+  referenced them); `scripts/refresh-barcode-foods.py` repairs any that were genuinely
+  logged, and `food_logs` are never rewritten — re-log to pick up corrected numbers.
 - **Complete Diary (FF-0054):** live end to end since the 20:38:11 EDT restart —
   `POST /api/food/diary/complete` answers 401 unauthenticated rather than 404, and
   the migration `1ed0f5b7343d` is applied.

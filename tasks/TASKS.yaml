@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T21:20
+  updated_at: 2026-10-17T21:21
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2076,4 +2076,36 @@ intake:
     scripts/refresh-barcode-foods.py (dry-run default, --apply) because cached Food rows are never refreshed;
     owner''s 4 affected rows referenced no logs and were deleted at their direction after a backup. food_logs
     deliberately untouched. Backend: needs a restart.'
+  comments: []
+- id: FF-0064
+  title: Record the restart FF-0063 needs and the cached-row cleanup
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-17T21:20
+  updated_at: 2026-10-17T21:21
+  completed_at: 2026-10-17T21:21
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The per-serving nutrition fix (FF-0063) is Python and needs a restart, and the
+    waiting list should say so; the cached-row cleanup is already done.
+
+
+    2) Technical Details: app/utils/openfoodfacts.py changed in FF-0063 (per-serving fields preferred,
+    then scaling, then an honest 100 g label), so scans only start returning correct calories after `sudo
+    systemctl restart fitnessfriend`. Also record what was done to the data: the owner confirmed they
+    never logged the four mis-scaled cached products (Coffee mate, Honey roasted peanuts, Creamy Peanut
+    Butter, Reese''s Puffs), no food_logs referenced them, and after a backup those four foods rows were
+    deleted; foods is now 18 rows with ids 17/18/20 the only barcode-labelled ones (empty strings, created
+    manually). Update the waiting list accordingly and note that scripts/refresh-barcode-foods.py exists
+    for any cached product that WAS logged.
+
+
+    Closed: waiting list now names both pending backend changes (FF-0060 lookup canonicalisation, FF-0063
+    per-serving nutrition) and records that the four mis-scaled cached foods were deleted after a backup
+    with no food_logs referencing them; notes the repair script and that food_logs are never rewritten.'
   comments: []
