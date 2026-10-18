@@ -22,6 +22,10 @@ class DiaryCompletion(db.Model):
     date = db.Column(db.Date, nullable=False, index=True)
     completed_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    #: The calorie goal in force when the day was closed. Judging history against
+    #: today's goal would silently rewrite past "on target" days (FF-0071).
+    goal_calories = db.Column(db.Integer, nullable=True)
+
     calories = db.Column(db.Integer, default=0)
     protein_g = db.Column(db.Float, default=0)
     carbs_g = db.Column(db.Float, default=0)

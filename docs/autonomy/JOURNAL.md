@@ -1395,3 +1395,35 @@ weigh-in. They do now.
 
 Repair is automatic: the reminders card re-applies on mount and `applyReminders`
 cancels fixed ids first, so opening the app once replaces the stray daily notification.
+
+## Round 61 — 2026-10-18 — FF-0071 the data layer for streaks and badges
+
+Design settled with the owner first (mock rendered from the app's real palette, then
+three questions), which changed the shape twice: best streak moved out of the diary and
+Home to the badges section only, and the badges became three *nested* week badges rather
+than my invented set — perfect week (7/7 closed), on target week (≥5/7 on target, still
+requiring 7/7 closed) and golden week (7/7 on target), all repeatable.
+
+Backend only, this round. `diary_completions.goal_calories` (migration `cef99f51c9d7`)
+records the goal in force when a day is closed, backfilled from the user's goal. That
+fixes a real flaw rather than tidying: `within_goal` judged every historical day against
+*today's* goal, so raising the goal silently converted past "on target" days into
+failures, rewriting a streak the user had already earned.
+
+`week_start()` uses `date.weekday()` (Monday = 0, so Sunday = 6) and is the single
+definition of a week — the strip and the badges must agree on where a week begins, or
+the reward contradicts the evidence. `weekly_summary()` returns the seven dots with a
+per-day state of on_target / closed / open / missed / future; `badges()` walks every
+week with seven completions and counts the three badges; `longest_streak()` gives the
+one number that lives only in More.
+
+Badges are derived, never stored: no badge table to drift, no migration if the rules
+change, and the history is the record. That is only honest because each day now carries
+its own goal.
+
+`GET /completion` gained a `week` block so the strip renders from the request the diary
+and Home already make (open and closed states alike), and `GET /badges` serves the More
+page. 11 new tests: week-start mapping across the whole week, the five day states, the
+badge ladder (golden earns all three, 5/7 earns two, 4/7 earns one, a gap earns none),
+accumulation across weeks, per-day goal judgement, best streak across a gap, and the
+endpoint shape.

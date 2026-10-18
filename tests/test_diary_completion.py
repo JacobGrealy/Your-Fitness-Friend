@@ -390,3 +390,150 @@ class TestClosedDayPayload:
         assert body['completed'] is False
         assert body['streaks']['closed_days'] == 0
         assert 'tolerance_pct' in body['streaks']
+
+
+class TestWeeksAndBadges:
+    """Sunday-start weeks, the three nested week badges, and lifetime stats."""
+
+    SUNDAY = date(2026, 10, 11)   # a Sunday
+    SATURDAY = date(2026, 10, 17)
+
+    def _close(self, app, user_id, day, calories, goal=None):
+        with app.app_context():
+            db.session.add(DiaryCompletion(
+                user_id=user_id, date=day, calories=calories,
+                protein_g=0, carbs_g=0, fat_g=0, goal_calories=goal,
+            ))
+            db.session.commit()
+
+    def _week(self, app, user_id, as_of):
+        with app.app_context():
+            from app.utils.diary_completion import weekly_summary
+            return weekly_summary(user_id, as_of)
+
+    def _badges(self, app, user_id, as_of, goal=2000):
+        with app.app_context():
+            from app.utils.diary_completion import badges
+            return badges(user_id, as_of, goal)
+
+    def test_week_start_is_the_sunday_on_or_before(self, app, user):
+        with app.app_context():
+            from app.utils.diary_completion import week_start
+
+            # Every day of a Sunday-Saturday week maps back to that Sunday.
+            for offset in range(7):
+                day = self.SUNDAY + timedelta(days=offset)
+                assert week_start(day) == self.SUNDAY, day
+            # The next day starts a new week.
+            assert week_start(self.SATURDAY + timedelta(days=1)) == self.SATURDAY + timedelta(days=1)
+
+    def test_strip_states_across_the_week(self, app, user):
+        self._close(app, user, self.SUNDAY, 2000, goal=2000)          # on target
+        self._close(app, user, self.SUNDAY + timedelta(days=1), 2500, goal=2000)  # over
+        week = self._week(app, user, self.SUNDAY + timedelta(days=2))
+
+        states = [day['state'] for day in week['days']]
+        assert states == ['on_target', 'closed', 'open', 'future', 'future', 'future', 'future']
+        assert week['closed'] == 2
+        assert week['on_target'] == 1
+        assert week['start'] == self.SUNDAY.isoformat()
+        assert week['end'] == self.SATURDAY.isoformat()
+
+    def test_a_past_day_without_a_completion_is_missed(self, app, user):
+        week = self._week(app, user, self.SUNDAY + timedelta(days=3))
+        states = [day['state'] for day in week['days']]
+        assert states[:3] == ['missed', 'missed', 'missed']
+        assert states[3] == 'open'
+        assert states[4] == 'future'
+
+    def test_a_perfect_week_earns_all_three_when_every_day_is_on_target(self, app, user):
+        for offset in range(7):
+            self._close(app, user, self.SUNDAY + timedelta(days=offset), 1900, goal=2000)
+
+        result = self._badges(app, user, self.SATURDAY)
+
+        counts = {badge['id']: badge['count'] for badge in result['badges']}
+        assert counts == {'perfect_week': 1, 'on_target_week': 1, 'golden_week': 1}
+
+    def test_five_of_seven_on_target_earns_two_not_three(self, app, user):
+        for offset in range(7):
+            # five days on target, two well over
+            calories = 1900 if offset < 5 else 3000
+            self._close(app, user, self.SUNDAY + timedelta(days=offset), calories, goal=2000)
+
+        counts = {badge['id']: badge['count'] for badge in self._badges(app, user, self.SATURDAY)['badges']}
+
+        assert counts == {'perfect_week': 1, 'on_target_week': 1, 'golden_week': 0}
+
+    def test_four_of_seven_on_target_earns_only_the_perfect_week(self, app, user):
+        for offset in range(7):
+            calories = 1900 if offset < 4 else 3000
+            self._close(app, user, self.SUNDAY + timedelta(days=offset), calories, goal=2000)
+
+        counts = {badge['id']: badge['count'] for badge in self._badges(app, user, self.SATURDAY)['badges']}
+
+        assert counts == {'perfect_week': 1, 'on_target_week': 0, 'golden_week': 0}
+
+    def test_a_week_with_a_gap_earns_nothing(self, app, user):
+        for offset in range(6):          # Saturday left open
+            self._close(app, user, self.SUNDAY + timedelta(days=offset), 1900, goal=2000)
+
+        counts = {badge['id']: badge['count'] for badge in self._badges(app, user, self.SATURDAY)['badges']}
+
+        assert counts == {'perfect_week': 0, 'on_target_week': 0, 'golden_week': 0}
+
+    def test_badges_accumulate_across_weeks(self, app, user):
+        # two complete, all-on-target weeks
+        for week in (0, 1):
+            start = self.SUNDAY - timedelta(days=7 * week)
+            for offset in range(7):
+                self._close(app, user, start + timedelta(days=offset), 1900, goal=2000)
+
+        counts = {badge['id']: badge['count'] for badge in
+                  self._badges(app, user, self.SATURDAY)['badges']}
+
+        assert counts == {'perfect_week': 2, 'on_target_week': 2, 'golden_week': 2}
+
+    def test_each_day_is_judged_by_the_goal_in_force_then(self, app, user):
+        """A day closed against a 1500 goal stays on target after the goal rises."""
+        for offset in range(7):
+            self._close(app, user, self.SUNDAY + timedelta(days=offset), 1600, goal=1500)
+
+        counts = {badge['id']: badge['count'] for badge in
+                  self._badges(app, user, self.SATURDAY, goal=3000)['badges']}
+
+        # 1600 is within 10% of 1500, and would be way under 3000 too — the point is
+        # that it is judgement by the stored goal, not by the caller's current one.
+        assert counts['golden_week'] == 1
+
+    def test_lifetime_stats(self, app, user):
+        # a three-day run, a gap, then one day
+        for offset in range(3):
+            self._close(app, user, self.SUNDAY + timedelta(days=offset), 1900, goal=2000)
+        self._close(app, user, self.SATURDAY, 1900, goal=2000)
+
+        stats = self._badges(app, user, self.SATURDAY)['stats']
+
+        assert stats['days_closed'] == 4
+        assert stats['best_streak'] == 3
+
+    def test_badges_endpoint_reports_progress_for_the_current_week(self, client, app):
+        client.post('/api/auth/register', json={
+            'email': 'badges@test.local', 'password': 'password123', 'name': 'Badges',
+        })
+        client.post('/api/auth/logout')
+        client.post('/api/auth/login', json={
+            'email': 'badges@test.local', 'password': 'password123',
+        })
+        with app.app_context():
+            user_id = User.query.filter_by(email='badges@test.local').first().id
+        self._close(app, user_id, date.today(), 1900, goal=2000)
+
+        body = client.get('/api/food/diary/badges').get_json()
+
+        assert [badge['id'] for badge in body['badges']] == [
+            'perfect_week', 'on_target_week', 'golden_week',
+        ]
+        assert body['badges'][0]['progress']['closed'] >= 1
+        assert body['week']['closed'] >= 1
+        assert body['stats']['days_closed'] == 1

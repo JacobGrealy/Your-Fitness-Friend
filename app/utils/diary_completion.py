@@ -114,15 +114,17 @@ def completion_streaks(user_id, as_of, goal_calories):
     evidence of eating on target.
     """
     rows = DiaryCompletion.query.filter_by(user_id=user_id).all()
-    completed_dates = {row.date: int(row.calories or 0) for row in rows}
-    goal = goal_calories or 0
-    ceiling = goal * (1 + WITHIN_GOAL_TOLERANCE)
+    completed_dates = {row.date: row for row in rows}
 
     def within_goal(day):
-        calories = completed_dates.get(day, 0)
+        row = completed_dates.get(day)
+        if row is None:
+            return False
+        # Judge the day by the goal that applied then, not today's (FF-0071).
+        goal = row.goal_calories or goal_calories or 0
         if goal <= 0:
             return False
-        return 0 < calories <= ceiling
+        return 0 < int(row.calories or 0) <= goal * (1 + WITHIN_GOAL_TOLERANCE)
 
     return {
         'closed_days': _streak_length(lambda day: True, completed_dates, as_of),
@@ -131,6 +133,139 @@ def completion_streaks(user_id, as_of, goal_calories):
         'within_goal_today': within_goal(as_of),
         'tolerance_pct': round(WITHIN_GOAL_TOLERANCE * 100),
     }
+
+
+#: `date.weekday()` counts from Monday, so Sunday is 6.
+SUNDAY_WEEKDAY = 6
+
+
+def week_start(day):
+    """The Sunday on or before `day`: our weeks run Sunday to Saturday."""
+    return day - timedelta(days=(day.weekday() - SUNDAY_WEEKDAY) % 7)
+
+
+def week_days(start):
+    return [start + timedelta(days=offset) for offset in range(7)]
+
+
+def _day_state(day, row, as_of):
+    """One dot in the strip: on_target / closed / open / missed / future."""
+    if day > as_of:
+        return 'future'
+    if row is None:
+        return 'open' if day == as_of else 'missed'
+    goal = row.goal_calories or 0
+    calories = int(row.calories or 0)
+    if goal > 0 and 0 < calories <= goal * (1 + WITHIN_GOAL_TOLERANCE):
+        return 'on_target'
+    return 'closed'
+
+
+def weekly_summary(user_id, as_of):
+    """The seven dots for the week containing `as_of`, plus its counts."""
+    rows = {
+        row.date: row
+        for row in DiaryCompletion.query.filter_by(user_id=user_id).all()
+    }
+    start = week_start(as_of)
+    days = []
+    closed = 0
+    on_target = 0
+
+    for day in week_days(start):
+        row = rows.get(day)
+        state = _day_state(day, row, as_of)
+        if state in ('on_target', 'closed'):
+            closed += 1
+        if state == 'on_target':
+            on_target += 1
+        days.append({'date': day.isoformat(), 'state': state})
+
+    return {
+        'start': start.isoformat(),
+        'end': (start + timedelta(days=6)).isoformat(),
+        'days': days,
+        'closed': closed,
+        'on_target': on_target,
+    }
+
+
+#: The three week badges nest: golden implies on target implies perfect.
+WEEK_BADGES = (
+    ('perfect_week', 'Perfect week', 'Diary closed every day'),
+    ('on_target_week', 'On target week', 'At least 5 of 7 days within 10% of goal'),
+    ('golden_week', 'Golden week', 'All 7 days within 10% of goal'),
+)
+
+
+def badges(user_id, as_of, goal_calories=None):
+    """Every badge with how many times it has been earned.
+
+    Badges are repeatable: a great week earns golden *and* the two below it, and
+    each completed week adds to the count (FF-0071). Nothing is stored — the
+    history is the record, so changing the goal only affects days closed under the
+    new goal.
+    """
+    rows = DiaryCompletion.query.filter_by(user_id=user_id).all()
+    by_week = {}
+    for row in rows:
+        by_week.setdefault(week_start(row.date), {})[row.date] = row
+
+    counts = {badge_id: 0 for badge_id, _, _ in WEEK_BADGES}
+    for week, days in by_week.items():
+        if len(days) < 7:
+            continue                      # an incomplete week cannot earn anything
+        on_target = 0
+        for day in week_days(week):
+            row = days.get(day)
+            if row is None or _day_state(day, row, as_of) != 'on_target':
+                continue
+            on_target += 1
+        counts['perfect_week'] += 1
+        if on_target >= 5:
+            counts['on_target_week'] += 1
+        if on_target == 7:
+            counts['golden_week'] += 1
+
+    this_week = weekly_summary(user_id, as_of)
+    entries = [
+        {
+            'id': badge_id,
+            'title': title,
+            'rule': rule,
+            'count': counts[badge_id],
+            'earned': counts[badge_id] > 0,
+            # What is still missing this week, for the locked state.
+            'progress': {
+                'closed': this_week['closed'],
+                'on_target': this_week['on_target'],
+                'of': 7,
+            },
+        }
+        for badge_id, title, rule in WEEK_BADGES
+    ]
+
+    return {
+        'week': this_week,
+        'badges': entries,
+        'stats': {
+            'days_closed': len(rows),
+            'best_streak': longest_streak(user_id),
+        },
+    }
+
+
+def longest_streak(user_id):
+    """The longest run of consecutive closed days, ever."""
+    dates = sorted(row.date for row in DiaryCompletion.query.filter_by(user_id=user_id).all())
+    best = 0
+    run = 0
+    previous = None
+    for day in dates:
+        run = run + 1 if previous is not None and (day - previous).days == 1 else 1
+        best = max(best, run)
+        previous = day
+    return best
 
 
 def completed_streak(user_id, ending_on):
@@ -188,6 +323,7 @@ def summarise_record(user, record):
             'start_weight_lbs': current_weight_lbs(user),
         },
         'streaks': streaks,
+        'week': weekly_summary(user.id, record.date),
         # Kept as an alias: the completion modal and older callers read `streak`.
         'streak': streaks['closed_days'],
         'message': status_message(status, change_lbs),
@@ -222,6 +358,7 @@ def build_completion(user, target_date):
         completion = DiaryCompletion(user_id=user.id, date=target_date)
         db.session.add(completion)
 
+    completion.goal_calories = user.daily_calorie_goal
     completion.calories = calories
     completion.protein_g = round(totals['total_protein'] or 0, 1)
     completion.carbs_g = round(totals['total_carbs'] or 0, 1)
