@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-17T21:08
+  updated_at: 2026-10-17T21:15
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0062
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -2004,4 +2005,34 @@ intake:
     itself is frontend and live on reload), states that the decode path is now real-tested rather than
     stubbed, and refreshes state: 157 backend / 250 frontend tests, APK 0.1.7 with camera permission and
     queries.'
+  comments: []
+- id: FF-0062
+  title: 'Scanner hardening: read upright codes and offer a torch'
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: open
+  labels: []
+  created_at: 2026-10-17T21:15
+  updated_at: 2026-10-17T21:15
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The scanner works, but a barcode can still fail to read when the packet is held
+    upright in the frame or when the kitchen is dark, which would look like the scanner breaking again.
+
+
+    2) Technical Details: measured, not assumed. A horizontal EAN-13 decodes in ~1ms; the SAME barcode
+    rotated a quarter turn takes ~23ms and returns nothing, because ZXing''s 1D readers only scan horizontal
+    rows. A phone in portrait with the packet sideways - or a WebView that hands frames over rotated relative
+    to the preview - is therefore enough to make the scanner look dead. Added rotateLuminance() and a
+    quarterTurns option to decodeFrame(); BarcodeScanner tries [0] every tick and all four orientations
+    every third tick, so the cost (~90ms worst case) stays inside the 125ms cadence. Also requests width
+    1280/height 720 and offers a torch toggle when the camera exposes one (track.getCapabilities().torch),
+    since a dark kitchen is the other common reason nothing decodes. Tests: 4 rotation tests plus a sideways-bitmap
+    decode that asserts upright-only misses and the four-way attempt finds it (20 barcode tests total).
+    Frontend-only: no rebuild, no migration. Verify the rotation path with the synthetic-camera harness
+    (canvas.captureStream drawing a rotated EAN-13) rather than the phone.'
   comments: []

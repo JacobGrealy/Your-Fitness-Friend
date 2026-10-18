@@ -64,23 +64,81 @@ export function toLuminance(rgba: Uint8ClampedArray, width: number, height: numb
  * Decode one frame. Returns the code (trimmed) or null when nothing readable is
  * in view — which is the normal case for most frames, so it must not throw.
  */
+export interface DecodeOptions {
+  /**
+   * Quarter turns to attempt, in order. Default `[0]`; the scanner passes all four
+   * periodically so an upright barcode is still read.
+   */
+  quarterTurns?: number[]
+}
+
 export function decodeFrame(
   reader: BarcodeReader,
-  image: { data: Uint8ClampedArray; width: number; height: number }
+  image: { data: Uint8ClampedArray; width: number; height: number },
+  options: DecodeOptions = {}
 ): string | null {
   if (!image.width || !image.height) return null
-  try {
-    const luminance = toLuminance(image.data, image.width, image.height)
-    const source = new RGBLuminanceSource(luminance, image.width, image.height)
-    const bitmap = new BinaryBitmap(new HybridBinarizer(source))
-    const result = reader.decode(bitmap)
-    const text = result?.getText()?.trim()
-    return text ? text : null
-  } catch {
-    // NotFoundException on every frame that has no code in it. Expected.
-    return null
+  const turns = options.quarterTurns ?? [0]
+  const upright = toLuminance(image.data, image.width, image.height)
+
+  for (const quarterTurns of turns) {
+    const rotated = rotateLuminance(upright, image.width, image.height, quarterTurns)
+    try {
+      const source = new RGBLuminanceSource(rotated.data, rotated.width, rotated.height)
+      const bitmap = new BinaryBitmap(new HybridBinarizer(source))
+      const text = reader.decode(bitmap)?.getText()?.trim()
+      if (text) return text
+    } catch {
+      // NotFoundException — the normal result for a frame without a readable code.
+    }
   }
+  return null
 }
 
 /** Longest edge to decode at; bigger frames only cost time. */
 export const MAX_DECODE_EDGE = 800
+
+/**
+ * Rotate a luminance buffer by quarter turns (clockwise).
+ *
+ * ZXing's 1D readers only scan horizontal rows, so a barcode that appears upright
+ * in the frame is invisible to them — measured at 23ms and a miss versus 1ms and a
+ * hit for the same code lying flat (FF-0062). Holding a packet sideways, or a
+ * WebView that hands over frames rotated relative to the preview, is enough to make
+ * the scanner look completely dead.
+ */
+export function rotateLuminance(
+  luminance: Uint8ClampedArray,
+  width: number,
+  height: number,
+  quarterTurns: number
+): { data: Uint8ClampedArray; width: number; height: number } {
+  const turns = ((quarterTurns % 4) + 4) % 4
+  if (turns === 0) return { data: luminance, width, height }
+
+  const swap = turns % 2 === 1
+  const outWidth = swap ? height : width
+  const outHeight = swap ? width : height
+  const out = new Uint8ClampedArray(luminance.length)
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const value = luminance[y * width + x]
+      let nx: number
+      let ny: number
+      if (turns === 1) {
+        nx = height - 1 - y
+        ny = x
+      } else if (turns === 2) {
+        nx = width - 1 - x
+        ny = height - 1 - y
+      } else {
+        nx = y
+        ny = width - 1 - x
+      }
+      out[ny * outWidth + nx] = value
+    }
+  }
+
+  return { data: out, width: outWidth, height: outHeight }
+}
