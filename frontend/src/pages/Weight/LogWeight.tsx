@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
 import { logWeightSchema } from '@/utils/schemas'
 import type { WeightLogCreate } from '@/types'
 import { useWeightStore } from '@/store/weightStore'
+import PhotoSourceChooser from '@/components/common/PhotoSourceChooser'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { MAX_WEIGHT_LOG_NOTES } from '@/utils/constants'
 import { todayLocal } from '@/utils/localDate'
@@ -16,7 +17,8 @@ export default function LogWeight() {
   useEffect(() => { setTitle('Log Weight') }, [setTitle])
   const { logWeight, uploadPhoto, error, isLoading } = useWeightStore()
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  // Camera or gallery, chosen explicitly (FF-0078).
+  const [showPhotoSources, setShowPhotoSources] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -65,19 +67,9 @@ export default function LogWeight() {
     e.preventDefault()
   }, [])
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      handleFileSelect(file)
-    }
-  }, [handleFileSelect])
-
   const handleRemovePhoto = useCallback(() => {
     setSelectedFile(null)
     setPreviewUrl(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
   }, [])
 
   const handleUploadPhoto = useCallback(async () => {
@@ -235,13 +227,10 @@ export default function LogWeight() {
           {/* Photo Upload */}
           <div className="bg-white rounded-lg p-4">
             <label className="block text-sm font-medium text-[#212121] mb-2">Photo</label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleInputChange}
-              className="hidden"
+            <PhotoSourceChooser
+              open={showPhotoSources}
+              onClose={() => setShowPhotoSources(false)}
+              onSelect={handleFileSelect}
             />
 
             {!selectedFile ? (
@@ -249,12 +238,12 @@ export default function LogWeight() {
                 className="border-2 border-dashed border-gray-300 rounded-lg cursor-pointer py-10 flex flex-col items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => setShowPhotoSources(true)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
-                    fileInputRef.current?.click()
+                    setShowPhotoSources(true)
                   }
                 }}
               >

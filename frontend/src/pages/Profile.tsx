@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { authApi } from '@/api/auth'
@@ -10,6 +10,7 @@ import { getAppRelease, type AppRelease } from '@/api/app'
 import { getRunningAppVersion, installApkUpdate, isUpdateAvailable } from '@/native'
 import RemindersCard from '@/components/profile/RemindersCard'
 import BadgesSection from '@/components/profile/BadgesSection'
+import PhotoSourceChooser from '@/components/common/PhotoSourceChooser'
 
 const ACTIVITY_LEVELS = [
   { value: 'sedentary', label: 'Sedentary', description: 'Little or no exercise, desk job' },
@@ -82,7 +83,8 @@ function Profile() {
   const [goalModalOpen, setGoalModalOpen] = useState(false)
   const [goalValue, setGoalValue] = useState('')
   const [saving, setSaving] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  // Camera or gallery for the avatar, which then goes through the crop step (FF-0078).
+  const [showPhotoSources, setShowPhotoSources] = useState(false)
   const [cropModalOpen, setCropModalOpen] = useState(false)
   const [cropFile, setCropFile] = useState<File | null>(null)
   const [helpModalOpen, setHelpModalOpen] = useState(false)
@@ -313,31 +315,26 @@ function Profile() {
               <div
                 className="rounded-full bg-white flex items-center justify-center cursor-pointer"
                 style={{ width: '64px', height: '64px' }}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => setShowPhotoSources(true)}
               >
                 <span className="text-2xl" style={{ color: '#185ADB' }}>
                   {emailInitial}
                 </span>
               </div>
             )}
-            <input
-              ref={fileInputRef}
-              type="file"
+            <PhotoSourceChooser
+              open={showPhotoSources}
+              onClose={() => setShowPhotoSources(false)}
+              onSelect={handleFileSelect}
               accept="image/jpeg,image/png,image/webp"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                // Reset so choosing the same file again still fires onChange.
-                e.target.value = ''
-                if (file) handleFileSelect(file)
-              }}
-              className="hidden"
+              title="Change profile photo"
             />
             {user?.profile_photo_path && (
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation()
-                  fileInputRef.current?.click()
+                  setShowPhotoSources(true)
                 }}
                 className="absolute bottom-0 right-0 p-1 bg-[#185ADB] rounded-full text-white hover:bg-[#1550C0] transition-colors"
                 style={{ width: '24px', height: '24px' }}

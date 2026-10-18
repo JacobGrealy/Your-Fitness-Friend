@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import PhotoSourceChooser from '@/components/common/PhotoSourceChooser'
 import { useNavigate } from 'react-router-dom'
 import { useMealsStore } from '@/store/mealsStore'
 import Button from '@/components/common/Button'
@@ -8,7 +9,8 @@ import { formatCalories } from '@/utils/formatters'
 
 export default function UploadPhoto() {
   const navigate = useNavigate()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  // Camera or gallery, chosen explicitly (FF-0078).
+  const [showPhotoSources, setShowPhotoSources] = useState(false)
   const { uploadPhoto, isLoading, photos } = useMealsStore()
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -41,13 +43,6 @@ export default function UploadPhoto() {
     e.preventDefault()
   }, [])
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      handleFileSelect(file)
-    }
-  }, [handleFileSelect])
-
   const handleUpload = async () => {
     if (!selectedFile) return
 
@@ -62,9 +57,6 @@ export default function UploadPhoto() {
     setSelectedFile(null)
     setPreviewUrl(null)
     setUploadComplete(false)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
   }
 
   const latestPhoto = photos.length > 0
@@ -82,13 +74,10 @@ export default function UploadPhoto() {
         </Button>
       </div>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleInputChange}
-        className="hidden"
+      <PhotoSourceChooser
+        open={showPhotoSources}
+        onClose={() => setShowPhotoSources(false)}
+        onSelect={handleFileSelect}
       />
 
       {!selectedFile ? (
@@ -97,12 +86,12 @@ export default function UploadPhoto() {
             className="card-body items-center justify-center min-h-[300px] border-2 border-dashed border-base-300 rounded-lg cursor-pointer"
             onDrop={handleDrop}
             onDragOver={handleDragOver}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => setShowPhotoSources(true)}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
-                fileInputRef.current?.click()
+                setShowPhotoSources(true)
               }
             }}
           >

@@ -775,3 +775,26 @@ already on screen.
 **The photo is the confirmation.** After a successful upload the page used to replace the
 image with the words "Photo uploaded", so the thing the user had just attached appeared to
 vanish. The image now stays.
+
+## 2026-10-18 — The camera is a choice, and `capture` is the switch that removes it
+
+Every photo upload offers camera **or** gallery, except the barcode scanner, which needs a
+live feed and has no file input at all.
+
+The mechanics are one HTML attribute: a file input with `capture="environment"` sends
+Android straight to the camera and makes the gallery unreachable, while the same input
+without `capture` opens the picker. Five screens had it hard-coded, so they could take a
+photo but never pick one; `PhotoLog` had already solved this inline with two inputs. That
+made the work a consolidation, not an invention: `PhotoSourceChooser` owns both inputs
+(with and without `capture`) and offers them as a bottom sheet for forms, or as two inline
+cards for a full-page capture step.
+
+`capture=` now appears in exactly one file, and a test asserts the gallery input does *not*
+carry it — because that is the failure mode: adding it back silently removes the choice
+again, with no visible error.
+
+**Destructive maintenance must name its directory.** While cleaning up after verification I
+ran an "unreferenced uploads" sweep across every upload folder instead of the
+`weight_photos` folder the owner had authorised, and deleted ~470 files (profile, meal and
+AI food-log images). Unreferenced is not the same as safe to delete — the restore was
+possible only because the tree is snapshotted before destructive changes.

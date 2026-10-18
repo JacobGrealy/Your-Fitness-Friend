@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from 'react-router-dom'
 import { editFoodLogSchema } from '@/utils/schemas'
 import type { FoodLogCreate, MealType } from '@/types'
 import { useFoodStore } from '@/store/foodStore'
+import PhotoSourceChooser from '@/components/common/PhotoSourceChooser'
 import Button from '@/components/common/Button'
 import Spinner from '@/components/common/Spinner'
 import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
@@ -14,7 +15,8 @@ export default function EditFoodLog() {
   const { id } = useParams<{ id: string }>()
   const { getFoodLogById, updateFoodLog, uploadFoodLogPhoto, deleteFoodLogPhoto, error, isLoading } = useFoodStore()
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  // Camera or gallery, chosen explicitly (FF-0078).
+  const [showPhotoSources, setShowPhotoSources] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -96,9 +98,6 @@ export default function EditFoodLog() {
   const handleRemovePhoto = useCallback(() => {
     setSelectedFile(null)
     setPreviewUrl(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
   }, [])
 
   useEffect(() => {
@@ -318,27 +317,21 @@ export default function EditFoodLog() {
         {/* Photo */}
         <div className="bg-white rounded-lg p-4">
           <label className="block text-sm font-medium text-mfp-text mb-2">Photo (optional)</label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) handleFileSelect(file)
-            }}
-            className="hidden"
+          <PhotoSourceChooser
+            open={showPhotoSources}
+            onClose={() => setShowPhotoSources(false)}
+            onSelect={handleFileSelect}
           />
 
           {!selectedFile ? (
             <div
               className="items-center justify-center min-h-[160px] border-2 border-dashed border-gray-300 rounded-lg cursor-pointer relative"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setShowPhotoSources(true)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
-                  fileInputRef.current?.click()
+                  setShowPhotoSources(true)
                 }
               }}
             >
