@@ -14,7 +14,7 @@ export default function LogWeight() {
   const navigate = useNavigate()
 
   useEffect(() => { setTitle('Log Weight') }, [setTitle])
-  const { logWeight, uploadPhoto, error, isLoading, uploadedPhotoUrl } = useWeightStore()
+  const { logWeight, uploadPhoto, error, isLoading } = useWeightStore()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -91,14 +91,26 @@ export default function LogWeight() {
   }, [selectedFile, uploadPhoto])
 
   const onSubmit = async (data: WeightLogCreate) => {
-    if (selectedFile && !uploadedPhotoUrl) {
-      await handleUploadPhoto()
+    // Upload first and use the URL that came back. The old code uploaded and then sent
+    // the pre-upload value from the closure, so a photo picked and saved in one step was
+    // uploaded to disk and recorded as null — an orphan (FF-0073).
+    let photoUrl: string | null = null
+    if (selectedFile) {
+      setPhotoUploading(true)
+      try {
+        photoUrl = await uploadPhoto(selectedFile)
+      } catch {
+        return          // the store already surfaced the error; do not log a photoless entry
+      } finally {
+        setPhotoUploading(false)
+      }
     }
+
     await logWeight({
       weight: data.weight,
       date: data.date,
       notes: data.notes,
-      photo_url: uploadedPhotoUrl || null,
+      photo_url: photoUrl,
     })
     const currentDuplicate = useWeightStore.getState().duplicateEntry
     if (currentDuplicate) {
@@ -116,11 +128,25 @@ export default function LogWeight() {
   const handleReplace = async () => {
     if (!duplicateEntry) return
     const formValues = getValues()
+    // Upload the picked file here too, rather than trusting the store's cross-page
+    // slot: replaceEntry is a create-like path, so a stale URL from an earlier screen
+    // would attach someone else's photo (FF-0073).
+    let photoUrl: string | null = null
+    if (selectedFile) {
+      setPhotoUploading(true)
+      try {
+        photoUrl = await uploadPhoto(selectedFile)
+      } catch {
+        return
+      } finally {
+        setPhotoUploading(false)
+      }
+    }
     await replaceEntry(duplicateEntry.id, {
       weight: formValues.weight,
       date: formValues.date,
       notes: formValues.notes || '',
-      photo_url: uploadedPhotoUrl || null,
+      photo_url: photoUrl,
     })
     reset({ weight: undefined, date: getTodayDate(), notes: '' })
     setSelectedFile(null)
@@ -252,19 +278,16 @@ export default function LogWeight() {
                 >
                   ✕
                 </button>
-                {!uploadedPhotoUrl && (
-                  <button
-                    type="button"
-                    onClick={handleUploadPhoto}
-                    disabled={photoUploading}
-                    className="mt-2 w-full px-4 py-2 text-sm font-medium text-[#185ADB] border border-[#185ADB] rounded-lg hover:bg-[#185ADB]/5 disabled:opacity-50 transition-colors"
-                  >
-                    {photoUploading ? 'Uploading...' : 'Upload Photo'}
-                  </button>
-                )}
-                {uploadedPhotoUrl && (
-                  <p className="mt-2 text-sm text-green-600">Photo uploaded</p>
-                )}
+                {/* Saving attaches the picked file, so this is a shortcut for people
+                    who want to see it land before submitting (FF-0073). */}
+                <button
+                  type="button"
+                  onClick={handleUploadPhoto}
+                  disabled={photoUploading}
+                  className="mt-2 w-full px-4 py-2 text-sm font-medium text-[#185ADB] border border-[#185ADB] rounded-lg hover:bg-[#185ADB]/5 disabled:opacity-50 transition-colors"
+                >
+                  {photoUploading ? 'Uploading...' : 'Upload now'}
+                </button>
               </div>
             )}
           </div>

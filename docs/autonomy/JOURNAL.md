@@ -1455,3 +1455,34 @@ trusting a 200 from this app.
 Tests: 6 for the strip (states, labels, colours, the on-target count, singular/plural),
 4 for the badges section (counts, locked progress, stats including best streak, and
 rendering nothing when the endpoint fails), plus updated panel and page tests.
+
+## Round 63 — 2026-10-18 — FF-0073 one expression, three wrong answers
+
+The weight-photo ticket from intake was accurate, and the root cause was a single line:
+`photo_url: uploadedPhotoUrl || null` in `onSubmit`. It conflated "did I upload" with
+"what should be saved", so an untouched photo was erased on save, and a photo picked and
+saved in one step was uploaded to disk and recorded as null — the orphans sitting in
+`app/uploads/weight_photos/`.
+
+Replaced with three explicit outcomes (`onSubmit`): picked file uploaded first and its
+returned URL used; explicit removal sends null; untouched omits the key. The omission is
+built into the payload object rather than relying on axios dropping `undefined` — the
+backend's rule is `'photo_url' in data`, so key presence *is* the instruction and must
+not depend on client serialisation. `weightStore.updateLog` now builds its payload the
+same way.
+
+Two things surfaced only by writing the tests: a saved photo had **no remove control at
+all** (the ✕ existed only on the freshly picked preview, so the ticket's "explicit
+Remove" acceptance criterion was unreachable), and a failed upload **rejected instead of
+aborting**, which is an unhandled promise rejection on the phone. Both fixed.
+
+`uploadedPhotoUrl` is no longer read by either page; it is still cleared on mount in
+EditWeight so it cannot infect other screens, per the ticket's warning not to "harmonise"
+the two stores — the missing throw belongs to the food log and is FF-0075.
+
+Verified live on a throwaway server: create-with-photo attaches in one step, the photo
+shows on open, and an untouched save sends `{"weight_lbs":180.5,"date":"...","notes":""}`
+— no `photo_url` key — with the photo still on the row afterwards. 5 new frontend tests.
+
+Note on process: the subagent lane failed twice with no closing message, so this was
+implemented inline in the coordinating session rather than delegated.
