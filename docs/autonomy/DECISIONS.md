@@ -719,3 +719,33 @@ Remove" path in the ticket was unreachable before this fix added the control.
 
 Also fixed while proving it: a failed upload now aborts the save quietly instead of
 rejecting, which was surfacing as an unhandled promise rejection on the phone.
+
+## 2026-10-18 — Looking at an entry must not be able to change it
+
+Tapping a row in Weight History used to land in the edit form, so reviewing an old
+weigh-in put live number inputs under your thumb and buried the photo under a "Tap to
+change photo" overlay. `weight/history/:id` is now a read-only screen; editing is an
+explicit step from it.
+
+The rule that matters: **a view screen makes no mutating request on mount.** No autosave,
+no "touch" write, nothing that can alter an entry by being looked at. The one request it
+makes is the fetch, and there is a test asserting no update or delete fires
+(`sends no mutating request just because the entry was opened`). It is the counterpart to
+FF-0073: that fixed a save that destroyed data, this one makes sure a *read* cannot,
+which is the only way "just look at it" can be a safe thing to offer.
+
+Two smaller rules, both from bugs already in this repo:
+
+**The day comes from `localDateOf`, not the ISO string.** FF-0059 was exactly this class
+of bug — evening logs filed on tomorrow — and a second hand-rolled date path is how it
+comes back.
+
+**A missing photo is an empty state, not a broken image.** The serve route answers a
+missing file with a JSON 404, so the `<img>` hides itself via `onError` and the block
+reads "No photo for this entry." — deliberately worded differently from the notes empty
+state, so the screen still reads as complete.
+
+The photo URL now has one home, `utils/photoUrl.ts`. It existed as three hand-rolled
+copies (EditWeight, ThenAndNow, WeightTimelapse) and this screen would have been the
+fourth; four copies is where it drifts. The serve route accepts both `weight_photos/x.jpg`
+and a bare filename, so the stored value passes through unchanged.

@@ -1504,3 +1504,26 @@ my own browser verification. A throwaway gunicorn on a *copied* database still w
 uploads into the real `app/uploads/` — the database is disposable in that setup, the
 uploads tree is not. Future live checks should point uploads somewhere temporary or clean
 up after themselves explicitly.
+
+## Round 65 — 2026-10-18 — FF-0074 a weigh-in you can just look at
+
+Read-only screen at `weight/history/:id`; the history row now opens it and Edit is an
+explicit button, so reviewing an old entry no longer puts number inputs under your thumb.
+
+Built to the ticket's acceptance criteria, with the parts I would have got wrong on my own
+spelled out in the brief: the date through `localDateOf` (not the ISO string — FF-0059's
+bug class), the photo hidden on `onError` with a quiet "No photo" state distinct from the
+"No notes" one, and `utils/photoUrl.ts` extracted so the URL builder has one home instead
+of becoming four copies.
+
+**The test that matters most** asserts the screen sends *no mutating request* on mount.
+It is the mirror of FF-0073: that fixed a save that destroyed a photo, this makes sure
+merely looking cannot. Verified live on a throwaway server: row tap lands on
+`/weight/history/13`, weight, local day and notes render, the photo shows and enlarges,
+the screen has zero number inputs, and Edit leads to the form.
+
+Two smaller things: the delete confirm test failed at first because "Delete" now matches
+two buttons (page action and modal confirm) — disambiguated rather than worked around, so
+the test still proves the modal is what fires the delete. And I cleaned up the upload my
+verification wrote into the real `app/uploads/` this time, instead of leaving it for a
+later sweep.
