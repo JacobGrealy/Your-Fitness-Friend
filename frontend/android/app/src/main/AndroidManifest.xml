@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android 11+ hides other apps from resolveActivity() unless they are
+         declared here. Capacitor's image capture checks
+         resolveActivity(ACTION_IMAGE_CAPTURE) before launching, so without this
+         block it silently falls back to the gallery and "Take photo" behaves like
+         "Choose from library" (FF-0058). -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT" />
+            <data android:mimeType="image/*" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -40,5 +55,9 @@
          SCHEDULE_EXACT_ALARM keeps a 12:30 lunch reminder at 12:30 rather than
          whenever the system feels like batching it. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- The barcode scanner (getUserMedia) and the camera capture intent both go
+         through Capacitor's WebChromeClient, which requests this permission and
+         denies the request outright when it is undefined (FF-0058). -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 </manifest>

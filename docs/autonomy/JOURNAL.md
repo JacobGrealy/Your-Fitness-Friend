@@ -1193,3 +1193,35 @@ RECEIVE_BOOT_COMPLETED, with `TimedNotificationPublisher`,
 **What is not verified:** that a notification actually arrives on the phone at the
 right minute. Scheduling is verifiable here; delivery needs the device, and Android
 may delay for doze regardless.
+
+## Round 54 — 2026-10-17 — FF-0058 the camera was never offered, and the scanner never could have worked
+
+The owner reported that only existing images could be picked. The button was already
+there — five pages carry `capture="environment"` — so the fault had to be below the
+web layer, and Capacitor's source said exactly where.
+
+`BridgeWebChromeClient.showImageCapturePicker()` does
+`takePictureIntent.resolveActivity(packageManager)` and returns false when it is
+null; `showMediaCaptureOrFilePicker()` then logs "Media capture intent could not be
+launched. Falling back to default file picker" and opens the gallery. Under Android
+11+ package visibility, `resolveActivity` for an implicit intent is null **unless the
+app declares a `<queries>` element for it** — and our manifest had no `<queries>` at
+all. A silent downgrade that looks exactly like a working gallery button.
+
+While in there, the second one dropped out: `android.permission.CAMERA` was not in
+the manifest either (checked with `aapt2 dump permissions` on 0.1.6 — only INTERNET,
+REQUEST_INSTALL_PACKAGES, POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM,
+RECEIVE_BOOT_COMPLETED, WAKE_LOCK). Capacitor's `onPermissionRequest` maps
+`VIDEO_CAPTURE` to a CAMERA permission request and denies when it fails, so
+`getUserMedia` — the barcode scanner — could not have worked on any build so far.
+That is a genuine defect in FF-0030 that only a device could have surfaced, and the
+owner had not reached that check yet.
+
+Fixed by declaring `<queries>` (IMAGE_CAPTURE plus GET_CONTENT image/*) and the CAMERA
+permission; no JS or UI changes were needed. APK **0.1.7 (versionCode 8)** built, and
+verified inside the artifact with `aapt2`: CAMERA is an `uses-permission`, and the
+merged manifest carries the `queries` element with both intents.
+
+Still unverifiable here: that the camera actually opens, and that the scanner now
+gets its permission. Both need the phone — but the manifest now gives the OS
+something to grant.
