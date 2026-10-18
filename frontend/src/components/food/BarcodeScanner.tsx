@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import jsQR from 'jsqr'
+import { MAX_DECODE_EDGE, createBarcodeReader, decodeFrame } from '@/utils/barcode'
 
 interface BarcodeScannerProps {
   /** Called once with the first decoded code; the caller stops the scanner. */
@@ -20,9 +20,10 @@ const DECODE_INTERVAL_MS = 120
  * origin is not a secure context and `navigator.mediaDevices` is undefined, so
  * this could not work at all (measured, see DECISIONS.md).
  *
- * Decoding is jsQR on a canvas rather than the Barcode Detection API, because
+ * Decoding is ZXing on a canvas rather than the Barcode Detection API, because
  * that API is not exposed inside an Android WebView — the one place this app
- * actually runs. jsQR is pure JavaScript, so it behaves the same everywhere.
+ * actually runs. It used to be jsQR, which only reads QR codes and therefore
+ * could never recognise a product barcode (FF-0060).
  */
 export default function BarcodeScanner({ onDetected, onUnavailable }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -94,26 +95,31 @@ export default function BarcodeScanner({ onDetected, onUnavailable }: BarcodeSca
       }
       setPhase('scanning')
 
+      const reader = createBarcodeReader()
+
       const tick = () => {
         if (cancelled || detectedRef.current) return
         const canvas = canvasRef.current
         if (video.readyState === video.HAVE_ENOUGH_DATA && canvas) {
-          const width = video.videoWidth
-          const height = video.videoHeight
-          if (width && height) {
+          const sourceWidth = video.videoWidth
+          const sourceHeight = video.videoHeight
+          if (sourceWidth && sourceHeight) {
+            // Decode a downscaled frame: TRY_HARDER on a full-resolution photo is
+            // slow, and a barcode survives 800px easily.
+            const scale = Math.min(1, MAX_DECODE_EDGE / Math.max(sourceWidth, sourceHeight))
+            const width = Math.round(sourceWidth * scale)
+            const height = Math.round(sourceHeight * scale)
             canvas.width = width
             canvas.height = height
             const context = canvas.getContext('2d', { willReadFrequently: true })
             if (context) {
               context.drawImage(video, 0, 0, width, height)
               const image = context.getImageData(0, 0, width, height)
-              const result = jsQR(image.data, image.width, image.height, {
-                inversionAttempts: 'dontInvert',
-              })
-              if (result?.data) {
+              const code = decodeFrame(reader, image)
+              if (code) {
                 detectedRef.current = true
                 if (typeof navigator.vibrate === 'function') navigator.vibrate?.(40)
-                onDetected(result.data.trim())
+                onDetected(code)
                 return
               }
             }

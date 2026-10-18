@@ -195,3 +195,72 @@ def test_normalise_code_accepts_common_lengths_and_rejects_junk():
     assert openfoodfacts.normalise_code('123456789012345') is None  # too long
     assert openfoodfacts.normalise_code('12AB56') is None
     assert openfoodfacts.normalise_code(None) is None
+
+
+# --- UPC-A / EAN-13 equivalence (FF-0060) ---------------------------------------
+#
+# A UPC-A is an EAN-13 with a leading zero, and ZXing reports a leading-zero
+# EAN-13 as UPC-A. So the same shelf item reaches the server as 12 digits or 13
+# depending on which symbology the decoder matched, and both must find one product.
+
+
+def test_upc_a_and_ean_13_find_the_same_cached_product(auth, app, monkeypatch):
+    calls = []
+
+    def fake_lookup(code):
+        calls.append(code)
+        return openfoodfacts.parse_product(NUTELLA)
+
+    monkeypatch.setattr(openfoodfacts, 'lookup_barcode', fake_lookup)
+
+    # Scanned as UPC-A (12 digits): cached under the canonical 13-digit form.
+    first = auth.get('/api/food/barcode/301762042200')
+    assert first.status_code == 200
+    assert calls == ['0301762042200']  # the 13-digit form was queried
+
+    with app.app_context():
+        stored = Food.query.filter_by(barcode_id='0301762042200').first()
+        assert stored is not None
+
+    # Scanning the EAN-13 form then hits the cache instead of the network.
+    calls.clear()
+    second = auth.get('/api/food/barcode/0301762042200')
+    assert second.status_code == 200
+    assert second.get_json()['source'] == 'local'
+    assert calls == []
+
+
+def test_ean_13_scan_finds_a_product_cached_under_its_upc_a(auth, app, monkeypatch):
+    """Rows written before canonicalisation used the raw 12-digit code."""
+    with app.app_context():
+        from app.models.user import User
+
+        user = User.query.filter_by(email='barcode@example.test').first()
+        app.config['TESTING'] = True
+        db.session.add(Food(
+            user_id=user.id,
+            name='Legacy Granola',
+            calories=120,
+            protein_g=3,
+            carbs_g=20,
+            fat_g=4,
+            barcode_id='041570000000',
+        ))
+        db.session.commit()
+
+    monkeypatch.setattr(openfoodfacts, 'lookup_barcode', lambda code: pytest.fail('should not hit the network'))
+
+    response = auth.get('/api/food/barcode/0041570000000')
+
+    assert response.status_code == 200
+    assert response.get_json()['food']['name'] == 'Legacy Granola'
+
+
+def test_canonical_code_helper():
+    from app.routes.barcode_lookup import canonical_code, code_variants
+
+    assert canonical_code('123456789012') == '0123456789012'
+    assert canonical_code('0123456789012') == '0123456789012'
+    assert canonical_code('40170725') == '40170725'  # EAN-8 stays as it is
+    assert code_variants('123456789012') == ['0123456789012', '123456789012']
+    assert code_variants('3017620422003') == ['3017620422003']

@@ -1,15 +1,19 @@
 import { render, screen, waitFor, act } from '@testing-library/react'
 import BarcodeScanner from '@/components/food/BarcodeScanner'
-import jsQR from 'jsqr'
+import { decodeFrame } from '@/utils/barcode'
 
 // FF-0030: the scanner only exists because the app is now served over HTTPS.
-// jsdom has neither a camera nor a canvas decoder, so both are stubbed: the point
-// of these tests is the decision logic (secure context, permission, decode ->
-// callback), not the pixels.
+// jsdom has neither a camera nor a canvas, so both are stubbed: the point of these
+// tests is the decision logic (secure context, permission, decode -> callback), not
+// the pixels. The pixels are covered for real in tests/utils/barcode.test.ts,
+// which decodes an actual EAN-13 bitmap (FF-0060).
 
-jest.mock('jsqr', () => ({ __esModule: true, default: jest.fn() }))
+jest.mock('@/utils/barcode', () => {
+  const actual = jest.requireActual('@/utils/barcode')
+  return { ...actual, decodeFrame: jest.fn() }
+})
 
-const decode = jsQR as unknown as jest.Mock
+const decode = decodeFrame as unknown as jest.Mock
 
 const fakeStream = () => ({
   getTracks: () => [{ stop: jest.fn() }],
@@ -42,7 +46,7 @@ function stubCanvas() {
 
 describe('BarcodeScanner (FF-0030)', () => {
   beforeEach(() => {
-    decode.mockReset()
+    decode.mockReset().mockReturnValue(null)
     stubCanvas()
   })
 
@@ -79,7 +83,7 @@ describe('BarcodeScanner (FF-0030)', () => {
 
   it('reports a decoded code once and stops looking', async () => {
     stubCamera()
-    decode.mockReturnValue({ data: ' 3017620422003 ' })
+    decode.mockReturnValue('3017620422003')
     const onDetected = jest.fn()
 
     render(<BarcodeScanner onDetected={onDetected} />)

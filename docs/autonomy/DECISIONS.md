@@ -492,3 +492,27 @@ Rule for this project: **anything the WebView asks the OS for must exist in
 implicitly needs a `<queries>` entry too.** Verify in the built artifact with
 `aapt2 dump permissions` and `aapt2 dump xmltree --file AndroidManifest.xml`, not
 from the Gradle log, because both failures produce a working-looking app.
+
+## 2026-10-17 — A QR decoder cannot read a product barcode
+
+The scanner opened the camera and never recognised anything. It decoded with
+**jsQR**, a QR-only library: product barcodes are 1D (EAN-13, UPC-A, Code-128), so
+jsQR returned `null` for every packet on the shelf regardless of framing. Proved
+rather than assumed — a hand-built, checksum-correct EAN-13 module pattern
+(`3017620422003`) decodes to the right digits through ZXing, and the identical pixel
+buffer returns `null` from jsQR.
+
+`@zxing/library` replaces it outright (it reads 1D and 2D), restricted to EAN-13,
+EAN-8, UPC-A, UPC-E, Code-128, Code-39, ITF and QR. jsQR is gone from the bundle.
+
+**The trap worth remembering:** ZXing's `RGBLuminanceSource` only unpacks pixels when
+`BYTES_PER_ELEMENT === 4` (an `Int32Array`). Hand it a canvas `Uint8ClampedArray` of
+RGBA and it treats every *byte* as a pixel — the image is noise and every frame fails
+to decode, with no error anywhere. My own first probe failed for exactly this reason.
+`toLuminance()` now does the conversion explicitly, and a real bitmap decode is a
+unit test rather than something only a phone could check.
+
+**A UPC-A is an EAN-13 with a leading zero**, and ZXing reports a leading-zero
+EAN-13 as UPC-A — discovered by the test, not by reasoning. So the server canonicalises
+12-digit codes to 13 digits, stores that form, and searches both: one product stays
+one row, and a row cached before this existed is still found.
