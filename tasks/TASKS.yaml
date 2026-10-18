@@ -3,7 +3,8 @@ meta:
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0080
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -2832,4 +2833,41 @@ intake:
     fixed: the smoke gate had no UPLOAD_FOLDER, and the pytest suite was writing profile photos into production
     on every run - app fixture now uses a scratch dir. 200 backend tests; gates leave app/uploads unchanged
     (786 before/after). AGENTS.md documents the script.'
+  comments: []
+- id: FF-0080
+  title: Profile photo uploads leave unreferenced files behind
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-18T11:53
+  updated_at: 2026-10-18T11:53
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: Uploading a profile photo leaves unreferenced files in app/uploads/profile_photos
+    - each attempt appears to write a second copy that no user row points at, so the directory accumulates
+    orphans that look like production photos.
+
+
+    2) Technical Details: evidence gathered on the live box 2026-10-18 while verifying FF-0078. app/uploads/profile_photos
+    held ~591 files but users.profile_photo_path references only 3 (a27011e3, fb3d9dee, 83e56016). Between
+    11:46 and 11:48, during a manual photo-chooser test on the phone, four more files appeared (fdf99c01,
+    67afa0e9, 53a5504e, 376ea270) plus one meal photo (7631435e), none referenced by any row. Two of them
+    landed in the same second, which points at the crop flow rather than a user retrying: frontend/src/pages/Profile.tsx
+    opens a crop modal after picking, and the upload path in app/routes/auth.py stores every upload before
+    the crop result is chosen. Suspect the upload happens on pick (for preview/crop) and again on save,
+    or that the old-file cleanup at auth.py:325 only deletes the previously referenced file, leaving the
+    intermediate upload behind. Not yet reproduced deliberately; the ticket is to reproduce it on the
+    isolated server (./scripts/dev-server.sh, which keeps uploads out of production as of FF-0079), find
+    where the extra write comes from, and either clean up on cancel/replace or stop uploading before the
+    crop is confirmed.
+
+
+    3) Acceptance Criteria: uploading or replacing an avatar leaves exactly one referenced file per user
+    and no unreferenced leftovers; cancelling the crop leaves nothing behind; a test covers the chosen-once
+    case; ./scripts/gates.sh green.'
   comments: []
