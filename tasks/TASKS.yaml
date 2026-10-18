@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T21:25
+  updated_at: 2026-10-17T21:27
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2151,4 +2151,34 @@ intake:
     fixed the string/number comparison in the store''s list filter and the blank error message. 5 backend
     + 5 store tests. Removed the re-created stale Honey roasted peanuts row (unreferenced). Backend: needs
     a restart.'
+  comments: []
+- id: FF-0066
+  title: One restart now clears three backend changes
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T21:26
+  updated_at: 2026-10-17T21:27
+  completed_at: 2026-10-17T21:27
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: Three backend changes now wait on one restart, and the app currently shows a
+    delete button that cannot work and a scan that still returns per-100g calories.
+
+
+    2) Technical Details: pending Python changes are FF-0060 (barcode canonicalisation in app/routes/barcode_lookup.py),
+    FF-0063 (per-serving nutrition in app/utils/openfoodfacts.py) and FF-0065 (DELETE /api/food/<id> in
+    app/routes/food_routes.py). All three load only on restart; the frontend halves (scanner decoder +
+    rotation + torch, the kept-entries toast, local dates, Complete Diary, reminders) are already live
+    after a reload. Update the waiting list to name all three in one item, note that the stale Honey roasted
+    peanuts row was removed again after a scan re-created it, and refresh the counts.
+
+
+    Closed: waiting list now names all three pending Python changes (FF-0060 lookup canonicalisation,
+    FF-0063 per-serving nutrition, FF-0065 delete endpoint) under one restart item, and records that the
+    re-created Honey roasted peanuts row was removed again, plus the detach-on-delete rule.'
   comments: []
