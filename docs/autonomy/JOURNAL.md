@@ -1225,3 +1225,32 @@ merged manifest carries the `queries` element with both intents.
 Still unverifiable here: that the camera actually opens, and that the scanner now
 gets its permission. Both need the phone — but the manifest now gives the OS
 something to grant.
+
+## Round 55 — 2026-10-17 — FF-0059 the diary was filing evening entries on tomorrow
+
+The owner reported that adding nuts to snacks did nothing, so they tried five times.
+The live database explained it better than any repro could: five rows, all "Nuts
+160 snack", all dated **2026-10-18**, all created between 00:54 and 00:58 UTC —
+which is 20:54–20:58 EDT on the **17th**. Their first nuts at 19:44 EDT had landed
+correctly, because 19:44 EDT is still the 17th in UTC.
+
+Cause: seven call sites derived "today" with
+`new Date().toISOString().split('T')[0]` — the **UTC** calendar date. West of
+Greenwich that is the wrong day for the last hours of every evening, so a log made
+after 20:00 EDT was filed on a day the diary was not showing. The entry existed the
+whole time; it was just one tap to the right on the date selector.
+
+One helper now owns it: `src/utils/localDate.ts` with `todayLocal()` and
+`localDateOf()`, built from local getters. Every `toISOString().split` in the
+frontend is gone — food logs, weight logs, and the display of a stored weight
+timestamp, which had the same off-by-one-day problem.
+
+The test asserts the local date for an instant where UTC and local disagree (00:54
+UTC on the 18th), and guards that comparison when the host itself runs at UTC+0 so
+it cannot pass vacuously. Verified on this host: that instant is 2026-10-17 locally
+and 2026-10-18 from UTC.
+
+Worth naming the shape of this one: nothing threw, no gate could have failed, and
+the data was written correctly — to the wrong day. It took the owner's duplicate
+attempts in the database to make it visible, which is exactly what the journal is
+for.

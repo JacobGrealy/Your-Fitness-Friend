@@ -10,6 +10,7 @@ import { quickAddFoodSchema } from '@/utils/schemas'
 import { isMealType } from '@/utils/meal'
 import Loading from '@/components/common/Loading'
 import { resolveReturnTo } from '@/utils/returnTo'
+import { todayLocal } from '@/utils/localDate'
 
 export default function FoodLogSelect() {
   const { setTitle } = usePageTitle()
@@ -45,7 +46,7 @@ export default function FoodLogSelect() {
       serving_size: '',
       brand: '',
       barcode_id: '',
-      date: new Date().toISOString().split('T')[0],
+      date: todayLocal(),
       meal_type: initialMealType,
     },
   })
@@ -154,7 +155,7 @@ export default function FoodLogSelect() {
         serving_size: data.serving_size || '',
         brand: data.brand || undefined,
         barcode_id: data.barcode_id || undefined,
-        date: data.date || new Date().toISOString().split('T')[0],
+        date: data.date || todayLocal(),
       }
 
       await logFood(logData)

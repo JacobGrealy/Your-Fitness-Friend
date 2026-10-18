@@ -3,6 +3,7 @@ import { foodApi } from '@/api/food'
 import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch, MacroGoals, FoodRecent } from '@/types'
 import { useUIStore } from './uiStore'
 import { RECENT_FOODS_DAYS } from '@/utils/constants'
+import { todayLocal } from '@/utils/localDate'
 
 interface FoodState {
   foods: Food[]
@@ -132,7 +133,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   logFood: async (data: FoodLogCreate) => {
     set({ isLoading: true, error: null })
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = todayLocal()
       const logDate = data.date || today
 
       if (data.food_id) {
