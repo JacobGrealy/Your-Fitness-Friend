@@ -435,3 +435,32 @@ Two deliberate departures:
 Deferred on purpose: sharing a day (MFP offers it), and any tie between completion
 and a logging streak — MFP explicitly says those are separate, and inventing a
 coupling would make the app nag about a thing that does not matter.
+
+## 2026-10-17 — Notifications are local and device-owned, not pushed
+
+Asked whether this app can send notifications, the honest answer needed three
+options separated, because only one is open to us:
+
+- **Local notifications** (`@capacitor/local-notifications`): the device schedules
+  its own. No server, no third party, nothing to leak. This is what AweFit uses.
+- **Web Push**: impossible here. Android's WebView has no Push API and no service
+  worker, so the web app cannot notify through the browser on Android at all.
+- **FCM push**: would work, but buys only one capability — the *server* initiating
+  a message — at the cost of a Firebase project, `google-services.json`, a server
+  key and an external dependency. Deferred until something actually needs it.
+
+So reminders live where the schedule does: `localStorage` under `awefit.reminders`,
+rescheduled idempotently whenever the app starts. Fixed notification ids (1001–1003,
+1010) mean re-applying replaces rather than duplicates, which is what makes "just
+run it on every launch" safe. The plugin also ships a
+`LocalNotificationRestoreReceiver`, so a phone reboot restores alarms on its own;
+ours is belt and braces.
+
+Two consequences accepted deliberately:
+
+- **Nothing syncs.** Reinstalling the app loses the settings — they are on the
+  phone, not the account. That is the same trade as the schedule itself.
+- **The JS is newer than the APK.** Same chicken-and-egg as the update button: the
+  code is served from the server, the plugin lives in the binary. An older install
+  gets `'unsupported'` and a line telling the user to install the latest, never a
+  switch that silently does nothing.

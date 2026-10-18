@@ -30,8 +30,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Bumped by scripts/android-version.py. versionCode must strictly
         // increase or Android refuses to install over the existing app.
-        versionCode 6
-        versionName "0.1.5"
+        versionCode 7
+        versionName "0.1.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

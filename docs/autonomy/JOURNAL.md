@@ -1162,3 +1162,34 @@ completed chip and undo both worked, and the page reported no layout overflow.
 One process note: the first UI run "failed" because the day was already completed by
 my own earlier curl, so the page correctly showed the completed state and the
 Complete Diary button genuinely was not there. The test was wrong, not the app.
+
+## Round 53 — 2026-10-17 — FF-0056 reminders, and the notification route we do not have
+
+Turning "can it notify?" into something real. The research from the previous round
+holds: Web Push does not exist in an Android WebView, FCM would need a Firebase
+project and a server key, and local notifications need neither. So the phone owns
+the schedule.
+
+`@capacitor/local-notifications` 8.3.1 added, `cap sync` found five plugins, the
+manifest gained `POST_NOTIFICATIONS` and `SCHEDULE_EXACT_ALARM`, and the plugin
+brings its own `RECEIVE_BOOT_COMPLETED` plus receivers. `src/notifications.ts` holds
+a **pure** `buildSchedule()` (testable without a device) and an idempotent
+`applyReminders()` that cancels fixed ids 1001–1003/1010 before scheduling — which is
+what makes running it on every app start safe. Settings persist in `localStorage`;
+the card says plainly that reminders are phone-local and that they do not work in a
+browser tab.
+
+20 new jest tests (14 scheduling, 6 card). The card distinguishes three failures
+that a lazier version would have blurred: permission denied ("turn them on in
+Android settings"), plugin missing from this build ("install the latest AweFit"),
+and running in a browser ("only work in the app").
+
+APK **0.1.6 (versionCode 7)** built, and checked inside the artifact rather than
+trusted from the build log: the plugin classes are in the dex (16 refs), and the
+merged manifest carries POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM and
+RECEIVE_BOOT_COMPLETED, with `TimedNotificationPublisher`,
+`NotificationDismissReceiver` and `LocalNotificationRestoreReceiver` registered.
+
+**What is not verified:** that a notification actually arrives on the phone at the
+right minute. Scheduling is verifiable here; delivery needs the device, and Android
+may delay for doze regardless.
