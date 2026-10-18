@@ -1486,3 +1486,21 @@ shows on open, and an untouched save sends `{"weight_lbs":180.5,"date":"...","no
 
 Note on process: the subagent lane failed twice with no closing message, so this was
 implemented inline in the coordinating session rather than delegated.
+
+## Round 64 — 2026-10-18 — the orphaned weight photos are gone
+
+Cleaned up on the owner's instruction after FF-0073 explained the cause: uploads that were
+written to disk and then recorded as `photo_url: null`, because the save inferred its
+intent from shared state.
+
+Orphan detection scanned **every text value in every table** (9 tables, 473 values) rather
+than just `weight_logs.photo_url` — a file referenced from anywhere is protected, and the
+cost of over-keeping is a few kilobytes while the cost of over-deleting is a user's
+irreplaceable photo. Seven files, 8.6 MB; the two that remain are both referenced, and
+walking every `photo_url` against the filesystem afterwards shows zero broken references.
+
+Three of the seven were mine, which is the part worth recording: 70-byte 1×1 PNGs left by
+my own browser verification. A throwaway gunicorn on a *copied* database still writes
+uploads into the real `app/uploads/` — the database is disposable in that setup, the
+uploads tree is not. Future live checks should point uploads somewhere temporary or clean
+up after themselves explicitly.

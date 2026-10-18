@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-18T10:06
+  updated_at: 2026-10-18T11:18
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2680,4 +2680,38 @@ intake:
 
 
     Closed: shipped in 795e291 (merged to master). See the FF-0072 correction note for the id collision.'
+  comments: []
+- id: FF-0077
+  title: Delete the orphaned weight photos
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: done
+  labels: []
+  created_at: 2026-10-18T11:18
+  updated_at: 2026-10-18T11:18
+  completed_at: 2026-10-18T11:18
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The owner asked for the orphaned weight photos to be deleted after FF-0073 explained
+    where they came from - files uploaded but never attached to any log, because the save wrote photo_url:
+    null.
+
+
+    2) Technical Details: identified orphans by scanning every text value in every table of instance/fitness_friend.db
+    (9 tables, 473 values) rather than only weight_logs.photo_url, so a file referenced from anywhere
+    is protected. Deleted 7 files totalling 8,604,382 bytes: 24212fcc, 32280147, 4bab93d9 and f74e4c9a
+    (the four the ticket identified), plus 0e43b883, b3b3f250 and f925021e - those three are 70-byte 1x1
+    PNGs written by my own verification runs, because a throwaway server on a copied database still writes
+    uploads into the real app/uploads directory. That is worth remembering: temp-DB testing does not sandbox
+    the uploads tree. Two files remain and both are referenced (logs 4 and 8); zero broken references
+    afterwards, verified by walking every weight_logs.photo_url against the filesystem. A backup was taken
+    first. The serving check returns 401 because /api/weight/uploads requires auth - that is the route
+    working, not a missing file.
+
+
+    Closed: 7 files / 8.6 MB removed after a whole-database reference scan; 2 referenced files kept, 0
+    broken references. Backup taken first.'
   comments: []
