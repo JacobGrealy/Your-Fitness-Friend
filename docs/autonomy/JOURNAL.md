@@ -1374,3 +1374,24 @@ Verified end to end on a throwaway server: three closed days (two under goal, on
 produced `closed_days: 3`, `within_goal_days: 3` — correct, because the profile's
 recomputed goal of 2700 puts the 10% ceiling at 2970 and the 2600 kcal day is inside it.
 40 new/changed tests (10 backend over the streak maths and payloads, 16 frontend).
+
+## Round 60 — 2026-10-17 — FF-0070 the Monday weigh-in came on Sunday
+
+Two faults stacked in one field. `buildSchedule` never included `weekday` at all, and
+Capacitor reads `{ hour, minute }` with `repeats: true` as **daily** — so the "weekly"
+weigh-in was a daily alarm that happened to arrive first on a Sunday. The meal
+reminders are daily by design, which is exactly why the omission stayed invisible
+until the one reminder that needed a weekday.
+
+Adding it exposed the second fault: JS counts Sundays as 0, Capacitor's `Weekday` enum
+counts them as 1 (checked in the plugin's own `definitions.d.ts`, Sunday = 1). Off by
+one there silently shifts the reminder to a neighbouring day — the same bug wearing a
+different hat. `toCapacitorWeekday()` is now the only conversion, and the tests pin the
+entire map plus the inverse rule: meals must *not* carry a weekday.
+
+Both are the kind of defect that a test asserting the payload shape would have caught,
+and my original reminder tests asserted titles and ids — not the schedule — for the
+weigh-in. They do now.
+
+Repair is automatic: the reminders card re-applies on mount and `applyReminders`
+cancels fixed ids first, so opening the app once replaces the stray daily notification.

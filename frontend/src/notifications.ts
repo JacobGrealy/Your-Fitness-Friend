@@ -19,7 +19,11 @@ interface ScheduleOptions {
     id: number
     title: string
     body: string
-    schedule: { on?: { hour: number; minute: number }; repeats?: boolean; allowWhileIdle?: boolean }
+    schedule: {
+      on?: { weekday?: number; hour: number; minute: number }
+      repeats?: boolean
+      allowWhileIdle?: boolean
+    }
   }>
 }
 
@@ -57,6 +61,15 @@ const MEAL_IDS: Record<'breakfast' | 'lunch' | 'dinner', number> = {
   dinner: 1003,
 }
 const WEIGH_IN_ID = 1010
+
+/**
+ * Capacitor numbers weekdays Sunday = 1 … Saturday = 7; our settings use the JS
+ * convention, Sunday = 0 … Saturday = 6. Being wrong by one here silently moves the
+ * reminder to the wrong day, so the conversion lives in one named place.
+ */
+export function toCapacitorWeekday(jsWeekday: number): number {
+  return (((jsWeekday % 7) + 7) % 7) + 1
+}
 
 const MEAL_COPY: Record<'breakfast' | 'lunch' | 'dinner', { title: string; body: string }> = {
   breakfast: { title: 'Breakfast', body: 'Log your breakfast while it is fresh.' },
@@ -142,7 +155,13 @@ export function buildSchedule(settings: ReminderSettings): ScheduleOptions['noti
       title: 'Weigh-in',
       body: 'Step on the scale and log it — the trend is what matters.',
       schedule: {
-        on: { hour: settings.weighIn.hour, minute: settings.weighIn.minute },
+        // Without a weekday this repeats *daily* — it was left out entirely, so a
+        // Monday weigh-in arrived on a Sunday morning (FF-0070).
+        on: {
+          weekday: toCapacitorWeekday(settings.weighIn.weekday),
+          hour: settings.weighIn.hour,
+          minute: settings.weighIn.minute,
+        },
         repeats: true,
         allowWhileIdle: true,
       },
