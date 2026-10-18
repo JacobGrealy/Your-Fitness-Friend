@@ -1,11 +1,12 @@
 meta:
-  updated_at: 2026-10-18T19:47
+  updated_at: 2026-10-18T19:48
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0082
 - FF-0084
+- FF-0085
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -3145,4 +3146,89 @@ intake:
     \ also needs touching for any further Progress work, so keep this out of a lane running another Progress\
     \ ticket. A backend change here needs a gunicorn restart; a frontend-only change does not. Check ff-gates'\
     \ uploads rule before touching anything: no joining of root_path with 'uploads' belongs in these files.\n"
+  comments: []
+- id: FF-0085
+  title: 'Toggleable BMI range lines on the weight chart: healthy, overweight, obese'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: open
+  labels: []
+  created_at: 2026-10-18T19:48
+  updated_at: 2026-10-18T19:48
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: "1) User Story: on the weight graph I want reference lines for the healthy-weight range, the\
+    \ overweight threshold and the obese threshold, each one switchable on its own, so I can see at a\
+    \ glance how far my weight is from a healthier band - and turn them off when they clutter the graph.\n\
+    \n2) Starting point, checked rather than assumed: there is NO BMI logic anywhere in the project today.\
+    \ `grep -rnw \"bmi|BMI\"` finds nothing in app/, tests/, frontend/src or frontend/tests (beware a\
+    \ naive grep: \"suB MIt\" matches inside submitLabel). So this is a new feature, not an extension\
+    \ of an existing helper.\n\n3) The input that is easy to forget: these bands are computed from the\
+    \ user's HEIGHT, and height is optional. app/models/user.py:25 is `height = db.Column(db.Float)  #\
+    \ in cm`, nullable - and two of the six accounts in the live DB have NULL height (user ids 2 and 3).\
+    \ The owner's account (id 6) has height 187.96 cm = 74.0 in and a latest weight of 259.3 lb. So: with\
+    \ no height there is no band, and the UI must say so (hide the toggles, or show them disabled with\
+    \ a pointer to Profile) rather than render NaN or a line at zero.\n\n4) Numbers to build and test\
+    \ against (already computed, owner's height 74.0 in): BMI 18.5 -> 144.1 lbs, BMI 25.0 -> 194.7 lbs,\
+    \ BMI 30.0 -> 233.7 lbs. Current 259.3 lb -> BMI 33.29 (obese); the stored goal 190 lb -> BMI 24.39\
+    \ (inside the healthy band), which makes a good sanity check. Bands are the standard WHO/CDC cut-points:\
+    \ underweight <18.5, healthy 18.5-24.9, overweight 25-29.9, obese >=30. The user asked for three:\
+    \ healthy, overweight, obese - so underweight needs no line unless it comes free.\n\n5) Technical\
+    \ Details:\n   a) FORMULA, ONE HOME. BMI = kg / m^2. The imperial form 703 * lb / in^2 gives the same\
+    \ numbers (both verified to 33.29 above), so pick one and put it in one helper - a `frontend/src/utils/bmi.ts`\
+    \ exporting the thresholds for a given height plus the category labels - with a unit test over the\
+    \ vectors in (4). Two implementations of the same conversion in two files is exactly the drift that\
+    \ produced FF-0084.\n   b) DO NOT round-trip through feet/inches. `cmToFtIn` at frontend/src/pages/Profile.tsx:32\
+    \ does `Math.round(totalInches % 12)`, so it is lossy; use `user.height` in cm -> metres directly.\
+    \ Also note `cmToFtIn`/`ftInToCm` are module-private consts inside Profile.tsx - if this feature wants\
+    \ them, hoist them to a shared util rather than opening a second copy.\n   c) PRESENTATION, recommended\
+    \ mapping (three independent switches): \"Healthy range\" = a shaded band (recharts ReferenceArea)\
+    \ between BMI 18.5 and 25; \"Overweight starts\" = a ReferenceLine at BMI 25; \"Obese starts\" = a\
+    \ ReferenceLine at BMI 30. If the owner would rather see three shaded regions, that is fine too -\
+    \ the requirement is that each of the three can be toggled on its own. recharts is 2.10.3; ReferenceLine\
+    \ is already used for the goal line (frontend/src/components/charts/WeightChart.tsx:93 and WeightChartWithGoal.tsx:83),\
+    \ ReferenceArea is so far unused, so check its props against that version rather than assuming.\n\
+    \   d) THE TRAP THAT MAKES THE FEATURE LOOK BROKEN, decide it deliberately: the y-axis domain. WeightChart/WeightChartWithGoal\
+    \ compute the domain from the data plus the goal, so a healthy-range band at 144 lb against data sitting\
+    \ at 255-265 lb falls outside the domain and recharts silently clips it - the toggle flips and nothing\
+    \ appears on screen. The two honest options are to fold only the ENABLED thresholds into the domain,\
+    \ or to keep the domain data-driven and tell the user where the band is (\"healthy range is 90 lb\
+    \ below this view\"). Folding every threshold in unconditionally would flatten the real data into\
+    \ a straight line, which defeats the graph. Whatever is chosen, \"toggle does nothing visible\" must\
+    \ not be the outcome.\n   e) WHERE. The Progress chart (frontend/src/pages/Weight/WeightHistory.tsx\
+    \ -> WeightChartWithGoal) is the full-history graph and the natural home for the toggles. Home's WeightTrendChart\
+    \ is a 7-day sparkline - do not add toggles there; once FF-0084 unifies the chart components, the\
+    \ same component carries the capability and Home simply does not render the UI. Keep frontend/src/components/charts/index.ts\
+    \ consistent if a new export is added (it currently omits WeightChartWithGoal, which is imported directly).\n\
+    \   f) PERSISTENCE. Match the existing localStorage pattern in frontend/src/notifications.ts:108/124\
+    \ (try/catch, JSON, degrade silently when a restricted WebView refuses storage), so the switches survive\
+    \ navigation. Choose and record the default - all off is the least surprising for a graph that already\
+    \ has a goal line.\n   g) HONESTY. BMI is a population metric that says nothing about body composition.\
+    \ Present these as reference lines, not advice; no medical claims, no \"you should weigh X\" copy.\
+    \ Category names should be the standard ones.\n   h) No backend change and no migration: height and\
+    \ weights are already exposed (authStore user, weight logs). Frontend-only, so it ships in a rebuilt\
+    \ app/static with no gunicorn restart.\n\n6) Tests (frontend/tests/, never beside sources): a utils\
+    \ test pinning 74.0 in -> 144.1 / 194.7 / 233.7 lb and the metric/imperial agreement; a component\
+    \ test that each switch adds exactly its own line or band and that all-off renders none; a null-height\
+    \ case that renders no switches and no NaN. Keep the existing qwen_client stub convention intact -\
+    \ no new route may call the local model.\n\n7) Acceptance Criteria: with a height set, three switches\
+    \ appear and each independently shows and hides its own line or band on the Progress weight chart;\
+    \ the lines sit at the correct weights for that height, verified against the 74 in vector; a switch\
+    \ whose line lies outside the current y-domain either extends the domain or states where the line\
+    \ is, and never appears to do nothing; all-off leaves the chart exactly as it is today, goal line\
+    \ and data unchanged; with no height, the switches are absent or disabled with a pointer to Profile\
+    \ and nothing renders NaN; switch state survives leaving and returning to the screen; changing height\
+    \ in Profile moves the lines on the next visit; every label is in lbs; ./scripts/gates.sh green.\n\
+    \n8) Lane: touches frontend/src/components/charts/* and frontend/src/pages/Weight/WeightHistory.tsx\
+    \ plus new util/component/test files - the same files as FF-0084, so run it in that lane, sequentially,\
+    \ AFTER FF-0084 lands. Doing it first would mean painting the lines onto three duplicate chart components\
+    \ and then re-doing them. Priority 3 by default because nothing is broken without it; raise it if\
+    \ the owner wants it sooner.\n\n\nCorrection to (2): the grep warning was garbled. The point is that\
+    \ a naive case-insensitive search for 'bmi' also matches the letters b-m-i inside the word s-u-b-m-i-t\
+    \ (e.g. submitLabel), so use a word-boundary grep or you will think BMI code exists when it does not.\
+    \ With word boundaries there really are zero hits."
   comments: []
