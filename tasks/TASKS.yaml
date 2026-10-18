@@ -1,10 +1,11 @@
 meta:
-  updated_at: 2026-10-18T12:16
+  updated_at: 2026-10-18T19:47
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0082
+- FF-0084
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -3064,4 +3065,84 @@ intake:
     6) Interaction with FF-0082: a copied meal must copy snapshots, including the per-serving values,
     so this lands before or with the copy feature to avoid a second migration. Also touches the create
     screen labels (''per serving'' vs ''total'') which should match the new model.'
+  comments: []
+- id: FF-0084
+  title: 'Home and Progress disagree about the weight trend: window, labels and units'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-18T19:47
+  updated_at: 2026-10-18T19:47
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: "1) User Story: Home has a \"Weight Trend\" chart and the Progress tab has a weight chart, and\
+    \ they do not tell the same story about the same weigh-ins. One says I am trending down; the other\
+    \ shows me climbing. They also disagree about which day a weigh-in happened and about what unit the\
+    \ number is in. I cannot tell which one to believe, so I trust neither.\n\n2) Evidence on the live\
+    \ box (read-only, instance/fitness_friend.db, 2026-10-18, 10 weight_logs rows). The two screens read\
+    \ different slices of that table and reach opposite verdicts:\n   - Home reads /api/dashboard/weight-trend?days=7,\
+    \ which covers 2026-10-12..2026-10-18. That window holds exactly 2 points: 264.7 (10-17) and 259.3\
+    \ (10-18). Dashboard's own direction rule is first-vs-last, so Home renders \"down\" (-5.4 lbs) and\
+    \ tints the chart green.\n   - Progress reads /api/weight/logs (no date filter) and slices the last\
+    \ 30 points: 10 points from 179.0 (2026-05-05) to 259.3 (2026-10-18). That series climbs 80.3 lbs.\n\
+    \   Same database, same moment, \"trending down\" on Home and an 80 lb climb on Progress. Neither\
+    \ is lying; they are answering different questions with no shared definition.\n\n3) Technical Details\
+    \ - six distinct divergences, all live in the tree today:\n   a) DIFFERENT SERIES. Home: fetchWeightTrend(7)\
+    \ at frontend/src/pages/Dashboard.tsx:71 -> app/utils/aggregations.py:71 get_weight_trend(), which\
+    \ filters `date.today() - (days-1) .. date.today()` and returns one row per log with NO per-day aggregation.\
+    \ Progress: frontend/src/pages/Weight/WeightHistory.tsx:32 builds chartData from the whole of `logs`\
+    \ (weightStore, GET /api/weight/logs, unfiltered) and the chart does .slice(-30). Different windows,\
+    \ different point counts, different shapes - so \"the trend\" is literally a different series on each\
+    \ screen.\n   b) DIFFERENT DAY LABEL FOR THE SAME WEIGH-IN. Home passes `entry.date`, a bare 'YYYY-MM-DD',\
+    \ so the chart's `new Date(value)` parses it as UTC midnight; Progress passes `log.recorded_at`, e.g.\
+    \ '2026-10-18T00:00:00', which parses as local time. Verified with Node under TZ=America/Chicago:\
+    \ new Date('2026-10-18') -> Oct 17, new Date('2026-10-18T00:00:00') -> Oct 18. In any negative UTC\
+    \ offset every Home point is labelled and tooltipped one day earlier than the same point on Progress.\
+    \ This is the FF-0059 UTC class again; the fix must go through frontend/src/utils/localDate.ts (todayLocal,\
+    \ localDateOf) rather than another hand-rolled parse.\n   c) DIFFERENT UNIT. frontend/src/components/charts/WeightTrendChart.tsx:42\
+    \ renders `{value} kg` in its tooltip. WeightChartWithGoal.tsx:31 and WeightChart.tsx:31 render `lbs`.\
+    \ Everything else in the app is pounds (weight_lbs, weight_goal_lbs, formatWeight), so Home is mislabelling\
+    \ pounds as kilograms - a 259.3 lb weigh-in reads \"259.3 kg\".\n   d) DIFFERENT Y-AXIS DOMAIN, which\
+    \ changes the apparent slope. WeightTrendChart.tsx uses `domain={['auto','auto']}`; WeightChartWithGoal.tsx\
+    \ computes a padded min/max AND folds the goal weight into that range, so the same series is compressed\
+    \ or stretched differently on each screen. Slope is what the eye reads as \"trend\".\n   e) DIFFERENT\
+    \ VERDICT RULES. Home's getTrendDirection() (Dashboard.tsx:81-88) is first-vs-last inside the 7-day\
+    \ window with a 0.5 lb dead zone. /api/weight/trend (app/routes/weight.py get_trend) computes change_7d\
+    \ against `datetime.now() - 7 days` with a clock time, anchors on `week_logs[-1]` (oldest log in that\
+    \ rolling window) and uses 0.1 lb thresholds. So a 0.3 lb move is \"stable\" on one screen and \"\
+    down\" on the other. Note there is a THIRD definition too: frontend/src/pages/Weight/Weight.tsx (route\
+    \ /weight, which also sets the title \"Progress\") renders WeightChart plus change_7d - and /weight\
+    \ is not reachable from BottomNav or Sidebar, both of which send the Progress tab to /weight/history.\
+    \ Three definitions of \"trend\" and two screens titled Progress.\n   f) DIFFERENT VISUAL LANGUAGE.\
+    \ Home: AreaChart, fixed 180px, CSS-variable colours, no dots, colour tinted by direction. Progress:\
+    \ AreaChart + dashed goal ReferenceLine, different grid colour, theme palette in a different convention\
+    \ (hardcoded hex vs CSS vars).\n   Also latent: get_weight_trend compares a DateTime column to `date`\
+    \ bounds, which SQLite binds as midnight, so a log with a non-midnight recorded_at would be excluded\
+    \ from the Home window while still appearing on Progress. Every writer stores midnight today (create_log\
+    \ and update_log both use datetime.min.time()), so this is not biting yet - keep it that way or normalise\
+    \ the comparison.\n\n4) Fix direction: one series and one verdict, then let the screens differ only\
+    \ in presentation. The cheapest honest version: add/choose a single endpoint that returns the points\
+    \ for a stated window plus the verdict computed with one threshold, and have both screens consume\
+    \ it through one shared chart component (they already duplicate tooltip/axis/y-domain logic twice\
+    \ - WeightTrendChart, WeightChart and WeightChartWithGoal are three near-copies). Keep \"last 7 days\
+    \ on Home\" if that is the intent, but label the window on screen and derive the direction from the\
+    \ same rule Progress uses, so the two can never contradict. Route every date through utils/localDate.\n\
+    \n5) Acceptance Criteria: for the same user, on the same data, Home and Progress display the same\
+    \ set of points for any overlapping date range; the same point carries the same date label and the\
+    \ same unit on both; both show the same up/down/stable verdict, or neither shows one; the 7-day framing\
+    \ on Home is stated on screen; no `kg` label remains anywhere in the weight UI; the y-axis domain\
+    \ rule is shared, not duplicated; frontend/src/utils/localDate.ts is the only place converting a stored\
+    \ timestamp to a displayed day; new tests in frontend/tests/ pin the parse (a date-only string and\
+    \ a recorded_at string for the same day must render the same day under TZ=America/Chicago) and pin\
+    \ that both screens derive direction from the same helper; ./scripts/gates.sh green.\n\n6) Lane notes:\
+    \ this touches frontend/src/pages/Dashboard.tsx, frontend/src/pages/Weight/WeightHistory.tsx, the\
+    \ three chart components, and possibly app/utils/aggregations.py or app/routes/dashboard.py. WeightHistory.tsx\
+    \ also needs touching for any further Progress work, so keep this out of a lane running another Progress\
+    \ ticket. A backend change here needs a gunicorn restart; a frontend-only change does not. Check ff-gates'\
+    \ uploads rule before touching anything: no joining of root_path with 'uploads' belongs in these files.\n"
   comments: []
