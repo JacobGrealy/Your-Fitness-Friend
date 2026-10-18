@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T20:25
+  updated_at: 2026-10-17T20:27
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1731,4 +1731,37 @@ intake:
     tests. Frontend: api/diary.ts, CompleteDiaryModal, button inline at the end of the diary content (not
     a fixed bar). 8 jest tests. Verified on a throwaway server: 2000 kcal vs 2720 TDEE -> -7.2 lb, 169.2
     from 176.4 lb, UI matched, chip+undo work, no overflow. Gates: 154 backend, 214 frontend.'
+  comments: []
+- id: FF-0055
+  title: Record that Complete Diary awaits a backend restart
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T20:26
+  updated_at: 2026-10-17T20:27
+  completed_at: 2026-10-17T20:27
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: Complete Diary is merged and its migration is applied to the live database, but
+    the running gunicorn predates the new blueprint, so /api/food/diary/* 404s in the app until the backend
+    is restarted. Nothing currently tells the owner that.
+
+
+    2) Technical Details: app/__init__.py registers diary_bp at /api/food/diary; blueprint registration
+    happens at import time, so only a restart makes it live. The migration 1ed0f5b7343d is already applied
+    to instance/fitness_friend.db (verified: diary_completions exists and alembic_version is 1ed0f5b7343d),
+    and app/static is rebuilt and served, so the frontend half is live and will show the button before
+    the API answers. Update docs/autonomy/QUESTIONS.md: add a restart item at the top of the waiting list
+    naming FF-0054, note that the schema is already migrated so the restart is the only step, and refresh
+    the current-state block to 154 backend / 214 frontend tests and the new endpoint paths. Use the passwordless
+    drop-in if it has been installed, otherwise hand it to the owner.
+
+
+    Closed: QUESTIONS.md waiting list now leads with the restart (FF-0054''s /api/food/diary/* needs it;
+    migration already applied, static already rebuilt), renumbered the list, and refreshed current state
+    to 154 backend / 214 frontend tests.'
   comments: []
