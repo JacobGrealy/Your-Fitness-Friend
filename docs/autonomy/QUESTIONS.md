@@ -85,18 +85,16 @@ real 3.8 MB file, not the SPA shell any more).
 
 ## Waiting on you
 
-Three things, all small; nothing else blocks the queue.
+Three things; the last two need your phone rather than your password.
 
-1. **Restart the backend** — Complete Diary (FF-0054) added `/api/food/diary/*`,
-   and blueprint registration only happens at import, so those routes 404 until
-   `sudo systemctl restart fitnessfriend`. Everything else is already in place: the
-   migration `1ed0f5b7343d` is applied to the live database and `app/static` is
-   rebuilt, so the new button will appear and fail politely until then.
-2. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
+1. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
    "awaiting restart", and only you can restart the service.
-3. **Verify the camera scanner on the phone** (FF-0030): the decode path is unit
+2. **Verify the camera scanner on the phone** (FF-0030): the decode path is unit
    tested with a stubbed decoder, but holding a real barcode in front of a real
    lens is unverified from this host.
+3. **Turn on a reminder and wait for it** — local notifications are scheduled by the
+   phone and the schedule itself is unit tested, but whether one actually arrives at
+   12:30 is only knowable on the device (Android may delay for doze).
 
 
 ## Current state, for when you have a minute
@@ -106,13 +104,16 @@ Three things, all small; nothing else blocks the queue.
   frontend, layout, tsc, smoke, toolkit.
 - **Live server:** current with `master` as of the 19:18:38 EDT restart —
   `/api/app/version` and `/download/awefit.apk` answer correctly.
+- **Complete Diary (FF-0054):** live end to end since the 20:38:11 EDT restart —
+  `POST /api/food/diary/complete` answers 401 unauthenticated rather than 404, and
+  the migration `1ed0f5b7343d` is applied.
 - **One-tap update (FF-0044):** **verified on the phone** — the banner appeared on
   0.1.4 for 0.1.5, Get it downloaded and installed inside the app without leaving
   for the browser. Current published build: **0.1.5 (versionCode 6)**.
 - **Persistent login (FF-0043):** live and **verified on the phone** — the session
   cookie now carries a 30-day `Expires` and the remember token 365 days, so the app
   no longer asks for a password on launch.
-- **APK:** `releases/awefit.apk` — **0.1.5 (versionCode 6)**, signed `CN=AweFit`,
+- **APK:** `releases/awefit.apk` — **0.1.6 (versionCode 7)**, adds local reminders, signed `CN=AweFit`,
   3.7 MB, baked server
   `https://home-server-1.tail96ee52.ts.net` with `cleartext: false`. Install it to
   get the camera scanner and a working login.

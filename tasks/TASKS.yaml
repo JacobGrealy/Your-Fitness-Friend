@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T20:42
+  updated_at: 2026-10-17T20:44
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1808,4 +1808,36 @@ intake:
     on app start; degrades to ''unsupported''/''denied'' with distinct messages. 20 jest tests. APK 0.1.6
     (versionCode 7) verified from the artifact: plugin classes in dex, permissions and receivers in the
     merged manifest. NOT verified: actual delivery timing on the phone.'
+  comments: []
+- id: FF-0057
+  title: Drop the completed restart item and refresh state to 0.1.6
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-17T20:43
+  updated_at: 2026-10-17T20:44
+  completed_at: 2026-10-17T20:44
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The waiting list tells the owner to restart the backend for Complete Diary (FF-0054),
+    but they already did - the service started 20:38:11 EDT, after the merge at 20:26:19, so /api/food/diary/*
+    answers 401 instead of 404. Asking again wastes their time at the top of the doc.
+
+
+    2) Technical Details: docs/autonomy/QUESTIONS.md. Verified 2026-10-17: fitnessfriend ActiveEnterTimestamp
+    is 20:38:11 EDT; GET /api/food/diary/completion returns 405 (route exists, wrong method - it is POST/GET-shaped
+    per route) and POST /api/food/diary/complete returns 401, so the blueprint is live. Remove the restart
+    item, refresh the current state to 0.1.6 / versionCode 7 published and installed-candidate with local
+    reminders (FF-0056), and note that Complete Diary is now live end to end. Leave the sudoers drop-in
+    and the camera verification as the only owner items, plus the notification delivery check which needs
+    the phone.
+
+
+    Closed: removed the already-done restart item (service started 20:38:11 EDT, after the FF-0054 merge;
+    the diary routes answer 401/405 rather than 404), recorded Complete Diary as live end to end, refreshed
+    the APK line to 0.1.6/versionCode 7, and added the reminder-delivery check to the owner list.'
   comments: []
