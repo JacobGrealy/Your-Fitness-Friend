@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-18T09:52
+  updated_at: 2026-10-18T09:55
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2398,7 +2398,7 @@ intake:
   status: done
   labels: []
   created_at: 2026-10-18T09:41
-  updated_at: 2026-10-18T09:52
+  updated_at: 2026-10-18T09:55
   completed_at: 2026-10-18T09:52
   waiting_on: null
   parent_id: null
@@ -2447,7 +2447,12 @@ intake:
     \ that on a Sunday the strip is empty while the run length is high. BadgesSection on the More page\
     \ shows the three repeatable badges with counts, current-week progress when locked, this week's row,\
     \ and stats (days closed, perfect weeks, best streak - best streak appears nowhere else). 10 new component\
-    \ tests plus updated page/panel tests. Frontend-only: no restart, no APK."
+    \ tests plus updated page/panel tests. Frontend-only: no restart, no APK.\n\n[CORRECTION - coordinator\
+    \ session, FF-0076] The previous note on this ticket (\"Closed: StreakStrip component used by the\
+    \ open diary...\") does NOT belong here. It was appended by a coordinating session that mistook FF-0072\
+    \ for its own streak-display ticket after the ids collided: this ticket (profile photo crop, assignee\
+    \ opencode) had already taken FF-0072. The streak work is recorded properly as FF-0076. Nothing about\
+    \ this ticket's status or scope changes; it remains the profile-photo-crop intake."
   comments: []
 - id: FF-0073
   title: Opening a saved weight entry shows no photo, and saving it deletes the photo it had
@@ -2632,4 +2637,40 @@ intake:
     \ pages, weightStore) and from FF-0072 (Profile.tsx) and can run as its own parallel lane. Frontend-only:\
     \ ships in a rebuilt app/static, no backend restart. Same root cause as FF-0073 - if that ticket ends\
     \ up introducing a shared photo-state helper, this one should use it rather than invent a second pattern.\n"
+  comments: []
+- id: FF-0076
+  title: Streak strip on diary and Home, badges collection on More
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-18T09:55
+  updated_at: 2026-10-18T09:55
+  completed_at: 2026-10-18T09:55
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: A coordinating session built the streak strip and badge UI (StreakStrip on the
+    diary, its closed panel and Home; BadgesSection on the More page) but could not file it under its
+    own id because FF-0072 had already been taken by another session working in the same checkout. The
+    work shipped, so it needs a record, and the stray note left on FF-0072 needs pointing at this ticket.
+
+
+    2) Technical Details: commits 795e291 (feat) merged as the FF-0072 merge commit on master. Files:
+    frontend/src/components/food/StreakStrip.tsx (one component rendered by the open diary, ClosedDayPanel
+    and Dashboard, so the visual language cannot drift), frontend/src/components/profile/BadgesSection.tsx
+    (three repeatable week badges with counts, current-week progress when locked, this-week row, and the
+    stats row that is the ONLY place best streak appears), frontend/src/api/diary.ts (DiaryWeek/DiaryBadges
+    types plus getBadges), and the wiring in DailyFood.tsx, Dashboard.tsx and Profile.tsx. Four dot states
+    and no red: on_target green, closed-over blue, today-open amber ring, missed hollow, future pale.
+    The strip is labelled ''this week'' because testing on a real Sunday showed an empty strip next to
+    a run length of 5 - both correct, which is what made it confusing. Tests: 6 StreakStrip, 4 BadgesSection,
+    plus updated ClosedDayPanel and page tests; gates green. Also worth recording for the next session:
+    the More tab is /profile, not /more - /more is served by the SPA catch-all and renders an empty shell,
+    so a 200 from that path proves nothing.
+
+
+    Closed: shipped in 795e291 (merged to master). See the FF-0072 correction note for the id collision.'
   comments: []
