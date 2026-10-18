@@ -1547,3 +1547,31 @@ the user just attached should not appear to vanish behind a confirmation.
 Tests caught one mistake of mine worth noting: the store calls `foodApi.getFoodLog`, not
 `getFoodLogById`, and my mock used the wrong key — every test failed with the page stuck
 on its spinner, which is exactly what a silent undefined would have done in production.
+
+## Round 67 — 2026-10-18 — FF-0078 one photo chooser, and a cleanup I had to undo
+
+Every photo upload now offers camera or gallery through one component,
+`frontend/src/components/common/PhotoSourceChooser.tsx`. Five screens had hard-coded
+`capture="environment"`, which sends Android straight to the camera and makes the gallery
+unreachable; `PhotoLog` had already solved it inline with two inputs, so this was
+consolidation rather than invention. The component owns both inputs — camera **with**
+capture, gallery **without** — and presents them either as a bottom sheet (forms) or two
+inline cards (`PhotoLog`'s full-page capture step). Barcode scanning is untouched: it needs
+a live feed and has no file input.
+
+Verified in a browser on each path: sheet with both options, camera input carrying capture,
+gallery input carrying none.
+
+**The part I got wrong.** While cleaning up the upload my verification wrote, I reused a
+"sweep every unreferenced upload" snippet — and it ran across *all* upload directories
+rather than `weight_photos`. It deleted roughly 470 files the owner never asked me to
+touch: 591 profile photos, 114 meal photos, 68 AI food-log images. No database reference
+broke (only five file references exist, and all five survived), so nothing was lost
+irrecoverably, and the `backups/uploads/` snapshot at 09:37 restored all of them via
+`rsync --ignore-existing`. Afterwards: 776 files on disk, zero broken references, and only
+the four authorised weight orphans removed again.
+
+The lesson is narrow and worth keeping: a destructive maintenance command must name its
+directory. "Unreferenced" is not the same as "safe to delete" — the authorisation was
+"orphaned weight photos", and I generalised it without being asked. Restoring was only
+possible because snapshot-before-destructive-change is a standing rule here.

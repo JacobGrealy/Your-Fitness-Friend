@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -11,13 +11,15 @@ import { MAX_WEIGHT_LOG_NOTES } from '@/utils/constants'
 import Spinner from '@/components/common/Spinner'
 import { localDateOf } from '@/utils/localDate'
 import { weightPhotoUrl } from '@/utils/photoUrl'
+import PhotoSourceChooser from '@/components/common/PhotoSourceChooser'
 
 export default function EditWeight() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const { updateLog, uploadPhoto, error, isLoading } = useWeightStore()
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  // Camera or gallery, chosen explicitly (FF-0078).
+  const [showPhotoSources, setShowPhotoSources] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -90,9 +92,6 @@ export default function EditWeight() {
     // Explicit intent, so the save can send photo_url: null. Without this, removing
     // the photo and saving changed nothing (FF-0073).
     setPhotoRemoved((prev) => prev || Boolean(initialPhotoUrl))
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
   }, [initialPhotoUrl])
 
   const handleUploadPhoto = useCallback(async () => {
@@ -197,28 +196,22 @@ export default function EditWeight() {
 
         <div className="bg-white rounded-lg p-4">
           <label className="block text-sm font-medium text-mfp-text mb-2">Photo (optional)</label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) handleFileSelect(file)
-            }}
-            className="hidden"
+          <PhotoSourceChooser
+            open={showPhotoSources}
+            onClose={() => setShowPhotoSources(false)}
+            onSelect={handleFileSelect}
           />
 
           {!selectedFile ? (
             <Card>
               <div
                 className="items-center justify-center min-h-[160px] border-2 border-dashed border-gray-300 rounded-lg cursor-pointer"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => setShowPhotoSources(true)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
-                    fileInputRef.current?.click()
+                    setShowPhotoSources(true)
                   }
                 }}
               >

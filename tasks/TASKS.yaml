@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-18T11:27
+  updated_at: 2026-10-18T11:45
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2725,4 +2725,57 @@ intake:
 
     Closed: 7 files / 8.6 MB removed after a whole-database reference scan; 2 referenced files kept, 0
     broken references. Backup taken first.'
+  comments: []
+- id: FF-0078
+  title: Offer camera or gallery on every photo upload (barcode scanner excepted)
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-18T11:38
+  updated_at: 2026-10-18T11:45
+  completed_at: 2026-10-18T11:45
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: Every place the app accepts a photo should offer a choice - take one now, or
+    pick an existing one from the gallery. Today five of the six photo inputs hard-code capture="environment",
+    which sends Android straight to the camera and makes the gallery unreachable: frontend/src/pages/Weight/LogWeight.tsx:242,
+    frontend/src/pages/Weight/EditWeight.tsx:204, frontend/src/pages/Food/EditFoodLog.tsx:325, frontend/src/pages/Food/PhotoLog.tsx:202
+    and frontend/src/pages/Meals/UploadPhoto.tsx:89. The barcode scanner is explicitly excluded - it needs
+    a live camera feed and has no file input.
+
+
+    2) Technical Details: PhotoLog.tsx already implements exactly the wanted pattern - two hidden inputs
+    (one with capture, one without) plus a "Choose Photo Source" card offering both - which makes this
+    a consolidation rather than an invention. Extract that into frontend/src/components/common/PhotoSourceChooser.tsx:
+    it owns both hidden inputs and, when open, renders a sheet with "Take photo" and "Choose from gallery".
+    The camera button clicks the input carrying capture="environment"; the gallery button clicks the one
+    without capture, because capture is what removes the choice. Both inputs stay mounted even when the
+    sheet is closed, so a page can still drive them directly and so existing tests that dispatch a change
+    event on the input keep working. API: open/onClose/onSelect(file) - the page keeps ownership of what
+    happens to the file, which matters because Profile has a crop step and the food pages upload immediately.
+    Then use it in LogWeight, EditWeight, EditFoodLog, UploadPhoto and Profile, replacing each page''s
+    own hidden input and its fileInputRef click handler with setShowSources(true); refactor PhotoLog onto
+    the same component so there is one implementation rather than a fifth copy. Profile''s accept is image/jpeg,image/png,image/webp,
+    so the component must take an accept prop rather than hard-coding image/*.
+
+
+    3) Acceptance Criteria: every photo upload path offers both camera and gallery; the barcode scanner
+    is untouched; a photo picked from either source reaches the same handler as before (weight create/edit,
+    food log edit, meal upload, photo log, avatar crop); Profile keeps its crop step; frontend tests cover
+    the chooser itself (both options present, camera input carries capture and gallery input does not,
+    selecting a file from either calls onSelect once and closes); ./scripts/gates.sh green. Frontend-only:
+    ships in a rebuilt app/static, no restart, no APK rebuild - the Android manifest already declares
+    CAMERA plus the IMAGE_CAPTURE and GET_CONTENT queries (FF-0058).
+
+
+
+    Closed: shared PhotoSourceChooser (frontend/src/components/common/PhotoSourceChooser.tsx) owns both
+    inputs - camera with capture, gallery without - and presents them as a bottom sheet for forms or inline
+    cards for PhotoLog''s capture step. Converted LogWeight, EditWeight, EditFoodLog, UploadPhoto, Profile
+    (keeping its crop step and narrower accept) and refactored PhotoLog onto it. capture= now appears
+    in exactly one file. Barcode scanner untouched. 8 new tests. Verified in-browser on each path.'
   comments: []
