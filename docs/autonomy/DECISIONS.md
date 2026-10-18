@@ -607,3 +607,26 @@ is what the two numbers are for.
 The modal still celebrates (it is the moment of closure) and now shows both counters,
 but it is bound to the act of closing: revisiting an already-closed diary shows the
 panel, not the modal.
+
+## 2026-10-17 — Weekday numbering: JS counts from Sunday 0, Capacitor from Sunday 1
+
+A "Monday" weigh-in reminder arrived on Sunday morning, and would have arrived every
+morning, for two reasons at once:
+
+1. `buildSchedule` **never put `weekday` in the schedule**. Capacitor's `ScheduleOn`
+   treats `{ hour, minute }` with `repeats: true` as *daily*, so the weekly reminder
+   was really a daily one. The meal reminders are mean to be daily, which is why the
+   omission was invisible there and only surfaced on the weigh-in.
+2. Even once added, the two numberings differ: `Date.getDay()` is Sunday = 0 …
+   Saturday = 6, while Capacitor's `Weekday` enum is **Sunday = 1 … Saturday = 7**
+   (verified in `@capacitor/local-notifications`' `definitions.d.ts`). Off by one
+   silently moves a reminder to the neighbouring day — the same class of bug, harder
+   to see.
+
+`toCapacitorWeekday()` is now the single conversion, named and exported, and the tests
+pin the whole map (`[0..6] → [1..7]`, Monday → 2) plus the complement: meal reminders
+must **not** carry a weekday, because for them daily is correct.
+
+Already-scheduled notifications repair themselves on the next app open: the reminders
+card re-applies on mount, and `applyReminders` cancels the fixed ids before scheduling,
+so the stray daily weigh-in is replaced rather than duplicated.

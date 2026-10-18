@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import {
   DEFAULT_REMINDERS,
+  toCapacitorWeekday,
   applyReminders,
   buildSchedule,
   clearReminders,
@@ -65,6 +66,30 @@ describe('reminder scheduling (FF-0056)', () => {
       expect(new Set(ids).size).toBe(ids.length)
       expect(ids).toEqual([1001, 1002, 1010])
       expect(buildSchedule(enabledAll).map((n) => n.id)).toEqual(ids)
+    })
+
+    it('puts the weigh-in on its weekday, not every day', () => {
+      // The bug this guards: without `weekday` a repeated schedule fires daily, so a
+      // Monday reminder arrived on Sunday morning (FF-0070).
+      const weighIn = buildSchedule({ ...enabledAll, weighIn: { enabled: true, weekday: 1, hour: 8, minute: 0 } })
+        .find((n) => n.title === 'Weigh-in')!
+
+      expect(weighIn.schedule.on).toEqual({ weekday: 2, hour: 8, minute: 0 })
+      expect(weighIn.schedule.repeats).toBe(true)
+    })
+
+    it('converts every JS weekday to Capacitor\'s Sunday-first numbering', () => {
+      // JS: Sunday 0 … Saturday 6. Capacitor: Sunday 1 … Saturday 7.
+      expect([0, 1, 2, 3, 4, 5, 6].map(toCapacitorWeekday)).toEqual([1, 2, 3, 4, 5, 6, 7])
+      expect(toCapacitorWeekday(1)).toBe(2)   // Monday
+      expect(toCapacitorWeekday(6)).toBe(7)   // Saturday
+    })
+
+    it('keeps meal reminders daily, with no weekday', () => {
+      for (const notification of buildSchedule(enabledAll).filter((n) => n.title !== 'Weigh-in')) {
+        expect(notification.schedule.on).not.toHaveProperty('weekday')
+        expect(notification.schedule.repeats).toBe(true)
+      }
     })
 
     it('produces nothing when every reminder is off', () => {

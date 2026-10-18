@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-18T09:21
+  updated_at: 2026-10-18T09:23
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2297,4 +2297,45 @@ intake:
     Closed: restart verified (2026-10-18 09:20:03 EDT after the FF-0068 merge), recorded the expected
     counters from live data (closed_days 1, within_goal_days 1, both alive), and replaced the duplicate-Nuts
     note with the fact that they were removed.'
+  comments: []
+- id: FF-0070
+  title: 'Weigh-in reminder fires daily: the weekday was never put in the schedule'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-18T09:21
+  updated_at: 2026-10-18T09:23
+  completed_at: 2026-10-18T09:23
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The weekly weigh-in reminder was set for Monday but fired on a Sunday morning
+    - and, because nothing limits it, it would fire every single morning.
+
+
+    2) Technical Details: src/notifications.ts buildSchedule() never uses settings.weighIn.weekday. It
+    pushes the weigh-in with schedule.on = { hour, minute } plus repeats: true, and with no weekday that
+    means daily. The meal reminders are supposed to be daily, so the bug is invisible for them and only
+    shows on the weigh-in. Capacitor''s ScheduleOn takes weekday as its Weekday enum, which is Sunday
+    = 1 through Saturday = 7 (verified in node_modules/@capacitor/local-notifications/dist/esm/definitions.d.ts,
+    Weekday.Sunday = 1), while our stored convention is 0 = Sunday through 6 = Saturday (matching JS Date.getDay),
+    so the fix is on: { weekday: settings.weighIn.weekday + 1, hour, minute } with repeats: true - the
+    conversion needs a comment and a name because an off-by-one here silently moves the reminder to the
+    wrong day, which is exactly the class of bug being fixed. Widen the local LocalNotificationsPlugin
+    interface''s on type to include weekday. Existing scheduled notifications fix themselves: RemindersCard
+    re-applies on mount and applyReminders cancels ids 1001-1003 and 1010 before scheduling, so opening
+    the app once replaces the daily weigh-in with the weekly one. Tests to add: Monday (stored 1) maps
+    to weekday 2, Sunday (0) to 1 and Saturday (6) to 7, meal reminders carry no weekday, and the weigh-in
+    keeps repeats and allowWhileIdle. Frontend-only: no APK rebuild needed, the scheduling code ships
+    in the served bundle.
+
+
+    Closed: buildSchedule never set weekday, so {hour,minute}+repeats fired daily (meals are daily by
+    design, which hid it). Added on.weekday via toCapacitorWeekday(), the single JS-0-based to Capacitor-Sunday-1-based
+    conversion, with tests over the whole map plus the inverse rule that meal reminders must not carry
+    a weekday. Existing scheduled notifications repair on next app open because RemindersCard re-applies
+    and applyReminders cancels fixed ids first. Frontend-only: no APK rebuild.'
   comments: []
