@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T21:06
+  updated_at: 2026-10-17T21:08
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -1973,4 +1973,35 @@ intake:
     EAN-13 decodes as 12-digit UPC-A, so the server now canonicalises to 13 digits, stores that, and searches
     both forms (legacy 12-digit rows still resolve). 16 jest decode tests with real bitmaps + 3 backend
     tests. Frontend+backend; needs a backend restart for the lookup change.'
+  comments: []
+- id: FF-0061
+  title: Record that the barcode lookup change awaits a restart
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-17T21:07
+  updated_at: 2026-10-17T21:08
+  completed_at: 2026-10-17T21:08
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The barcode lookup change (canonicalising UPC-A to EAN-13) is backend code, so
+    it is not running yet; the scanner''s decoder fix is frontend and already live. Without the restart
+    the scanner will read codes but a US UPC product cached as 12 digits may still miss.
+
+
+    2) Technical Details: app/routes/barcode_lookup.py changed (canonical_code/code_variants) in FF-0060;
+    blueprint code loads at import, so a restart is required. The frontend half (ZXing decoder) ships
+    in app/static and needs only a reload. Add a restart item to the waiting list naming FF-0060 and 0.1.7
+    not requiring a rebuild, and refresh the current state: tests now 157 backend / 250 frontend, APK
+    0.1.7 with camera permission, scanner reads 1D codes.
+
+
+    Closed: waiting list leads with the restart needed for the FF-0060 lookup canonicalisation (scanner
+    itself is frontend and live on reload), states that the decode path is now real-tested rather than
+    stubbed, and refreshes state: 157 backend / 250 frontend tests, APK 0.1.7 with camera permission and
+    queries.'
   comments: []
