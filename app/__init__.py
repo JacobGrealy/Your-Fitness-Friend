@@ -82,11 +82,13 @@ def create_app(config_name=None):
         app.logger.info('Application startup')
     
     # Register blueprints
-    from app.routes import auth_bp, weight_bp, exercise_bp, food_bp, meals_bp, meals_ai_log_bp, user_bp, dashboard_bp, app_release_bp, download_bp, barcode_bp
+    from app.routes import auth_bp, weight_bp, exercise_bp, food_bp, meals_bp, meals_ai_log_bp, user_bp, dashboard_bp, app_release_bp, download_bp, barcode_bp, diary_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(weight_bp, url_prefix='/api/weight')
     app.register_blueprint(exercise_bp, url_prefix='/api/exercise')
     app.register_blueprint(food_bp, url_prefix='/api/food')
+    # Nested under /api/food so the diary endpoints sit with the rest of the diary.
+    app.register_blueprint(diary_bp, url_prefix='/api/food/diary')
     app.register_blueprint(meals_bp, url_prefix='/api/meals')
     app.register_blueprint(meals_ai_log_bp, url_prefix='/api/meals')
     app.register_blueprint(user_bp, url_prefix='/api/user')

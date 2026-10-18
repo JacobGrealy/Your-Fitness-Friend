@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
+import { diaryApi, type DiaryCompletionSummary } from '@/api/diary'
+import CompleteDiaryModal from '@/components/food/CompleteDiaryModal'
 import { useFoodStore } from '@/store/foodStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { MealType, FoodLog } from '@/types'
@@ -148,6 +150,10 @@ export default function DailyFood() {
   const [collapsedMeals, setCollapsedMeals] = useState<Set<MealType>>(new Set())
   const [currentDate, setCurrentDate] = useState(new Date())
   const [isNavigating, setIsNavigating] = useState(false)
+  const [completion, setCompletion] = useState<DiaryCompletionSummary | null>(null)
+  const [completedToday, setCompletedToday] = useState(false)
+  const [completing, setCompleting] = useState(false)
+  const [undoing, setUndoing] = useState(false)
 
   useEffect(() => { setTitle('Diary') }, [setTitle])
 
@@ -158,6 +164,10 @@ export default function DailyFood() {
       fetchDailyTotals(dateStr),
       fetchFoodLogs(dateStr),
     ]).finally(() => setIsNavigating(false))
+    // Whether this day was already declared finished (FF-0054).
+    diaryApi.getCompletion(dateStr)
+      .then((state) => setCompletedToday(state.completed))
+      .catch(() => setCompletedToday(false))
   }, [currentDate, fetchDailyTotals, fetchFoodLogs])
 
   useEffect(() => {
@@ -166,6 +176,28 @@ export default function DailyFood() {
     )
     return () => setCenterContent(null)
   }, [currentDate, setCenterContent])
+
+  const completeDiary = useCallback(async () => {
+    setCompleting(true)
+    try {
+      const summary = await diaryApi.complete(format(currentDate, 'yyyy-MM-dd'))
+      setCompletion(summary)
+      setCompletedToday(true)
+    } finally {
+      setCompleting(false)
+    }
+  }, [currentDate])
+
+  const undoCompletion = useCallback(async () => {
+    setUndoing(true)
+    try {
+      await diaryApi.undo(format(currentDate, 'yyyy-MM-dd'))
+      setCompletion(null)
+      setCompletedToday(false)
+    } finally {
+      setUndoing(false)
+    }
+  }, [currentDate])
 
   const groupedLogs = MEAL_TYPES.reduce((acc, meal) => {
     acc[meal] = foodLogs.filter(log => log.meal_type === meal)
@@ -265,6 +297,48 @@ export default function DailyFood() {
           })}
         </div>
       </div>
+
+      {/* Complete Diary sits at the end of the content rather than in a fixed bar:
+          a floating element has to clear the bottom nav itself, and that mistake
+          cost three rounds (FF-0051, FF-0053). */}
+      <div className="px-4 pt-2 pb-2">
+        {completedToday ? (
+          <div className="flex items-center gap-2">
+            <div className="flex-1 rounded-xl bg-white border border-[#e0e0e0] px-4 py-3 flex items-center gap-2">
+              <span className="text-[#2E7D32] text-sm">✓</span>
+              <span className="text-sm" style={{ color: '#212121' }}>Diary complete</span>
+            </div>
+            <button
+              type="button"
+              onClick={undoCompletion}
+              disabled={undoing}
+              className="px-4 py-3 rounded-xl text-sm font-medium border border-[#e0e0e0] bg-white disabled:opacity-50"
+              style={{ color: '#757575' }}
+            >
+              {undoing ? '…' : 'Undo'}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={completeDiary}
+            disabled={completing}
+            className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+            style={{ background: '#185ADB' }}
+          >
+            {completing ? 'Completing…' : 'Complete Diary'}
+          </button>
+        )}
+      </div>
+
+      {completion && (
+        <CompleteDiaryModal
+          summary={completion}
+          onClose={() => setCompletion(null)}
+          onUndo={undoCompletion}
+          undoing={undoing}
+        />
+      )}
 
       <Modal
         isOpen={deleteLogId !== null}

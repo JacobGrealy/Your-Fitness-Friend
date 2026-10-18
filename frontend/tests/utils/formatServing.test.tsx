@@ -34,6 +34,17 @@ import DailyFood from '@/pages/Food/DailyFood'
 
 const navigate = jest.fn()
 
+// DailyFood now reaches the diary-completion API (FF-0054), which imports the
+// axios client and its import.meta.env - unparseable under jest unless stubbed.
+jest.mock('@/api/client', () => ({
+  __esModule: true,
+  default: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn(),
+    interceptors: { request: { use: jest.fn() }, response: { use: jest.fn() } } },
+  api: { get: jest.fn(() => Promise.resolve({ data: { completed: false } })),
+    post: jest.fn(), put: jest.fn(), delete: jest.fn(),
+    interceptors: { request: { use: jest.fn() }, response: { use: jest.fn() } } },
+}))
+
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => navigate,
