@@ -85,48 +85,46 @@ real 3.8 MB file, not the SPA shell any more).
 
 ## Waiting on you
 
-Four things; the last two need your phone rather than your password.
+Three things; the last two need your phone rather than your password.
 
-1. **Restart the backend** — three Python changes are waiting on it, and one restart
-   clears all three:
-   - FF-0060 UPC-A/EAN-13 canonicalisation (`app/routes/barcode_lookup.py`)
-   - FF-0063 per-serving nutrition (`app/utils/openfoodfacts.py`) — until then a scan
-     still returns per-100g calories
-   - FF-0065 `DELETE /api/food/<id>` (`app/routes/food_routes.py`) — until then the
-     Custom Foods trash can still does nothing
-
-   Everything frontend — scanner decoder, rotation and torch, the kept-entries toast,
-   Complete Diary, reminders, local dates — is already live after a reload.
-2. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
+1. **The sudoers drop-in** (see Q2) — until then every backend merge ends with
    "awaiting restart", and only you can restart the service.
-3. **Verify the scanner on the phone** (FF-0030/FF-0060): decoding is now covered by
-   real bitmaps rather than a stub — an EAN-13 decoded end to end in the test suite —
-   so what remains unverified is the camera side: framing, focus, and whether your
-   phone's camera app permission prompt was accepted.
-4. **Turn on a reminder and wait for it** — local notifications are scheduled by the
+2. **Take a photo with the camera** (FF-0058). Scanning is confirmed working, but
+   "Take photo" has not been reported back since the `<queries>` element and the
+   CAMERA permission were added — that fix was what made the camera reachable at all.
+   If it opens the camera, this item goes.
+3. **Turn on a reminder and wait for it** — local notifications are scheduled by the
    phone and the schedule itself is unit tested, but whether one actually arrives at
    12:30 is only knowable on the device (Android may delay for doze).
 
+Also open, and only you can decide it: the **six duplicate "Nuts" entries** on
+`2026-10-18`, left over from the evening UTC-date bug. The first Nuts log was real and
+is untouched on `2026-10-17`; the six are retries. Say the word and they go.
 
 ## Current state, for when you have a minute
 
-- **Queue:** FF-0044 (one-tap in-app update) is the only open ticket. 36 done, 7
-  cancelled as already implemented, **0 blocked**. Gates green: 157 backend, 250
-  frontend, layout, tsc, smoke, toolkit.
-- **Live server:** current with `master` as of the 19:18:38 EDT restart —
+- **Queue:** **empty.** 59 done, 7 cancelled as already implemented, **0 blocked**.
+  Gates green: 170 backend, 252 frontend, layout, tsc, smoke, toolkit.
+- **Live server:** current with `master` as of the **21:34:13 EDT** restart, which
+  cleared all three pending backend changes (FF-0060 barcode canonicalisation,
+  FF-0063 per-serving nutrition, FF-0065 custom-food delete). Verified: service start
+  is after all three merges, and `DELETE /api/food/1` answers 401 (route present)
+  where it used to be absent.
   `/api/app/version` and `/download/awefit.apk` answer correctly.
-- **Scanned-product calories (FF-0063):** fixed in code, awaiting the restart above.
+- **Scanned-product calories (FF-0063):** **live** — a scan now returns the serving's
+  numbers, not per-100g.
   The mis-scaled cached products were deleted at your direction (nothing referenced
   them), including one that a later scan re-created because the parser fix was not
   live yet; `scripts/refresh-barcode-foods.py` repairs any that were genuinely logged,
   and `food_logs` are never rewritten — re-log to pick up corrected numbers.
-- **Deleting custom foods (FF-0065):** the endpoint existed only after this merge, so
-  the button works once the restart above lands. Deleting detaches diary entries
+- **Deleting custom foods (FF-0065):** **live and confirmed on the phone.** Deleting detaches diary entries
   (they keep their snapshot) and the toast reports how many were kept — the owner's
   choice over cascade-deleting history.
 - **Complete Diary (FF-0054):** live end to end since the 20:38:11 EDT restart —
   `POST /api/food/diary/complete` answers 401 unauthenticated rather than 404, and
   the migration `1ed0f5b7343d` is applied.
+- **Barcode scanning (FF-0060/FF-0062):** **verified on the phone** — 1D decoding,
+  rotation and torch all confirmed against real packets.
 - **One-tap update (FF-0044):** **verified on the phone** — the banner appeared on
   0.1.4 for 0.1.5, Get it downloaded and installed inside the app without leaving
   for the browser. Current published build: **0.1.5 (versionCode 6)**.

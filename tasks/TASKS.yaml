@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-17T21:27
+  updated_at: 2026-10-17T21:40
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -2181,4 +2181,40 @@ intake:
     Closed: waiting list now names all three pending Python changes (FF-0060 lookup canonicalisation,
     FF-0063 per-serving nutrition, FF-0065 delete endpoint) under one restart item, and records that the
     re-created Honey roasted peanuts row was removed again, plus the detach-on-delete rule.'
+  comments: []
+- id: FF-0067
+  title: 'Restart confirmed: refresh the owner list and close the restart item'
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-17T21:39
+  updated_at: 2026-10-17T21:40
+  completed_at: 2026-10-17T21:40
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: The backend has been restarted and the owner has confirmed barcode scanning and
+    custom-food deletion both work, so the waiting list still asking for that restart is now wrong, and
+    the open items list is shorter than it says.
+
+
+    2) Technical Details: verified from this host rather than at face value. fitnessfriend ActiveEnterTimestamp
+    is 21:34:13 EDT, after the three relevant merges (FF-0060 21:06:19, FF-0063 21:20:07, FF-0065 21:25:52),
+    and DELETE /api/food/1 returns 401 (route present, was absent) as does GET /api/food/barcode/<code>.
+    Owner confirmed on the phone: barcode scanning works and deleting a custom food works. Update docs/autonomy/QUESTIONS.md:
+    drop the restart item and the FF-0063/FF-0065 caveats, mark scanning verified on hardware (decoder,
+    rotation, torch now real-world confirmed), keep the camera-capture check as still unconfirmed (0.1.7
+    fixed the <queries> and CAMERA permission but the owner has only reported scanning and deleting),
+    keep the sudoers drop-in and the reminder-delivery check, and refresh the counts. Note the six duplicate
+    Nuts entries on 2026-10-18 are still awaiting an owner decision, and that the local-date fix means
+    new logs land on the right day.
+
+
+    Closed: restart verified from the host (service start 21:34:13 EDT after all three merges; DELETE
+    /api/food/1 answers 401), scanning and deletion marked verified on hardware, restart item and FF-0063/FF-0065
+    caveats removed, camera-capture and reminder-delivery checks kept, and the stale queue/test counts
+    corrected to empty queue, 59 done, 7 cancelled, 170 backend / 252 frontend.'
   comments: []
