@@ -7,6 +7,12 @@ from app.models.food import Food
 from app.models.food_log import FoodLog
 from app.config import Config
 from app.utils.uploads import upload_dir, uploads_root
+from app.utils.serving import (
+    MACROS,
+    normalise_servings,
+    per_serving_from_totals,
+    totals_from_per_serving,
+)
 from app import db
 from datetime import datetime, date, timedelta
 
@@ -41,6 +47,69 @@ def _remove_photo_file(photo_url):
         os.remove(target)
     except OSError:
         pass
+
+
+PER_SERVING_FIELDS = {
+    'calories': 'calories_per_serving',
+    'protein_g': 'protein_per_serving',
+    'carbs_g': 'carbs_per_serving',
+    'fat_g': 'fat_per_serving',
+}
+
+
+def _requested_per_serving(data):
+    """Per-serving values supplied by a client, or None if it sent none.
+
+    A client that sends `calories_per_serving` is describing the food; one that sends only
+    `calories` is describing the log's total, which is the older contract and still works.
+    """
+    supplied = {
+        macro: data.get(field)
+        for macro, field in PER_SERVING_FIELDS.items()
+        if data.get(field) is not None
+    }
+    if not supplied:
+        return None
+    return {macro: float(supplied.get(macro, 0) or 0) for macro in MACROS}
+
+
+def _apply_nutrition(log, data):
+    """Set per-serving and totals on a log, in whichever unit the client used.
+
+    Priority (FF-0083):
+      1. explicit per-serving values -> totals are derived from them
+      2. explicit totals             -> per-serving is derived from them
+      3. a new serving count alone   -> totals are rescaled from the stored per-serving
+
+    Case 3 is the bug this fixes: changing Number of Servings used to move the count and
+    leave the macros untouched, so the two disagreed.
+    """
+    servings = normalise_servings(
+        data.get('number_of_servings', log.number_of_servings), default=1.0
+    )
+    supplied_per_serving = _requested_per_serving(data)
+
+    if supplied_per_serving is not None:
+        base = supplied_per_serving
+    elif data.get('calories') is not None or any(
+        data.get(macro) is not None for macro in MACROS[1:]
+    ):
+        totals = {
+            macro: data.get(macro, getattr(log, macro)) for macro in MACROS
+        }
+        base = per_serving_from_totals(totals, servings)
+    else:
+        base = log.per_serving()
+
+    totals = totals_from_per_serving(base, servings)
+
+    for macro, field in PER_SERVING_FIELDS.items():
+        setattr(log, field, None if base.get(macro) is None else float(base[macro]))
+    log.calories = int(round(totals['calories'] or 0))
+    log.protein_g = totals['protein_g'] or 0.0
+    log.carbs_g = totals['carbs_g'] or 0.0
+    log.fat_g = totals['fat_g'] or 0.0
+    log.number_of_servings = servings
 
 
 def _clean_barcode(value):
@@ -388,6 +457,7 @@ def create_food_log():
                 raise ValueError
         except (TypeError, ValueError):
             return jsonify({'error': 'number_of_servings must be a positive number'}), 400
+    number_of_servings = normalise_servings(number_of_servings, default=1.0)
     
     # Get brand/barcode_id from food reference or request data
     brand = None
@@ -433,6 +503,10 @@ def create_food_log():
         meal_type=meal_type
     )
     
+    # One arithmetic path for every write: totals and per-serving stay consistent no
+    # matter which unit the client sent (FF-0083).
+    _apply_nutrition(food_log, {**data, 'number_of_servings': number_of_servings})
+
     db.session.add(food_log)
     db.session.commit()
     
@@ -525,22 +599,21 @@ def update_food_log(log_id):
         ), 400
 
     try:
-        if data.get('calories') is not None:
-            calories = int(data['calories'])
-            if calories <= 0:
-                raise ValueError
-            log.calories = calories
-        if data.get('protein_g') is not None:
-            log.protein_g = float(data['protein_g'])
-        if data.get('carbs_g') is not None:
-            log.carbs_g = float(data['carbs_g'])
-        if data.get('fat_g') is not None:
-            log.fat_g = float(data['fat_g'])
         if data.get('number_of_servings') is not None:
-            number_of_servings = float(data['number_of_servings'])
-            if number_of_servings <= 0:
+            if float(data['number_of_servings']) <= 0:
                 raise ValueError
-            log.number_of_servings = number_of_servings
+        if data.get('calories') is not None and int(data['calories']) <= 0:
+            raise ValueError
+
+        nutrition_supplied = (
+            data.get('calories') is not None
+            or data.get('number_of_servings') is not None
+            or _requested_per_serving(data) is not None
+            or any(data.get(macro) is not None for macro in MACROS[1:])
+        )
+        if nutrition_supplied:
+            _apply_nutrition(log, data)
+
         if data.get('date') is not None:
             log.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
     except (TypeError, ValueError):

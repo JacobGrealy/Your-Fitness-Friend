@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-18T19:48
+  updated_at: 2026-10-18T20:46
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
+- FF-0086
 - FF-0082
 - FF-0084
 - FF-0085
@@ -3015,11 +3016,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-18T12:16
-  updated_at: 2026-10-18T12:16
-  completed_at: null
+  updated_at: 2026-10-18T20:46
+  completed_at: 2026-10-18T20:46
   waiting_on: null
   parent_id: null
   notes: '1) User Story: changing Number of Servings while editing a food log does not change the macros,
@@ -3065,7 +3066,29 @@ intake:
 
     6) Interaction with FF-0082: a copied meal must copy snapshots, including the per-serving values,
     so this lands before or with the copy feature to avoid a second migration. Also touches the create
-    screen labels (''per serving'' vs ''total'') which should match the new model.'
+    screen labels (''per serving'' vs ''total'') which should match the new model.
+
+
+    DECISIONS from the owner (2026-10-18): 1) saving the FOOD screen also updates the saved Food so future
+    logs use it. 2) servings accepts an exact decimal AND offers quick selections. 3) the LOG screen may
+    move an entry to another date - that is not the same as copying. 4) logs with no food reference edit
+    their own snapshot on the FOOD screen. 5) do NOT change any existing logs - the migration must add
+    the per-serving columns without altering stored totals. 6) keep precision internally, display up to
+    two decimals. Split for delivery: this ticket carries the model and the arithmetic (migration, helper,
+    endpoints, tests) so the reported bug is fixed in the existing form, and the two-screen split follows
+    as its own ticket once this lands.
+
+
+    Closed (data + API half): food_logs gains calories/protein/carbs/fat_per_serving via migration 5274c85d8204
+    which backfills by dividing and does NOT alter any stored total (verified on the live db before/after).
+    app/utils/serving.py owns the conversion; _apply_nutrition() gives create and update one rule - explicit
+    per-serving wins, else explicit totals (legacy clients), else a serving-count change rescales from
+    the stored per-serving value, which is the reported bug. 8 new tests (doubling, halving, round trip,
+    1.33x decimal, per-serving edit, food update propagation, legacy totals client). Gates green, 218
+    backend tests. REMAINING: the two-screen UI split (log screen with exact decimal + quick chips, food
+    screen without a servings field, foods screen for detached logs, date move on the log screen) - filed
+    as FF-0086 so the visible symptom is fixed there. Frontend half of this ticket: the form still sends
+    totals.'
   comments: []
 - id: FF-0084
   title: 'Home and Progress disagree about the weight trend: window, labels and units'
@@ -3231,4 +3254,52 @@ intake:
     \ a naive case-insensitive search for 'bmi' also matches the letters b-m-i inside the word s-u-b-m-i-t\
     \ (e.g. submitLabel), so use a word-boundary grep or you will think BMI code exists when it does not.\
     \ With word boundaries there really are zero hits."
+  comments: []
+- id: FF-0086
+  title: 'Two-screen edit: log serving screen and food detail screen'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-18T20:46
+  updated_at: 2026-10-18T20:46
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: split the food-log edit into two screens as agreed in FF-0083. Landing screen
+    is the LOG screen (adjust the serving); "Edit food details" opens a FOOD screen for macros per serving,
+    name, brand and serving size. The FOOD screen must not offer Number of Servings, because that is a
+    log property.
+
+
+    2) Owner decisions already recorded in FF-0083 (do not re-litigate): saving the FOOD screen also updates
+    the saved Food so future logs use it; the servings field accepts an exact decimal AND offers quick
+    selections; the LOG screen may move the entry to another date (that is not the same as copying, which
+    is FF-0082); logs with no food reference edit their own snapshot on the FOOD screen; existing logs
+    must not be rewritten; precision is kept internally and displayed to at most two decimals.
+
+
+    3) Technical Details: the arithmetic already exists server-side (app/utils/serving.py, _apply_nutrition
+    in app/routes/food_routes.py, migration 5274c85d8204) and food_logs rows now expose calories_per_serving
+    / protein|carbs|fat_per_serving alongside totals. Work is frontend: turn frontend/src/pages/Food/EditFoodLog.tsx
+    into the LOG screen (servings with an exact decimal input plus quick chips, live totals that update
+    as the count changes, date, meal type, photo, notes, barcode read-only, buttons Save / Edit food details
+    / Delete); add frontend/src/pages/Food/EditFoodDetails.tsx on a new route food/log/:id/food (name,
+    brand, serving size, macros per serving, no servings field); register it in frontend/src/router.tsx
+    next to the existing edit route; and make both send the new contract (per-serving values plus number_of_servings)
+    so the server does the multiplication. Labels on the create screen (frontend/src/pages/Food/LogFood.tsx)
+    should say per serving where they mean it, so the two screens tell the same story. Display rounding
+    to two decimals at the edge only.
+
+
+    4) Acceptance criteria: changing servings on the LOG screen updates calories and macros live and persists
+    the new totals; the quick chips set common values and the decimal input still accepts anything positive;
+    the FOOD screen has no servings input and editing a macro there changes this log''s totals at its
+    current count and updates the saved Food; a log with no food_id can still open the FOOD screen and
+    edit its own snapshot; the date can be changed on the LOG screen; ./scripts/gates.sh green with frontend
+    tests covering live rescaling, the chips, the absence of a servings field on the food screen, and
+    the payload shape of both screens.'
   comments: []
