@@ -4,7 +4,6 @@ meta:
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0089
 - FF-0088
 intake:
 - id: FF-0001
@@ -3446,11 +3445,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-19T08:21
   updated_at: 2026-10-19T08:23
-  completed_at: null
+  completed_at: 2026-10-19T08:23
   waiting_on: null
   parent_id: null
   notes: '1) User Story: the Home screen''s weight trend does not include today''s weigh-in. If I weigh
