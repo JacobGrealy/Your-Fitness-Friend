@@ -1744,3 +1744,22 @@ Verified end to end on the isolated server: a photo carried onto a second log la
 *different* file (and the source survived), and the browser check shows the 48×48 thumbnail
 actually loading plus the carried preview on the create form. 8 backend + 8 frontend tests;
 uploads count unchanged at 798.
+
+## Round 77 — 2026-10-19 — FF-0089 today's weigh-in was filtered out by a type mismatch
+
+The owner asked why Home's trend omits today's weigh-in. The answer was a real bug, and the
+evidence was already in the database: their 2026-10-19 weigh-in (257.5 lb) existed and the
+endpoint simply did not return it.
+
+`recorded_at` is a `DateTime` stored as `'2026-10-19 00:00:00.000000'`; the filter compared it
+against bare `date` objects. SQLite compares text, and the longer stored value sorts after
+`'2026-10-19'`, so `recorded_at <= today` was false for every entry dated today — no time of day
+could save it. The same defect sat in the weekly summary's weight query.
+
+Fixed both with the pattern `app/routes/weight.py` already used, and wrote six regression tests
+covering a morning weigh-in, one at exactly midnight (the live shape), a late-evening one, a
+full window, yesterday alone, and an out-of-window row. Stashing the fix confirms 4 of the 6
+fail against the old code, so these tests bite.
+
+Worth noting for the next sweep: the frontend half of FF-0084 was already correct — it filters
+by calendar-day strings — so the graph needed no change once the API returned today's row.

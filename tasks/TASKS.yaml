@@ -1,9 +1,11 @@
 meta:
-  updated_at: 2026-10-19T08:09
+  updated_at: 2026-10-19T08:23
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0089
+- FF-0088
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -3391,4 +3393,102 @@ intake:
     on the isolated server (carried photo landed in a distinct file, source survived) and in the browser
     (thumbnail real-pixels, carried preview on the form). 8 backend + 8 frontend tests; uploads unchanged
     at 798. Backend half needs a restart.'
+  comments: []
+- id: FF-0088
+  title: Togglable goal line on the weight chart
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-19T08:21
+  updated_at: 2026-10-19T08:21
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: on the Progress page, give the goal-weight line the same treatment as the BMI
+    lines - a switch that turns it on and off - so the graph can be cleared of everything except the data.
+
+
+    2) Where. FF-0085 added BmiToggles (frontend/src/components/charts/BmiToggles.tsx) with a persisted
+    BmiToggleState (frontend/src/utils/bmiPreferences.ts, key ''awefit.bmiToggles'', all off by default)
+    and WeightChartWithGoal already draws the goal via ReferenceLine when a `goal` prop is passed. The
+    goal line is different from the BMI lines in one way that matters: it is data the user entered (their
+    goal weight), so it should default ON - turning it off is the opt-out, unlike the BMI bands which
+    are references and default off.
+
+
+    3) Implementation: extend the toggle state with a `goal` key, default true, keep the same storage
+    key/shape and the same defensive try/catch (a restricted WebView can refuse storage). BmiToggles currently
+    renders three switches and its own ''needs your height'' message; the goal switch must render EVEN
+    WHEN THERE IS NO HEIGHT, because a goal line needs no height - so the component needs the goal switch
+    outside the height guard. In WeightHistory, pass goal={goalToggles.goal ? goalWeight : undefined}
+    to WeightChartWithGoal. Note the existing `goal && (` guard in the chart already handles undefined.
+
+
+    4) Watch out: WeightChartWithGoal folds the goal into the y-axis domain (part of the FF-0084 shared-domain
+    story). When the goal is switched off it must no longer affect the domain, otherwise the axis stays
+    stretched for a line that is not drawn - the same ''toggle does nothing visible'' trap FF-0085 documented,
+    in reverse.
+
+
+    5) Acceptance: a Goal switch appears next to the three BMI switches and works with no height set;
+    all four are independent; the choice persists across navigation; switching the goal off removes the
+    line AND stops it stretching the y-axis; tests cover the default, the persistence round trip and the
+    no-height case; ./scripts/gates.sh green.'
+  comments: []
+- id: FF-0089
+  title: Home weight trend drops today's weigh-in (date vs datetime filter)
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: in-progress
+  labels: []
+  created_at: 2026-10-19T08:21
+  updated_at: 2026-10-19T08:23
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: the Home screen''s weight trend does not include today''s weigh-in. If I weigh
+    myself today, the Home graph still stops at yesterday.
+
+
+    2) Root cause, PROVEN against the live database (read-only), not assumed: app/utils/aggregations.py
+    get_weight_trend() filters `WeightLog.recorded_at >= start_date` and `<= end_date` where those are
+    bare `datetime.date` objects, but `recorded_at` is a db.DateTime stored as TEXT ''2026-10-19 00:00:00.000000''.
+    SQLite compares text, and ''2026-10-19 00:00:00.000000'' <= ''2026-10-19'' is FALSE, so EVERY entry
+    dated the end day is dropped no matter what time it was recorded. Evidence on the owner''s data (user
+    6): current filter returns ids 12 (10-18) and 11 (10-17); the same query with date(recorded_at) returns
+    13 (10-19, 257.5 lb) as well. Today''s row exists and is simply filtered out.
+
+
+    3) The correct pattern already exists in this codebase: app/routes/weight.py:35/42 and 266/273 use
+    `datetime.combine(start, datetime.min.time())` and `datetime.combine(end, datetime.max.time())`. aggregations.py
+    is the outlier. Fix both occurrences: get_weight_trend() (lines ~74-79) and the weekly summary''s
+    WeightLog query (lines ~202-205, week_start/week_end have the same defect).
+
+
+    4) Do NOT change the API shape: the endpoint returns {date: ''YYYY-MM-DD'', weight_lbs} and the frontend''s
+    utils/weightTrend.buildWeightSeries already handles date-only strings correctly (FF-0084), so today''s
+    row will appear once it is returned. Verify the dashboard endpoint now includes today for a user whose
+    only weigh-in is today.
+
+
+    5) Acceptance: /api/dashboard/weight-trend returns an entry dated today when one exists; a weigh-in
+    timestamped later today still appears; the weekly summary counts a weigh-in from the end day; regression
+    tests that fail against the old filter and pass now (a log created ''today'' must be returned by a
+    7 day window); ./scripts/gates.sh green.
+
+
+    Root cause proven against the live DB: recorded_at is a DateTime stored as ''YYYY-MM-DD HH:MM:SS.ffffff''
+    but was filtered against bare date objects, and lexicographic comparison puts the stored value after
+    the bare end date, so every entry dated the end day was dropped at any time of day. Fixed get_weight_trend()
+    and the weekly summary''s WeightLog query with datetime.combine(min/max time), the pattern app/routes/weight.py
+    already used. api shape unchanged, so the FF-0084 frontend needed no change. 6 regression tests (midnight,
+    morning, late evening, full window, yesterday only, out of window); 4 of them fail against the old
+    code.'
   comments: []
