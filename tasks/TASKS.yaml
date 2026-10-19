@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-19T08:23
+  updated_at: 2026-10-19T08:28
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue:
-- FF-0088
+queue: []
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -3400,11 +3399,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-19T08:21
-  updated_at: 2026-10-19T08:21
-  completed_at: null
+  updated_at: 2026-10-19T08:28
+  completed_at: 2026-10-19T08:28
   waiting_on: null
   parent_id: null
   notes: '1) User Story: on the Progress page, give the goal-weight line the same treatment as the BMI
@@ -3436,7 +3435,17 @@ intake:
     5) Acceptance: a Goal switch appears next to the three BMI switches and works with no height set;
     all four are independent; the choice persists across navigation; switching the goal off removes the
     line AND stops it stretching the y-axis; tests cover the default, the persistence round trip and the
-    no-height case; ./scripts/gates.sh green.'
+    no-height case; ./scripts/gates.sh green.
+
+
+    Closed: a Goal switch sits beside the three BMI switches, defaults ON (the goal is the user''s own
+    number, not a computed reference) and renders even without a height, since a goal line needs none.
+    Turning it off passes goal=undefined to WeightChartWithGoal so it also stops being folded into the
+    y-axis domain - measured in the browser, ticks 179.5-270.5 with the goal on vs 258-262 off, avoiding
+    the FF-0085 ''toggle does nothing visible'' trap in reverse. Storage consolidated to awefit.chartToggles
+    with a fallback read of awefit.bmiToggles so an existing choice survives, and a stored state without
+    a goal key means ''never chose'' and inherits the default. Verified in-browser (four switches, SVG
+    label appears/disappears, choice survives navigation). 359 frontend tests. Frontend-only.'
   comments: []
 - id: FF-0089
   title: Home weight trend drops today's weigh-in (date vs datetime filter)

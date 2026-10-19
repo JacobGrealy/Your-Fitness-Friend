@@ -1,5 +1,5 @@
-import type { BmiToggleState } from '@/components/charts/BmiToggles'
-import { BMI_TOGGLES_OFF } from '@/components/charts/BmiToggles'
+import type { ChartToggleState } from '@/components/charts/BmiToggles'
+import { CHART_TOGGLES_DEFAULT } from '@/components/charts/BmiToggles'
 
 /**
  * Persisted BMI switch state (FF-0085).
@@ -8,24 +8,27 @@ import { BMI_TOGGLES_OFF } from '@/components/charts/BmiToggles'
  * when storage is refused (a restricted WebView can refuse it entirely). All off is the
  * default — the chart already carries a goal line, so adding bands is opt-in.
  */
-const STORAGE_KEY = 'awefit.bmiToggles'
+const STORAGE_KEY = 'awefit.chartToggles'
 
-export function loadBmiToggles(): BmiToggleState {
+export function loadChartToggles(): ChartToggleState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return BMI_TOGGLES_OFF
-    const parsed = JSON.parse(raw) as Partial<BmiToggleState>
+    // Reads the pre-FF-0088 key too, so an existing choice is not silently lost.
+    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem('awefit.bmiToggles')
+    if (!raw) return CHART_TOGGLES_DEFAULT
+    const parsed = JSON.parse(raw) as Partial<ChartToggleState>
     return {
       healthy: Boolean(parsed.healthy),
       overweight: Boolean(parsed.overweight),
       obese: Boolean(parsed.obese),
+      // Absent means "never chose", and the goal line is on by default (FF-0088).
+      goal: parsed.goal === undefined ? CHART_TOGGLES_DEFAULT.goal : Boolean(parsed.goal),
     }
   } catch {
-    return BMI_TOGGLES_OFF
+    return CHART_TOGGLES_DEFAULT
   }
 }
 
-export function saveBmiToggles(state: BmiToggleState): void {
+export function saveChartToggles(state: ChartToggleState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   } catch {

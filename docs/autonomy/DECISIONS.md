@@ -938,3 +938,22 @@ the outlier in two places. Both now use datetime bounds.
 The general rule: **compare a DateTime column to datetimes, never to dates** — and prefer the
 half-open form (`>= start` and `< next_day`) when writing new code, since it avoids the
 `max.time()` edge and reads correctly to the next person.
+
+## 2026-10-19 — The goal line is the user's data, so its switch defaults on
+
+The Progress chart's four switches look alike but are not the same kind of thing. The three BMI
+bands are references computed from height; the goal line is a number the user entered. So the
+bands default off and the goal defaults on: opening Progress shows what you set, and turning
+references on is the deliberate act.
+
+Two consequences shaped the implementation. The goal switch renders even without a height,
+because a goal line needs none — only the BMI switches hide behind the height guard, with the
+same "add it in More → Profile" note. And switching the goal off passes `undefined` to the
+chart rather than hiding the line after the fact, so it stops being folded into the y-axis
+domain: with the goal on the owner's chart spans 179.5–270.5, off it spans 258–262. Otherwise
+the axis would stay stretched for a line that is not drawn — the inverse of the FF-0085
+clipping trap.
+
+Storage moved to one key, `awefit.chartToggles`, read with a fallback to the old
+`awefit.bmiToggles` so an existing choice is not silently lost; a stored state without a `goal`
+key means "never chose" and inherits the default.
