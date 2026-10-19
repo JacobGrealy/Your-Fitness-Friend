@@ -1,3 +1,6 @@
+import io
+import json
+import urllib.error
 import pytest
 from app.utils import food_search
 from app.models.food import Food
@@ -37,6 +40,7 @@ def test_cache_throttle_and_validation(search_client, monkeypatch):
     first = client.get('/api/food/search/openfoodfacts?q=apple')
     assert first.status_code == 200
     assert first.json['results'][0]['serving_size'] == '100 g'
+    assert first.json['stale'] is False
     assert client.get('/api/food/search/openfoodfacts?q=APPLE').status_code == 200
     assert calls == ['apple']
     assert client.get('/api/food/search/openfoodfacts?q=grapes').status_code == 429
@@ -80,3 +84,104 @@ def test_invalid_log_does_not_leave_import(search_client):
     assert client.get('/api/food').json == []
     assert client.post('/api/food/log', json={'external_food_token':'tampered',
         'food_name':'Apple','calories':52,'date':'2026-10-19','meal_type':'lunch'}).status_code == 400
+
+
+class _FakeHTTP503(urllib.error.HTTPError):
+    def __init__(self):
+        super().__init__(food_search.SEARCH_URL, 503, 'Service Temporarily Unavailable', {}, None)
+
+
+def test_transient_503_is_retried(monkeypatch):
+    """OFF answers the identical query with 503 about half the time (measured live)."""
+    calls = []
+
+    def flaky_urlopen(request, timeout=None):
+        calls.append(1)
+        if len(calls) < 3:
+            raise _FakeHTTP503()
+        return io.BytesIO(json.dumps({'products': [PRODUCT]}).encode())
+
+    # patch urlopen, not _query_once: this exercises the real HTTPError classification
+    monkeypatch.setattr(food_search.urllib.request, 'urlopen', flaky_urlopen)
+    monkeypatch.setattr(food_search.time, 'sleep', lambda seconds: None)
+
+    payload = food_search.fetch_products('apple', 1)
+
+    assert payload['products'][0]['product_name'] == 'Apple'
+    assert len(calls) == 3
+
+
+def test_html_instead_of_json_is_retried(monkeypatch):
+    """A 200 carrying the "temporarily unavailable" HTML page is the same transient fault."""
+    responses = [ValueError('Expecting value'), {'products': []}]
+
+    def once(query, page, timeout):
+        item = responses.pop(0)
+        if isinstance(item, Exception):
+            raise food_search._Retryable('provider sent HTML instead of JSON')
+        return item
+
+    monkeypatch.setattr(food_search, '_query_once', once)
+    monkeypatch.setattr(food_search.time, 'sleep', lambda seconds: None)
+
+    assert food_search.fetch_products('apple', 1) == {'products': []}
+
+
+def test_gives_up_after_bounded_attempts(monkeypatch):
+    attempts = []
+
+    def always_fail(query, page, timeout):
+        attempts.append(1)
+        raise food_search._Retryable('provider returned 503')
+
+    monkeypatch.setattr(food_search, '_query_once', always_fail)
+    monkeypatch.setattr(food_search.time, 'sleep', lambda seconds: None)
+
+    with pytest.raises(food_search.SearchUnavailable):
+        food_search.fetch_products('apple', 1)
+
+    assert len(attempts) == food_search.SEARCH_ATTEMPTS == 4
+
+
+def test_non_retryable_client_error_fails_immediately(monkeypatch):
+    calls = []
+
+    def rejected(query, page, timeout):
+        calls.append(1)
+        raise food_search.SearchUnavailable('provider rejected the search (400)')
+
+    monkeypatch.setattr(food_search, '_query_once', rejected)
+
+    with pytest.raises(food_search.SearchUnavailable):
+        food_search.fetch_products('apple', 1)
+
+    assert len(calls) == 1
+
+
+def test_provider_outage_serves_a_previous_result_marked_stale(search_client, monkeypatch):
+    """A cached answer beats an error while OFF's search is down (FF-0098)."""
+    client = search_client
+    monkeypatch.setattr(food_search, 'fetch_products', lambda q, p: {'products': [PRODUCT]})
+    assert client.get('/api/food/search/openfoodfacts?q=apple').json['stale'] is False
+
+    # expire the fresh copy, then take the provider away
+    import sqlite3, time as clock
+    cache = client.application.config['OFF_SEARCH_CACHE_PATH']
+    with sqlite3.connect(cache) as conn:
+        conn.execute('UPDATE cache SET expires=?', (clock.time() - 60,))
+        conn.execute('UPDATE throttle SET requested=?', (0,))
+
+    def down(*args):
+        raise food_search.SearchUnavailable('provider is down')
+    monkeypatch.setattr(food_search, 'fetch_products', down)
+
+    response = client.get('/api/food/search/openfoodfacts?q=apple')
+    assert response.status_code == 200
+    assert response.json['stale'] is True
+    assert response.json['results'][0]['name'] == 'Apple'
+
+    # a query never seen before still reports the outage honestly (throttle cleared so
+    # this exercises the outage path rather than the rate limit)
+    with sqlite3.connect(cache) as conn:
+        conn.execute('UPDATE throttle SET requested=?', (0,))
+    assert client.get('/api/food/search/openfoodfacts?q=grapes').status_code == 503

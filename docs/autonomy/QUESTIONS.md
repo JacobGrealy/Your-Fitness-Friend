@@ -147,3 +147,21 @@ local day since the FF-0059 fix.
   origin serves, so an installed client shows the current UI on reload — frontend
   changes need no restart and no reinstall.
 - **Board:** `http://<lan-ip>:5181/` — `python3 tasks/webui.py --daemon` starts it.
+
+### Q5 — Should generic-food search move to USDA? — **needs your call (FF-0098)**
+
+You said to hold off on USDA until we saw how Open Food Facts works. We now have the
+measurement, and it is not good: OFF's **search** endpoints return 503 for roughly
+**five of six** requests from this host (occasionally 200 with real results in between), while
+their **barcode/product** API answers normally. I added retries and a stale cache, which takes a
+search from failing about half the time to succeeding in 2 of 3 attempts — usable, but the
+underlying service is flaky.
+
+**Assumed meanwhile:** OFF stays the search source, hardened as above. Barcode scanning keeps
+using OFF, where it works well.
+
+**If you want USDA instead (or as well):** it is a free API key from
+`fdc.nal.usda.gov`, and its generic reference foods ("Apples, raw, with skin") match your
+apple/grape/egg use case better than OFF's branded products. The UI and the serving model
+already built here do not change — only the provider behind search does. Say the word and I will
+file it.

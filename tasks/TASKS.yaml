@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-19T12:14
+  updated_at: 2026-10-19T17:06
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -3885,4 +3885,33 @@ intake:
     used. Two browser fixture retries corrected existing return navigation expectations, no app changes
     needed. Backups+live migrations applied, all66 previous logs unchanged. sudo-n restart denied interactive
     auth: awaiting owner restart.'
+  comments: []
+- id: FF-0098
+  title: 'OFF search is intermittently unavailable: retry, stale cache and honest messaging'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: in-progress
+  labels: []
+  created_at: 2026-10-19T17:05
+  updated_at: 2026-10-19T17:06
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: 'Owner reported "open food facts is not available" when clicking Search. Measured from this host:
+    OFF search endpoints cgi/search.pl AND api/v2/search answer 503 "Page temporarily unavailable" for
+    roughly 5 of 6 requests (and 200 with real JSON occasionally), while the product/barcode API stays
+    200. Header/fingerprint variants make no difference, so it is upstream search degradation, not our
+    request. Fix: classify 5xx/429/HTML-as-JSON/socket failures as retryable and retry 4 times with 0.8/1.5/3.0s
+    backoff; keep expired cache rows for 7 days and serve them marked stale when the provider is down;
+    honest message that does not blame the user. Measured after the change: 2 of 3 live searches succeed.
+
+
+    Root cause measured: OFF search endpoints return 503 ~5 of 6 requests while the product API is healthy;
+    header variants ruled out fingerprinting. Added retryable classification (5xx/429/HTML-as-JSON/socket)
+    with 4 attempts at 0.8/1.5/3.0s, 7-day stale-cache fallback (served with stale:true) and non-blaming
+    error text. Live after fix: 2 of 3 searches succeed. Gates green. Moved to QUESTIONS.md as Q5 with
+    the evidence for the USDA decision.'
   comments: []

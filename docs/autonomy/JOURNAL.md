@@ -1907,3 +1907,18 @@ API paths were exercised. Two browser fixture retries fixed return-navigation ex
 Both live migrations ran after verified backups; all 66 preexisting logs compared unchanged.
 Awaiting restart: sudo -n systemctl restart fitnessfriend requires interactive authentication.
 Owner should restart once and refresh. All four tickets merged, queue empty.
+
+## FF-0098 — OFF search was failing for a reason we could measure
+
+The owner clicked Search and got "Open Food Facts is not available". Probing the live service
+explained it: both OFF search endpoints return 503 for roughly five of six requests while their
+product API answers normally, so the feature was structurally broken rather than misconfigured.
+Header variants changed nothing, ruling out fingerprinting.
+
+So the client now treats those failures as transient and retries with backoff, keeps expired
+cache rows for a week so a repeat search still works during an outage (flagged stale, not passed
+off as fresh), and words the error without implying user error. Live re-measurement: 2 of 3
+searches succeed, the third inside the retry window.
+
+Worth recording for the USDA question: this is exactly the "see how Open Food Facts works" data
+the owner wanted before deciding. Raised in QUESTIONS.md rather than acted on unilaterally.

@@ -1051,3 +1051,25 @@ Search results carry signed, one-day reference snapshots. Logging verifies the s
 imports into the existing foods table in the same transaction as the diary entry. A per-user
 external identity constraint deduplicates new imports, and existing barcode variants are reused.
 Browsing and failed logging do not create foods. USDA remains deferred.
+
+## FF-0098 — Open Food Facts search is treated as unreliable infrastructure
+
+The owner reported "Open Food Facts is not available" on every search. Measured from this host:
+`cgi/search.pl` and `api/v2/search` both answer **503 "Page temporarily unavailable"** for about
+five of every six requests, with a real JSON result occasionally in between, while the product
+(barcode) API stays healthy. Changing User-Agent and `Accept` made no difference, so this is
+upstream degradation of their search service, not our request shape.
+
+Three consequences, all now in the code. Transient failures (5xx, 429, an HTML body where JSON
+was expected, a socket error) are classified as **retryable** and retried four times with
+0.8/1.5/3.0 s backoff — one attempt fails for the user far too often to be usable. Expired cache
+rows are now kept for seven days, so a search that succeeded before still returns results during
+an outage, marked `stale: true` rather than presented as fresh. And the error text no longer
+implies the user did something wrong.
+
+Measured after the change: 2 of 3 live searches succeed, the third inside ~10 s of retries.
+
+This is also the evidence the owner asked for when deferring USDA ("let's wait on USDA until we
+see how Open Food Facts works"). OFF remains excellent for barcodes and its search is now
+usable-but-flaky; a generic-food source with better uptime is the open question, recorded in
+QUESTIONS.md.
