@@ -542,7 +542,9 @@ export default function FoodLogSelect() {
           />
         </div>
 
-        {externalFood && <p className="text-xs text-[#757575]">Open Food Facts · This food is saved to your database when you log it.</p>}
+        {externalFood && <p className="text-xs text-[#757575]">
+          {externalFood.source === 'usda' ? 'USDA FoodData Central' : 'Open Food Facts'} · This food is saved to your database when you log it.
+        </p>}
         {selectedFood && selectedFood.id && !externalFood && (
           <div className="bg-white rounded-lg p-4">
             <label className="block text-sm font-medium text-[#757575] mb-2">

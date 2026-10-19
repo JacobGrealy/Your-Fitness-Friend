@@ -1073,3 +1073,29 @@ This is also the evidence the owner asked for when deferring USDA ("let's wait o
 see how Open Food Facts works"). OFF remains excellent for barcodes and its search is now
 usable-but-flaky; a generic-food source with better uptime is the open question, recorded in
 QUESTIONS.md.
+
+## FF-0099 — USDA FoodData Central answers text search; Open Food Facts keeps barcodes
+
+FF-0098 measured OFF's search at roughly one success in five while its product API stayed
+healthy. Q5 asked whether to switch; the owner said yes, so the split is now by strength:
+**USDA for generic-food search, OFF for barcode lookup.**
+
+The provider is chosen by configuration, not code: with `USDA_FDC_API_KEY` set, search goes to
+USDA; without it, search falls back to OFF, so a fresh checkout and a revoked key both keep
+working rather than presenting a dead button.
+
+USDA specifics that took checking. Energy is not one field — Foundation foods carry it as kJ or
+under "Atwater General/Specific Factors" — so calories are resolved across those names and both
+units, and a food missing any macro is omitted rather than logged as a zero-protein food. Names
+stay verbatim ("Apples, fuji, with skin, raw"): renaming would invent a food the reference does
+not describe. Results are requested alphabetically and then ranked so a name *starting* with the
+query beats a dish that merely contains it, which is what stops "Croissants, apple" leading a
+search for apple.
+
+Identity became provider-qualified (`usda:2346397`, `openfoodfacts:<barcode>`), which the
+per-user unique constraint and the dedup in the search UI both key on; existing barcode-cached
+foods still match through the barcode variant check. `GET /api/food` now returns `external_id` —
+without it the UI would re-offer an already-imported food.
+
+The key lives in `.env` (untracked, mode 600) and reaches gunicorn through `run-backend.sh`'s
+`set -a` sourcing.

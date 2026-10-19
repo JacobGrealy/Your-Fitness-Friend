@@ -1922,3 +1922,32 @@ searches succeed, the third inside the retry window.
 
 Worth recording for the USDA question: this is exactly the "see how Open Food Facts works" data
 the owner wanted before deciding. Raised in QUESTIONS.md rather than acted on unilaterally.
+
+## FF-0099 — USDA took over generic-food search
+
+With the owner's key in `.env`, search now asks USDA for whole foods and leaves Open Food Facts
+to barcodes — the split Q5 recommended after FF-0098's measurement.
+
+Four things only showed up once it ran against the real API. Energy is published as kJ for some
+foods and under different "Atwater" names for others, so a naive read returns nothing and would
+have logged a 0 kcal apple. Foundation names are inverted, so "Croissants, apple" and "Babyfood,
+juice, apple" led a search for apple until results were ranked to prefer names that *start* with
+the query. And `GET /api/food` hand-builds its response, so the new `external_id` had to be added
+there or the UI would re-offer an already-imported food — caught by the import/dedup test.
+
+Live check with the real key: "apple" returns fuji, gala, honeycrisp and granny smith apples
+first, 20 of 20 results usable. Full gates green (288 backend / 392 frontend).
+
+Three defects surfaced only in the browser, each worth naming because they hid behind a
+plausible-looking screen. React keyed the result cards on `barcode_id`, which is null for every
+USDA food, so the list collapsed; the loader *also* deduplicated on the same null field and kept
+only the first result; and I had put the dataset name into `brand`, which printed "Foundation"
+twice per card and would have stored a fake brand on import. The verification script then failed
+twice on its own quirks (a selector, and `SESSION_COOKIE_SECURE` making Playwright's HTTP client
+drop the session cookie that Chromium accepts for localhost), not on the app.
+
+Final mobile pass at 390 px: USDA results lead with raw apples, 182 g of gala logs 111 kcal
+(61 × 1.82), the saved food keeps its 100 g reference, and reopening the search does not offer
+the imported food twice. Video-length screenshots /tmp/ff99-final-search.png.
+
+Awaiting restart (`sudo systemctl restart fitnessfriend`); the key is already in `.env`.

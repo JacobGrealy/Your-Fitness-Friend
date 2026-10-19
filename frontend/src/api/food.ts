@@ -3,7 +3,8 @@ import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch,
 
 export const foodApi = {
   searchOpenFoodFacts: (q: string, page = 1) =>
-    api.get<{ results: ExternalFood[]; page: number; has_more: boolean; omitted: number }>(
+    api.get<{ results: ExternalFood[]; page: number; has_more: boolean; omitted: number
+      source?: string; stale?: boolean }>(
       '/food/search/openfoodfacts', { params: { q, page } }).then(res => res.data),
 
   // Food entries
