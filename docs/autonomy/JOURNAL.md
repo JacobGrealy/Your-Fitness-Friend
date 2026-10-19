@@ -1805,3 +1805,22 @@ entries tie on `recorded_at` and only the id orders them. Tie-break added, with 
 Verified on the isolated server (264.7 → 259.3 → 257.5 gives current 257.5, start 264.7, −7.2)
 and in the browser: "Current Weight 257.5 lbs · vs. Starting Weight ↓ -7.2 lbs (-2.7%) since
 Oct 19". 8 backend and 4 frontend tests; all gates green.
+
+## Round 80 — 2026-10-19 — FF-0091 progress from the start, on Progress too
+
+The owner asked for the "vs. Starting Weight" figure on the Progress page as well. It reuses the
+Home definition through two new helpers in `utils/weightTrend.ts`, so the two screens measure
+from the same place.
+
+The card had to be restructured: it used to render only when a goal weight was set, which would
+have hidden progress-from-start from anyone without a target. The goal rows are now optional
+children of a card that appears whenever there is any weight.
+
+Verifying in the browser caught a genuine inconsistency rather than confirming the work: the card
+showed "Current Weight 264.7 lbs" beside "↓ -7.2 lbs". Both came from the same three logs
+entered on one day — identical midnight timestamps, so `sortedLogs` fell back to array order and
+picked the oldest as current while `changeSinceStart` correctly used the ids. Ordering by id
+fixes it, and a test now pins the two figures agreeing.
+
+That is the second time in two rounds that same-day timestamps caused a wrong number; the
+pattern is worth remembering: **anything ordering weight logs must break ties on id.**

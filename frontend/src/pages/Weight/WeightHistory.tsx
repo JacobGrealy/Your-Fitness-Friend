@@ -1,3 +1,5 @@
+import { format } from 'date-fns'
+import { todayLocal } from '@/utils/localDate'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWeightStore } from '@/store/weightStore'
@@ -14,6 +16,8 @@ import { loadChartToggles, saveChartToggles } from '@/utils/bmiPreferences'
 import {
   TREND_WINDOW_DAYS,
   buildWeightSeries,
+  changeSinceStart,
+  dayOf,
   trendDirection,
 } from '@/utils/weightTrend'
 import { estimateGoalEta, formatEtaDate } from '@/utils/goalEta'
@@ -33,9 +37,13 @@ export default function WeightHistory() {
     fetchLogs()
   }, [])
 
-  const sortedLogs = [...logs].sort((a, b) =>
-    new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()
-  )
+  // Newest first. Id breaks ties because weight logs are stored at midnight, so two entries
+  // on one day share a timestamp and array order would otherwise decide (FF-0090).
+  const sortedLogs = [...logs].sort((a, b) => {
+    const byTime = new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()
+    if (byTime !== 0) return byTime
+    return Number(b.id) - Number(a.id)
+  })
 
   // The same series definition Home uses (FF-0084). The window here is wider, but any
   // overlapping day produces the identical point, which is what the two screens needed.
@@ -85,6 +93,30 @@ export default function WeightHistory() {
   const currentWeight = sortedLogs.length > 0 ? sortedLogs[0].weight : null
   const goalWeight = user?.weight_goal_lbs
 
+  // Same measurement Home shows: progress from the first weigh-in (FF-0090).
+  const sinceStart = useMemo(
+    () => changeSinceStart(logs.map((log) => ({
+      weight: log.weight, recorded_at: log.recorded_at, id: log.id,
+    }))),
+    [logs]
+  )
+
+  // The newest weigh-in may be days old; say so rather than implying today (FF-0090).
+  const newestDay = sortedLogs.length > 0
+    ? dayOf(sortedLogs[0].recorded_at)
+    : ''
+  const currentIsToday = newestDay === todayLocal()
+  const currentDateLabel = newestDay
+    ? format(new Date(`${newestDay}T00:00:00`), 'MMM d')
+    : ''
+
+  const startDateLabel = sinceStart
+    ? format(new Date(`${sinceStart.startDay}T00:00:00`), 'MMM d')
+    : ''
+  const startChangePercent = sinceStart && sinceStart.start
+    ? ((sinceStart.change / sinceStart.start) * 100).toFixed(1)
+    : null
+
   const distanceToGoal = currentWeight !== null && goalWeight
     ? Math.abs(currentWeight - goalWeight)
     : null
@@ -112,24 +144,55 @@ export default function WeightHistory() {
     // pb-24 was a duplicate of the shell's own bottom-nav clearance.
     <div className="p-4" style={{ backgroundColor: '#f2f2f2' }}>
       {/* Weight Goal Card */}
-      {goalWeight && currentWeight !== null && (
+      {currentWeight !== null && (
         <div className="bg-white rounded-lg p-4 mb-4 border border-[#e0e0e0]">
+          {goalWeight && (
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium" style={{ color: '#757575' }}>Weight Goal</span>
+              <span className="text-sm font-medium" style={{ color: '#185ADB' }}>{formatWeight(goalWeight)}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium" style={{ color: '#757575' }}>Weight Goal</span>
-            <span className="text-sm font-medium" style={{ color: '#185ADB' }}>{formatWeight(goalWeight)}</span>
-          </div>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium" style={{ color: '#757575' }}>Current Weight</span>
+            <span className="text-sm font-medium" style={{ color: '#757575' }}>
+              {currentIsToday ? 'Current Weight' : `Weight (${currentDateLabel})`}
+            </span>
             <span className="text-lg font-bold" style={{ color: '#212121' }}>{formatWeight(currentWeight)}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium" style={{ color: '#757575' }}>
-              Distance to Goal
-            </span>
-            <span className="text-sm font-bold" style={{ color: '#185ADB' }}>
-              {distanceToGoal?.toFixed(1)} lbs
-            </span>
-          </div>
+
+          {/* Progress from the first weigh-in: the same measurement Home shows (FF-0090). */}
+          {sinceStart && (
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium" style={{ color: '#757575' }}>
+                vs. Starting Weight
+                <span className="block text-[11px] font-normal" style={{ color: '#9e9e9e' }}>
+                  since {startDateLabel}
+                </span>
+              </span>
+              <span
+                className="text-sm font-bold text-right"
+                style={{ color: sinceStart.change > 0 ? '#E53935' : sinceStart.change < 0 ? '#2E7D32' : '#757575' }}
+              >
+                {sinceStart.change > 0 ? '↑' : sinceStart.change < 0 ? '↓' : '→'}{' '}
+                {sinceStart.change > 0 ? '+' : ''}{sinceStart.change.toFixed(1)} lbs
+                {startChangePercent != null && (
+                  <span className="block text-[11px] font-normal" style={{ color: '#757575' }}>
+                    {startChangePercent}%
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
+
+          {goalWeight && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium" style={{ color: '#757575' }}>
+                Distance to Goal
+              </span>
+              <span className="text-sm font-bold" style={{ color: '#185ADB' }}>
+                {distanceToGoal?.toFixed(1)} lbs
+              </span>
+            </div>
+          )}
           {eta && (
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#e0e0e0]">
               <span className="text-sm font-medium" style={{ color: '#757575' }}>

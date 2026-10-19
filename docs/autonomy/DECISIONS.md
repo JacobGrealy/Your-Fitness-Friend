@@ -978,3 +978,19 @@ which the card could show the older of two same-day weigh-ins as current.
 The day lookups use datetime bounds, per the FF-0089 rule. `change_from_yesterday` and
 `change_from_week_ago` stay in the payload for other consumers, but Home no longer leads with
 them.
+
+## 2026-10-19 — Both screens measure progress from the first weigh-in, and neither trusts array order
+
+Progress now shows the same "vs. Starting Weight" figure as Home. The definition lives in
+`utils/weightTrend.ts` (`startingWeighIn`, `changeSinceStart`) and matches the backend's: the
+earliest weigh-in, with ties broken on id.
+
+That tie-break is not pedantry. The app stores weight logs at **midnight**, so two entries on
+one day carry identical timestamps — and array order then decides which is "newest". Adding the
+comparison to Progress exposed it immediately: the card read "Current Weight 264.7 lbs" next to
+"↓ -7.2 lbs", two statements that cannot both be true of the same card. Ordering by id makes
+them agree.
+
+Progress's summary card is also no longer gated on having a goal weight: your progress from the
+start exists whether or not you have set a target, so the goal rows are optional children of a
+card that renders whenever there is any weight at all.
