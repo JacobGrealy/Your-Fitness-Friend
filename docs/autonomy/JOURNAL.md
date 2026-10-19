@@ -1631,3 +1631,29 @@ existing avatar survives). Gates leave prod uploads unchanged.
 The ~590 historic files are still there. They are unreferenced and predate the fix, but
 deleting other people's files without being asked is exactly the mistake of Round 67, so
 they stay until the owner says otherwise.
+
+## Round 71 — 2026-10-18 — FF-0083 the macro unit becomes explicit (data + API half)
+
+Reported as "changing servings in edit doesn't change the macros". Reading the code found
+three paths disagreeing about what `food_logs.calories` even means: create-with-food-in-store
+multiplied by the quantity, create-without-it used the number as typed, and edit sent
+everything verbatim. Two live rows proved it — log 64 holds 110 kcal at 0.5 servings (should
+be 55) and log 62 holds 38 at 0.2.
+
+`food_logs` now carries `calories_per_serving` / `protein|carbs|fat_per_serving`, and the
+existing columns are unambiguously totals. `app/utils/serving.py` is the only place that
+converts between them. `_apply_nutrition()` gives every write path one rule: explicit
+per-serving values win, else explicit totals (the older contract, still supported), else a
+new serving count alone rescales the totals from the stored per-serving figure — which is
+exactly the case that was broken.
+
+The migration (5274c85d8204) adds the columns and backfills by dividing, **without touching a
+stored total** — the owner's existing logs do not move, verified before and after on the live
+database. Rows 62 and 64 keep their (odd) totals and will behave consistently from here.
+
+8 new tests: doubling, halving, walking up and back, an exact 1.33× decimal, per-serving edit
+recomputing the total at the current count, the food update reaching the saved Food, and a
+legacy client sending only totals.
+
+Note for the next round: the **form still sends totals**, so the visible symptom persists
+until the two-screen UI lands — the API fix is necessary but not sufficient.

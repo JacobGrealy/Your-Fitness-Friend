@@ -17,6 +17,13 @@ class FoodLog(db.Model):
     fat_g = db.Column(db.Float, default=0.0)
     serving_size = db.Column(db.String(255), nullable=True)
     number_of_servings = db.Column(db.Float, nullable=True)
+
+    # Per-serving nutrition, so `calories`/`protein_g`/... above are unambiguously TOTALS
+    # and `total = per_serving * number_of_servings` holds for every row (FF-0083).
+    calories_per_serving = db.Column(db.Float, nullable=True)
+    protein_per_serving = db.Column(db.Float, nullable=True)
+    carbs_per_serving = db.Column(db.Float, nullable=True)
+    fat_per_serving = db.Column(db.Float, nullable=True)
     photo_url = db.Column(db.String(512), nullable=True)
     brand = db.Column(db.String(100), nullable=True)
     barcode_id = db.Column(db.String(100), nullable=True)
@@ -40,6 +47,10 @@ class FoodLog(db.Model):
             'fat_g': self.fat_g,
             'serving_size': self.serving_size,
             'number_of_servings': self.number_of_servings,
+            'calories_per_serving': self.calories_per_serving,
+            'protein_per_serving': self.protein_per_serving,
+            'carbs_per_serving': self.carbs_per_serving,
+            'fat_per_serving': self.fat_per_serving,
             'photo_url': self.photo_url,
             'brand': self.brand,
             'barcode_id': self.barcode_id,
@@ -49,5 +60,25 @@ class FoodLog(db.Model):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
     
+    def per_serving(self):
+        """Per-serving values, falling back to totals for rows with a count of one."""
+        from app.utils.serving import MACROS, normalise_servings, per_serving_from_totals
+
+        stored = {
+            'calories': self.calories_per_serving,
+            'protein_g': self.protein_per_serving,
+            'carbs_g': self.carbs_per_serving,
+            'fat_g': self.fat_per_serving,
+        }
+        if all(value is not None for value in stored.values()):
+            return stored
+
+        derived = per_serving_from_totals(
+            {macro: getattr(self, macro) for macro in MACROS},
+            normalise_servings(self.number_of_servings),
+        )
+        return {macro: stored[macro] if stored[macro] is not None else derived[macro]
+                for macro in MACROS}
+
     def __repr__(self):
         return f'<FoodLog {self.food_name} on {self.date}>'
