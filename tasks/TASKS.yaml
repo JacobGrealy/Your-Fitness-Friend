@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-19T11:56
+  updated_at: 2026-10-19T12:01
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0096
 - FF-0097
 intake:
 - id: FF-0001
@@ -3824,14 +3823,14 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-19T11:37
-  updated_at: 2026-10-19T11:37
-  completed_at: null
+  updated_at: 2026-10-19T12:01
+  completed_at: 2026-10-19T12:01
   waiting_on: null
   parent_id: null
-  notes: Depends on structured servings. Extend existing OFF barcode integration, no USDA. Authenticated
+  notes: 'Depends on structured servings. Extend existing OFF barcode integration, no USDA. Authenticated
     text search API with explicit search (not per keystroke), bounded queries/page sizes/timeouts, server
     caching/rate limiting respecting OFF search limit. Return source identifiers, names brands and trustworthy
     per-100g nutrition/structured serving reference; never mislabel per-serving as per100g, never infer
@@ -3841,6 +3840,12 @@ intake:
     migration if needed by coordinator only. Network-stubbed tests for parsing, malformed/missing macros,
     rate/cache, provider outages, import/dedup and auth. No frontend, registry, static build, live instance
     or services.
+
+
+    Authenticated /api/food/search/openfoodfacts?q=&page= with 1h cache, shared SQLite throttle 6.1 sec,
+    signed snapshots and strict macro completeness. external_food_token on POST /food/log imports atomically/dedups
+    per-user provider identity/barcode; failed logs leave no food. Migration c19600000001. All gates green.
+    Real apple provider request returned HTTP503; real quality remains unverified, outage path tested.'
   comments: []
 - id: FF-0097
   title: Local-first Add Food search with Open Food Facts results

@@ -93,6 +93,8 @@ def lookup(code):
         brand=product['brand'],
         barcode_id=canonical,
     )
+    from app.utils.quantities import apply_reference
+    apply_reference(food, {'serving_size': product['serving_size']})
     db.session.add(food)
     db.session.commit()
 

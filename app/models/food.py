@@ -19,6 +19,8 @@ class Food(db.Model):
     serving_unit = db.Column(db.String(20), nullable=True)
     brand = db.Column(db.String(100), nullable=True)
     barcode_id = db.Column(db.String(100), nullable=True)
+    external_id = db.Column(db.String(100), nullable=True)
+    __table_args__ = (db.UniqueConstraint('user_id', 'external_id', name='uq_food_user_external'),)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -36,6 +38,7 @@ class Food(db.Model):
             'serving_unit': self.serving_unit,
             'brand': self.brand,
             'barcode_id': self.barcode_id,
+            'external_id': self.external_id,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
     
