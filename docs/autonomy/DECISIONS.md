@@ -957,3 +957,24 @@ clipping trap.
 Storage moved to one key, `awefit.chartToggles`, read with a fallback to the old
 `awefit.bmiToggles` so an existing choice is not silently lost; a stored state without a `goal`
 key means "never chose" and inherits the default.
+
+## 2026-10-19 — The Home weight card measures progress, not last night
+
+"vs. Yesterday" was honest but nearly useless: it appeared only when weigh-ins happened on two
+consecutive days, and because the card's big number was simply *the newest log*, a day without a
+weigh-in printed yesterday's weight as "current" and compared it to itself — a confident
+"→ 0.0 lbs" for someone who simply had not stepped on the scale.
+
+The card now leads with **progress since the starting weight**, and the current number carries
+its date whenever it is not today. Starting weight is the earliest weigh-in: no schema change,
+no field for the user to fill in, and it is exactly the number their journey started from.
+
+Two smaller corrections came with it. The old query loaded the 8 newest logs and searched that
+list, so a week-ago entry could fall outside it; the four lookups (latest, yesterday, week ago,
+earliest) are now explicit queries. And because the app stores weight logs at **midnight**, two
+entries on one day share a timestamp — so "newest" and "earliest" break ties on id, without
+which the card could show the older of two same-day weigh-ins as current.
+
+The day lookups use datetime bounds, per the FF-0089 rule. `change_from_yesterday` and
+`change_from_week_ago` stay in the payload for other consumers, but Home no longer leads with
+them.

@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from app.models.weight_log import WeightLog
@@ -41,37 +41,50 @@ def daily():
     # Get macro goals
     macro_goals = calculate_macro_goals(user.daily_calorie_goal)
     
-    # Get weight data
-    weight_logs = user.weight_logs.order_by(
-        WeightLog.recorded_at.desc()
-    ).limit(8).all()
-    
-    weight_current = None
-    weight_yesterday = None
-    weight_week_ago = None
-    
-    if weight_logs:
-        weight_current = weight_logs[0].weight
-        
-        for log in weight_logs:
-            if log.recorded_at.date() == target_date - timedelta(days=1):
-                weight_yesterday = log.weight
-                break
-        
-        for log in weight_logs:
-            if log.recorded_at.date() == target_date - timedelta(days=7):
-                weight_week_ago = log.weight
-                break
-    
-    # Calculate weight changes
+    # Get weight data. Recorded_at is a DateTime, so a "the log on this day" lookup needs
+    # datetime bounds - comparing it to a bare date silently excluded the whole day (FF-0089).
+    def weight_on(day):
+        return user.weight_logs.filter(
+            WeightLog.recorded_at >= datetime.combine(day, datetime.min.time()),
+            WeightLog.recorded_at <= datetime.combine(day, datetime.max.time()),
+        ).order_by(WeightLog.recorded_at.desc(), WeightLog.id.desc()).first()
+
+    # Id breaks ties: the app stores weight logs at midnight, so two entries on one day share
+    # a timestamp and only the id says which came second (FF-0090).
+    latest_log = user.weight_logs.order_by(
+        WeightLog.recorded_at.desc(), WeightLog.id.desc()
+    ).first()
+    earliest_log = user.weight_logs.order_by(
+        WeightLog.recorded_at.asc(), WeightLog.id.asc()
+    ).first()
+
+    weight_current = latest_log.weight if latest_log else None
+    weight_current_date = latest_log.recorded_at.date().isoformat() if latest_log else None
+    weight_yesterday = (weight_on(target_date - timedelta(days=1)) or None)
+    weight_week_ago = (weight_on(target_date - timedelta(days=7)) or None)
+    weight_start = earliest_log.weight if earliest_log else None
+    weight_start_date = earliest_log.recorded_at.date().isoformat() if earliest_log else None
+
+    # Progress since the beginning, which is what the Home card leads with. Only meaningful
+    # once there are two different weigh-ins: a single log is not a change (FF-0090).
+    weight_change_start = None
+    if (
+        weight_current is not None
+        and weight_start is not None
+        and earliest_log is not None
+        and latest_log is not None
+        and earliest_log.id != latest_log.id
+    ):
+        weight_change_start = round(weight_current - weight_start, 2)
+
     weight_change_yesterday = None
     weight_change_week = None
-    
+
     if weight_current is not None and weight_yesterday is not None:
-        weight_change_yesterday = round(weight_current - weight_yesterday, 2)
-    
+        weight_change_yesterday = round(weight_current - weight_yesterday.weight, 2)
+
     if weight_current is not None and weight_week_ago is not None:
-        weight_change_week = round(weight_current - weight_week_ago, 2)
+        weight_change_week = round(weight_current - weight_week_ago.weight, 2)
     
     # Get exercises for the day
     exercises = get_daily_exercises(user.id, target_date)
@@ -104,6 +117,11 @@ def daily():
         },
         'weight': {
             'current': round(weight_current, 2) if weight_current else None,
+            # When the newest weigh-in happened, so the card never implies it is today's.
+            'current_date': weight_current_date,
+            'start': round(weight_start, 2) if weight_start else None,
+            'start_date': weight_start_date,
+            'change_from_start': weight_change_start,
             'change_from_yesterday': weight_change_yesterday,
             'change_from_week_ago': weight_change_week
         },

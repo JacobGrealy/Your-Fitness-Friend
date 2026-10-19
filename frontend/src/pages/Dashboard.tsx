@@ -5,6 +5,7 @@ import { WeightTrendChart } from '@/components/charts'
 import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
 import StreakStrip from '@/components/food/StreakStrip'
 import { diaryApi, type DiaryStreaks, type DiaryWeek } from '@/api/diary'
+import { format } from 'date-fns'
 import { todayLocal } from '@/utils/localDate'
 import {
   TREND_WINDOW_DAYS,
@@ -97,12 +98,28 @@ function Dashboard() {
 
   const totalMealsCalories = mealGroups.reduce((sum, g) => sum + g.calories, 0)
 
+  // Progress since the starting weigh-in, which is the comparison the card leads with
+  // (FF-0090). Measured against the baseline, so a 7 lb drop reads as a 7 lb drop.
   const weightChangePercent = useMemo(() => {
-    if (!dailySummary?.weight?.change_from_yesterday || dailySummary?.weight?.current == null) return null
-    const yesterdayWeight = dailySummary.weight.current - dailySummary.weight.change_from_yesterday
-    if (yesterdayWeight === 0) return null
-    return ((dailySummary.weight.change_from_yesterday / yesterdayWeight) * 100).toFixed(1)
-  }, [dailySummary?.weight?.change_from_yesterday, dailySummary?.weight?.current])
+    const change = dailySummary?.weight?.change_from_start
+    const start = dailySummary?.weight?.start
+    if (!change || !start) return null
+    return ((change / start) * 100).toFixed(1)
+  }, [dailySummary?.weight?.change_from_start, dailySummary?.weight?.start])
+
+  // The newest weigh-in may be days old, and the card must not imply it is today's.
+  const weightIsToday = dailySummary?.weight?.current_date === todayLocal()
+  const currentWeightLabel = useMemo(() => {
+    const date = dailySummary?.weight?.current_date
+    if (!date || weightIsToday) return 'Current Weight'
+    return `Weight (${format(new Date(`${date}T00:00:00`), 'MMM d')})`
+  }, [dailySummary?.weight?.current_date, weightIsToday])
+
+  const startDateLabel = useMemo(() => {
+    const date = dailySummary?.weight?.start_date
+    if (!date) return ''
+    return `since ${format(new Date(`${date}T00:00:00`), 'MMM d')}`
+  }, [dailySummary?.weight?.start_date])
 
   const toggleMeals = (type: string) => {
     setExpandedMeals(prev => ({ ...prev, [type]: !prev[type] }))
@@ -203,35 +220,38 @@ function Dashboard() {
           <div className="bg-white rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs" style={{ color: '#757575' }}>Current Weight</p>
+                <p className="text-xs" style={{ color: '#757575' }}>{currentWeightLabel}</p>
                 <p className="text-2xl font-bold" style={{ color: '#212121' }}>
                   {dailySummary.weight.current.toFixed(1)} lbs
                 </p>
               </div>
-              {dailySummary.weight.change_from_yesterday != null && (
+              {dailySummary.weight.change_from_start != null && (
                 <div className="text-right">
-                  <p className="text-xs" style={{ color: '#757575' }}>vs. Yesterday</p>
+                  <p className="text-xs" style={{ color: '#757575' }}>vs. Starting Weight</p>
                   <div className="flex items-center gap-1 justify-end">
                     <span
                       className="text-lg font-bold"
                       style={{
-                        color: dailySummary.weight.change_from_yesterday > 0 ? '#E53935' : dailySummary.weight.change_from_yesterday < 0 ? '#4CAF50' : '#757575',
+                        color: dailySummary.weight.change_from_start > 0 ? '#E53935' : dailySummary.weight.change_from_start < 0 ? '#4CAF50' : '#757575',
                       }}
                     >
-                      {dailySummary.weight.change_from_yesterday > 0 ? '↑' : dailySummary.weight.change_from_yesterday < 0 ? '↓' : '→'}
+                      {dailySummary.weight.change_from_start > 0 ? '↑' : dailySummary.weight.change_from_start < 0 ? '↓' : '→'}
                     </span>
                     <span
                       className="text-lg font-bold"
                       style={{
-                        color: dailySummary.weight.change_from_yesterday > 0 ? '#E53935' : dailySummary.weight.change_from_yesterday < 0 ? '#4CAF50' : '#757575',
+                        color: dailySummary.weight.change_from_start > 0 ? '#E53935' : dailySummary.weight.change_from_start < 0 ? '#4CAF50' : '#757575',
                       }}
                     >
-                      {dailySummary.weight.change_from_yesterday > 0 ? '+' : ''}{dailySummary.weight.change_from_yesterday.toFixed(1)} lbs
+                      {dailySummary.weight.change_from_start > 0 ? '+' : ''}{dailySummary.weight.change_from_start.toFixed(1)} lbs
                     </span>
                     {weightChangePercent != null && (
                       <span className="text-xs" style={{ color: '#757575' }}>({weightChangePercent}%)</span>
                     )}
                   </div>
+                  {startDateLabel && (
+                    <p className="text-[10px] mt-0.5" style={{ color: '#757575' }}>{startDateLabel}</p>
+                  )}
                 </div>
               )}
             </div>

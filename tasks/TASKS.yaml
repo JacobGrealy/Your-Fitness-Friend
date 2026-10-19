@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-19T08:28
+  updated_at: 2026-10-19T08:45
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0090
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -3499,4 +3500,78 @@ intake:
     already used. api shape unchanged, so the FF-0084 frontend needed no change. 6 regression tests (midnight,
     morning, late evening, full window, yesterday only, out of window); 4 of them fail against the old
     code.'
+  comments: []
+- id: FF-0090
+  title: 'Home weight card: compare against the starting weight, and date the current number'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: in-progress
+  labels: []
+  created_at: 2026-10-19T08:38
+  updated_at: 2026-10-19T08:45
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: on Home, the weight card''s comparison should be against my STARTING weight (progress
+    since I began), not "vs. Yesterday" which often shows nothing or compares a weigh-in to itself. And
+    the big number should say when it was actually recorded instead of implying it is today''s.
+
+
+    2) What is wrong today, proven by reading app/routes/dashboard.py:44-71 and simulating against the
+    live DB: the code loads the 8 newest logs, sets `weight_current = weight_logs[0].weight` (the newest
+    log REGARDLESS of its date) and looks for a log dated exactly target_date-1. Consequences: (a) when
+    yesterday has no weigh-in the whole comparison vanishes; (b) when the newest log IS yesterday''s,
+    the card prints "Current Weight 259.3 / vs. Yesterday 0.0 lbs", i.e. it compares one log to itself
+    and claims you held steady when you simply have not weighed in; (c) the 8 row limit can also drop
+    the week-ago row if the user logs more than 8 times in a week.
+
+
+    3) Owner decision (asked and answered): compare against the STARTING weight, and label the current
+    number with its date when it is not today.
+
+
+    4) Definition of starting weight: the EARLIEST weigh-in (min recorded_at) for the user. There is no
+    start_weight column on User; `start_weight_lbs` in app/utils/diary_completion.py:323 is the weekly
+    projection''s own current weight, unrelated. Do not add a schema column in this ticket.
+
+
+    5) Backend changes in app/routes/dashboard.py: stop loading `.limit(8)`; instead query what is needed
+    with aggregation/queries: latest log (newest recorded_at), the log dated exactly target_date-1, the
+    one dated target_date-7, and the earliest log. IMPORTANT: recorded_at is a DateTime, so a day filter
+    must use datetime range bounds - `datetime.combine(day, datetime.min.time())` .. `datetime.combine(day,
+    datetime.max.time())` - NOT a bare date (that was FF-0089). Add to the weight block of the response:
+    current_date (ISO date of the newest log, null when none), start (earliest weight), start_date (its
+    ISO date), change_from_start (current - start, rounded 2dp, null when fewer than two distinct logs
+    or when current IS the start log). Keep the existing change_from_yesterday and change_from_week_ago
+    fields for compatibility.
+
+
+    6) Frontend: update frontend/src/types/dashboard.ts for the new fields. In frontend/src/pages/Dashboard.tsx
+    the weight card (around lines 200-235) should show the delta against the STARTING weight with the
+    words "vs. Starting Weight" and the start date in short form (e.g. "since Oct 17"), and the big number
+    should read "Current Weight" when current_date is today (use todayLocal() from utils/localDate) or
+    "Weight (Oct 17)"-style when it is older. Direction colours stay: down = green (#4CAF50), up = red
+    (#E53935). Recompute the percentage from the starting comparison, not from yesterday''s. Remove the
+    now-unused yesterday display from the card but leave the payload field alone.
+
+
+    7) Acceptance: with at least two weigh-ins the card shows the change since the first one and names
+    that date; with only one weigh-in no comparison is shown; the big number is labelled with its date
+    when the newest weigh-in is not today; nothing compares a log to itself; the week-ago row is no longer
+    affected by an arbitrary 8-row cap; new tests cover the backend fields (including a midnight-stamped
+    log being found by the day filter) and the two frontend label cases; ./scripts/gates.sh green.
+
+
+    Closed per owner''s answers: the card now leads with progress since the STARTING weight (earliest
+    weigh-in, no schema change) and the big number is labelled with its date when the newest entry is
+    not today. Replaced the .limit(8) scan with explicit queries (latest, yesterday, week ago, earliest)
+    and used datetime bounds for the day lookups per the FF-0089 rule. Two extra defects found while verifying:
+    the old 8-row cap could drop the week-ago row, and same-day weigh-ins tie on recorded_at (the app
+    stores midnight timestamps) so the older entry could be reported as current - both fixed, the latter
+    with a test. Verified on the isolated server and in the browser (''Current Weight 257.5 lbs | vs.
+    Starting Weight down 7.2 lbs (-2.7%) since Oct 19''). 8 backend + 4 frontend tests. Backend half needs
+    a restart.'
   comments: []
