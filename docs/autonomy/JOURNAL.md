@@ -1951,3 +1951,15 @@ Final mobile pass at 390 px: USDA results lead with raw apples, 182 g of gala lo
 the imported food twice. Video-length screenshots /tmp/ff99-final-search.png.
 
 Awaiting restart (`sudo systemctl restart fitnessfriend`); the key is already in `.env`.
+
+## FF-0100 — The footer was painting over every bottom sheet
+
+"Choose from gallery is half off the screen below the footer" reproduced exactly, and the cause
+was layering rather than layout: the sheet and the nav were both `z-50`, and with equal z-index
+the later DOM node wins — the nav renders after page content. Even at a 844 px viewport Cancel
+was already unreachable; with the 34 px inset a phone home indicator adds, the footer covered
+the gallery button entirely.
+
+Moved the nav to `z-40` so dialogs outrank it, padded bottom sheets for the safe area, and pinned
+the relationship in a test plus a line in AGENTS.md, because the same fault affected CopyMealSheet
+and the FAB. Verified by hit-testing each sheet button's centre with a taller footer simulated.

@@ -104,7 +104,7 @@ export default function PhotoSourceChooser({
           onClick={onClose}
         >
           <div
-            className="w-full max-w-md bg-white rounded-t-2xl p-4 space-y-2"
+            className="w-full max-w-md bg-white rounded-t-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] space-y-2"
             onClick={(event) => event.stopPropagation()}
           >
             <p className="text-sm font-semibold text-center mb-2" style={{ color: '#212121' }}>

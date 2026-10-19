@@ -64,7 +64,7 @@ export default function BottomNav() {
 
  return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#f2f2f2] border-t border-gray-200 pb-[env(safe-area-inset-bottom)] sm:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#f2f2f2] border-t border-gray-200 pb-[env(safe-area-inset-bottom)] sm:hidden">
         <div className="grid grid-cols-5 items-center px-2 py-1">
           {tabs.map((tab, index) => (
             <button

@@ -58,7 +58,7 @@ export default function CopyMealSheet({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-white rounded-t-2xl p-4 space-y-3"
+        className="w-full max-w-md bg-white rounded-t-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] space-y-3"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-baseline justify-between gap-2">

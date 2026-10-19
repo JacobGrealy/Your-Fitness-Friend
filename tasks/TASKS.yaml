@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-19T17:23
+  updated_at: 2026-10-19T18:02
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -3947,4 +3947,33 @@ intake:
     barcode_id, dataset stored as brand) plus two harness-only failures. Mobile verified with the real
     key: raw apples first, 182 g -> 111 kcal, reference preserved, deduplicated. Gates green: 288 backend,
     392 frontend.'
+  comments: []
+- id: FF-0100
+  title: Photo source sheet sits under the bottom nav, hiding Choose from gallery
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-19T17:57
+  updated_at: 2026-10-19T18:02
+  completed_at: 2026-10-19T18:02
+  waiting_on: null
+  parent_id: null
+  notes: 'Owner: "Choose from gallery is half off the screen below the footer". Cause: the sheet is fixed
+    inset-0 z-50 and the mobile bottom nav is also fixed z-50; equal z-index resolves by DOM order, and
+    BottomNav renders after page content, so the nav paints over the sheet last rows (Choose from gallery
+    + Cancel). It is a general layering fault, not specific to one screen: every bottom-anchored overlay
+    in the app (PhotoSourceChooser, CopyMealSheet, CropModal, FABModal) shares z-50 with the nav. Fix
+    by giving the nav z-40 so overlays sit above it, and add safe-area bottom padding to the sheet so
+    its buttons clear a home indicator. Verify by hit-testing the gallery button centre.
+
+
+    Closed: BottomNav z-50 -> z-40 so dialogs (z-50) outrank the footer, and bottom sheets gained pb-[calc(1rem+env(safe-area-inset-bottom))]
+    (PhotoSourceChooser, CopyMealSheet). Measured before: Cancel unreachable at 844px and 100% of the
+    gallery button hidden once a 34px home-indicator inset grows the footer. After: hit-testing the centre
+    of Take photo, Choose from gallery and Cancel lands on each button with a taller footer. 3 layering
+    tests pin the relationship; durable rule added to AGENTS.md under UI layering. Gates green.'
   comments: []
