@@ -4,6 +4,7 @@ meta:
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
+- FF-0086
 - FF-0082
 - FF-0084
 - FF-0085
