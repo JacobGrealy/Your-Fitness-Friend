@@ -1673,3 +1673,26 @@ destination is where the meal already is. The button is disabled for an empty me
 Verified on the isolated server: copying a seeded 2-item breakfast to the next day's lunch
 produced both entries with calories intact, and the browser check shows the sheet defaulting
 to today/source with "2 items" and the append warning. 8 backend and 6 component tests.
+
+## Round 74 — 2026-10-18 — FF-0084 the two screens stop contradicting each other
+
+Six divergences in one ticket, all verified in the tree: different windows (7 days vs all
+history sliced to 30 points), different date parsing (a date-only string parsed as UTC midnight
+labelled every Home point a day early), a `kg` label on pounds, `domain={['auto','auto']}` vs a
+padded goal-folding range, two verdict thresholds (0.5 lb vs 0.1 lb with a clock-time window),
+and three near-identical chart components.
+
+One shared module (`utils/weightTrend.ts`) now owns the day, the series, the verdict and the
+y-domain; both screens consume it, both state their window on screen, and the tooltip says
+pounds.
+
+Two of my own mistakes got caught by existing tests rather than by me. The per-day "latest
+wins" rule first kept whichever row happened to come last in the array — the FF-0084 fixture
+returned newest-first, so the *older* weigh-in won. It now compares timestamps. Then, having
+made Progress build a 30-day window, FF-0012's ordering test failed because history from
+September vanished from the chart: a Progress screen should not hide old weigh-ins, so the
+window became optional and Progress asks for everything while Home asks for 7. Both still agree
+on every overlapping day, which is the criterion that mattered.
+
+15 new tests pin the parse (date-only and timestamp forms of one day agree), the ordering, the
+single threshold, the goal folding and the empty case. Gates green at 333 frontend tests.

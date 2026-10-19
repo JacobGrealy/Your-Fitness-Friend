@@ -850,3 +850,28 @@ warned about, because doubling a portion that way is useful but should not be si
 
 The control sits on the meal header in the diary, defaulting to today and the source meal
 type, so the common case is one tap and confirm.
+
+## 2026-10-18 — One weight trend, presented twice
+
+Home said "trending down" and Progress showed an 80 lb climb, from the same table. Neither
+was wrong: they read different windows, parsed dates differently, labelled pounds as kilograms,
+scaled the y-axis by their own rule, and judged direction against different thresholds.
+
+`frontend/src/utils/weightTrend.ts` is now **the** definition:
+
+- **`dayOf()`** decides the calendar day. A date-only string is *already* a day and is returned
+  unchanged — parsing `new Date('2026-10-18')` as UTC midnight is precisely how Home labelled
+  every point a day early in negative offsets. Timestamps go through `localDateOf`, still the
+  only conversion allowed.
+- **`buildWeightSeries(logs, days)`** produces the points. The window is explicit and optional:
+  Home asks for 7, Progress asks for the whole history, and any day present in both is the
+  identical point. Within a day the **latest record wins**, decided by timestamp rather than by
+  whatever order the API returned.
+- **`trendDirection()`** is first-vs-last with one 0.5 lb threshold, and `trendChange()` exposes
+  the number it is based on. Deliberately not a regression slope: a verdict should be
+  explainable ("down 5.4 lb since the 17th"), not arguable.
+- **`weightYDomain()`** shares the axis rule, folding the goal in so its line stays visible.
+
+Both screens now state their window on screen ("last 7 days"), so a 7-day verdict cannot be
+mistaken for a lifetime claim, and Progress labels its verdict with the same words. The
+kilograms label in the Home tooltip was simply a bug: everything in this app is pounds.

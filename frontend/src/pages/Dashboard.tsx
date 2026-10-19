@@ -6,6 +6,12 @@ import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
 import StreakStrip from '@/components/food/StreakStrip'
 import { diaryApi, type DiaryStreaks, type DiaryWeek } from '@/api/diary'
 import { todayLocal } from '@/utils/localDate'
+import {
+  TREND_WINDOW_DAYS,
+  buildWeightSeries,
+  trendDirection,
+  weightYDomain,
+} from '@/utils/weightTrend'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import Loading from '@/components/common/Loading'
 import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
@@ -71,21 +77,18 @@ function Dashboard() {
     fetchWeightTrend(7)
   }, [])
 
+  // Same builder, same window and same verdict rule as Progress (FF-0084): the two screens
+  // may present differently, but they can no longer disagree about the data.
   const trendData = useMemo(() => {
     if (!Array.isArray(weightTrend)) return []
-    return weightTrend
-      .map(entry => ({ date: entry.date, weight: entry.weight_lbs }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    return buildWeightSeries(
+      weightTrend.map((entry) => ({ weight: entry.weight_lbs, date: entry.date })),
+      TREND_WINDOW_DAYS
+    )
   }, [weightTrend])
 
-  const getTrendDirection = () => {
-    if (trendData.length < 2) return 'stable' as const
-    const first = trendData[0].weight
-    const last = trendData[trendData.length - 1].weight
-    const diff = last - first
-    if (Math.abs(diff) < 0.5) return 'stable'
-    return diff > 0 ? 'up' as const : 'down' as const
-  }
+  const getTrendDirection = () => trendDirection(trendData)
+  const trendDomain = useMemo(() => weightYDomain(trendData), [trendData])
 
   const mealGroups = useMemo(() => {
     if (!dailySummary?.meals) return []
@@ -239,12 +242,18 @@ function Dashboard() {
         {trendData.length > 0 && (
           <div className="bg-white rounded-lg overflow-hidden">
             <div className="px-4 py-2" style={{ backgroundColor: '#185ADB' }}>
-              <p className="text-sm font-semibold" style={{ color: '#fff' }}>Weight Trend</p>
+              <div className="flex items-baseline justify-between">
+                <p className="text-sm font-semibold" style={{ color: '#fff' }}>Weight Trend</p>
+                <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                  last {TREND_WINDOW_DAYS} days
+                </p>
+              </div>
             </div>
             <div className="p-4">
               <WeightTrendChart
                 data={trendData}
                 trend={getTrendDirection()}
+                yDomain={trendDomain}
                 title=""
               />
             </div>

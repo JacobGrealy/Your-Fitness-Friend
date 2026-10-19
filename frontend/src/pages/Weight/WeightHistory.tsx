@@ -8,6 +8,11 @@ import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
 import Modal from '@/components/common/Modal'
 import WeightChartWithGoal from '@/components/charts/WeightChartWithGoal'
+import {
+  TREND_WINDOW_DAYS,
+  buildWeightSeries,
+  trendDirection,
+} from '@/utils/weightTrend'
 import { estimateGoalEta, formatEtaDate } from '@/utils/goalEta'
 import ThenAndNow from '@/components/weight/ThenAndNow'
 import WeightTimelapse from '@/components/weight/WeightTimelapse'
@@ -29,12 +34,26 @@ export default function WeightHistory() {
     new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()
   )
 
-  const chartData = [...logs]
-    .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
-    .map(log => ({
-      date: log.recorded_at,
-      weight: log.weight,
-    }))
+  // The same series definition Home uses (FF-0084). The window here is wider, but any
+  // overlapping day produces the identical point, which is what the two screens needed.
+  // Whole history for the chart (a Progress screen should not hide old weigh-ins), built by
+  // the same function Home uses, so any overlapping day is the identical point.
+  const series = buildWeightSeries(
+    logs.map((log) => ({ weight: log.weight, recorded_at: log.recorded_at })),
+    null
+  )
+  const direction = trendDirection(
+    buildWeightSeries(
+      logs.map((log) => ({ weight: log.weight, recorded_at: log.recorded_at })),
+      TREND_WINDOW_DAYS
+    )
+  )
+  const chartData = series.map((point) => ({
+    // The chart wants a string date; the local day is already decided here, so this cannot
+    // drift back into the UTC-shifted label (FF-0084).
+    date: `${point.day}T00:00:00`,
+    weight: point.weight,
+  }))
 
   const currentWeight = sortedLogs.length > 0 ? sortedLogs[0].weight : null
   const goalWeight = user?.weight_goal_lbs
@@ -104,6 +123,20 @@ export default function WeightHistory() {
       {/* Chart */}
       {chartData.length > 0 && (
         <div className="mb-4">
+          <div className="flex items-baseline justify-between px-1 mb-1">
+            <span className="text-xs" style={{ color: '#757575' }}>
+              last {TREND_WINDOW_DAYS} days
+            </span>
+            <span
+              className="text-xs font-semibold"
+              style={{
+                color:
+                  direction === 'down' ? '#2E7D32' : direction === 'up' ? '#c62828' : '#757575',
+              }}
+            >
+              {direction === 'stable' ? 'holding steady' : `trending ${direction}`}
+            </span>
+          </div>
           <WeightChartWithGoal data={chartData} height={180} goal={goalWeight} />
         </div>
       )}

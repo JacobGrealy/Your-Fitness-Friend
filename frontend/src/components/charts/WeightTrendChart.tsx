@@ -11,10 +11,13 @@ import { format } from 'date-fns'
 import { cn } from '@/components/common/cn'
 
 export interface WeightTrendChartProps {
-  data: { date: string; weight: number }[]
+  /** Points from utils/weightTrend: a numeric x (local midnight) and its calendar day. */
+  data: { date: number | string; day?: string; weight: number }[]
   trend?: 'up' | 'down' | 'stable'
   title?: string
   className?: string
+  /** Shared y-domain, so the same series cannot look steeper here than elsewhere. */
+  yDomain?: [number, number]
 }
 
 const trendColorMap: Record<string, string> = {
@@ -31,15 +34,19 @@ const trendGradientMap: Record<string, [string, string]> = {
 
 const formatYAxis = (value: number): string => value.toFixed(1)
 
-const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { date: string } }> }) => {
+const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { date: number | string; day?: string } }> }) => {
   if (active && payload && payload.length) {
-    const date = new Date(payload[0].payload.date)
-    const formattedDate = format(date, 'MMM dd, yyyy')
+    const point = payload[0].payload
+    // Prefer the calendar day the series already computed: parsing again here would
+    // reintroduce the UTC shift this ticket removes (FF-0084).
+    const formattedDate = point.day
+      ? format(new Date(`${point.day}T00:00:00`), 'MMM dd, yyyy')
+      : format(new Date(point.date), 'MMM dd, yyyy')
     return (
       <div className="rounded-lg bg-base-100 px-3 py-2 shadow-md">
         <p className="text-sm font-medium text-base-content">{formattedDate}</p>
         <p className="text-sm font-bold" style={{ color: 'var(--ac)' }}>
-          {payload[0].value.toFixed(1)} kg
+          {payload[0].value.toFixed(1)} lbs
         </p>
       </div>
     )
@@ -47,7 +54,7 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<
   return null
 }
 
-export default function WeightTrendChart({ data, trend = 'stable', title, className }: WeightTrendChartProps) {
+export default function WeightTrendChart({ data, trend = 'stable', title, className, yDomain }: WeightTrendChartProps) {
   const chartData = data.slice(-30)
   const strokeColor = trendColorMap[trend]
   const gradientColors = trendGradientMap[trend]
@@ -84,7 +91,7 @@ export default function WeightTrendChart({ data, trend = 'stable', title, classN
               tickFormatter={formatYAxis}
               className="text-xs"
               tick={{ fill: 'var(--bc)', fontSize: 11 }}
-              domain={['auto', 'auto']}
+              domain={yDomain ?? ['auto', 'auto']}
             />
             <Tooltip content={<CustomTooltip />} />
             <Area
