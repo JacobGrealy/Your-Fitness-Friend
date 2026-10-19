@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { diaryApi, type DiaryCompletionSummary, type DiaryStreaks, type DiaryWeek } from '@/api/diary'
 import CompleteDiaryModal from '@/components/food/CompleteDiaryModal'
 import ClosedDayPanel from '@/components/food/ClosedDayPanel'
+import CopyMealSheet from '@/components/food/CopyMealSheet'
 import StreakStrip from '@/components/food/StreakStrip'
 import { useFoodStore } from '@/store/foodStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
@@ -32,6 +33,7 @@ function MealSection({
   onDelete,
   onAddFood,
   onEditLog,
+  onCopy,
 }: {
   meal: MealType
   logs: FoodLog[]
@@ -41,6 +43,7 @@ function MealSection({
   onDelete: (id: string) => void
   onAddFood: (meal: MealType) => void
   onEditLog: (id: string) => void
+  onCopy: (meal: MealType) => void
 }) {
   return (
     <div className="bg-white rounded-lg">
@@ -58,6 +61,25 @@ function MealSection({
         <div className="flex items-center gap-2">
           <span className="text-white text-sm">
             {totals.calories > 0 ? `${totals.calories} cal` : '0 cal'}
+          </span>
+          {/* Copy this meal somewhere else, from the meal itself (FF-0082). */}
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={`Copy ${MEAL_LABELS[meal]}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              onCopy(meal)
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.stopPropagation()
+                onCopy(meal)
+              }
+            }}
+            className="px-2 py-0.5 rounded border border-white/60 text-white text-[11px] font-semibold"
+          >
+            Copy
           </span>
           <svg
             className={`w-4 h-4 text-white transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
@@ -147,7 +169,7 @@ function MealSection({
 export default function DailyFood() {
   const { setTitle, setCenterContent } = usePageTitle()
   const navigate = useNavigate()
-  const { foodLogs, dailyTotals, isLoading, fetchFoodLogs, fetchDailyTotals, deleteFoodLog, error } = useFoodStore()
+  const { foodLogs, dailyTotals, isLoading, fetchFoodLogs, fetchDailyTotals, deleteFoodLog, copyMeal, error } = useFoodStore()
   const [deleteLogId, setDeleteLogId] = useState<string | null>(null)
   const [collapsedMeals, setCollapsedMeals] = useState<Set<MealType>>(new Set())
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -160,6 +182,7 @@ export default function DailyFood() {
   const [completedToday, setCompletedToday] = useState(false)
   const [streaks, setStreaks] = useState<DiaryStreaks | null>(null)
   const [week, setWeek] = useState<DiaryWeek | null>(null)
+  const [copyFrom, setCopyFrom] = useState<MealType | null>(null)
   const [completing, setCompleting] = useState(false)
   const [undoing, setUndoing] = useState(false)
 
@@ -213,6 +236,21 @@ export default function DailyFood() {
       setCompleting(false)
     }
   }, [currentDate])
+
+  const handleCopyMeal = useCallback(
+    async (toDate: string, toMeal: MealType) => {
+      if (!copyFrom) return
+      try {
+        await copyMeal(
+          { date: format(currentDate, 'yyyy-MM-dd'), mealType: copyFrom },
+          { date: toDate, mealType: toMeal, label: `${MEAL_LABELS[toMeal]} on ${toDate}` }
+        )
+      } catch {
+        // the store has already explained the failure
+      }
+    },
+    [copyFrom, currentDate, copyMeal]
+  )
 
   const reopenDiary = useCallback(async () => {
     setUndoing(true)
@@ -328,6 +366,7 @@ export default function DailyFood() {
                 onDelete={(id) => setDeleteLogId(id)}
                 onAddFood={(m) => navigate(`/food/log?meal=${m}`, { state: returnState('/food/daily') })}
                 onEditLog={(id) => navigate(`/food/log/${id}/edit`)}
+                onCopy={setCopyFrom}
               />
             )
           })}
@@ -338,6 +377,17 @@ export default function DailyFood() {
           this row disappears rather than offering a second way to undo (FF-0068).
           Kept inline rather than in a fixed bar: a floating element has to clear the
           bottom nav itself, and that mistake cost three rounds (FF-0051, FF-0053). */}
+      {copyFrom && (
+        <CopyMealSheet
+          isOpen
+          onClose={() => setCopyFrom(null)}
+          fromMeal={copyFrom}
+          fromDate={format(currentDate, 'yyyy-MM-dd')}
+          itemCount={groupedLogs[copyFrom]?.length ?? 0}
+          onCopy={handleCopyMeal}
+        />
+      )}
+
       {!completedToday && (
         <div className="px-4 pt-2 pb-2">
           <button

@@ -527,6 +527,79 @@ def create_food_log():
     }), 201
 
 
+@bp.route('/log/copy', methods=['POST'])
+@login_required
+def copy_meal():
+    """Copy every entry of one meal onto another date and meal (FF-0082).
+
+    Copies each log's own snapshot rather than re-reading the linked Food: a log keeps the
+    nutrition it was logged with, and a copy must reproduce what was eaten, not what the
+    food happens to say today. The photo is deliberately not copied - it belongs to that
+    meal on that day, and two rows pointing at one file have no clear owner.
+    """
+    data = request.get_json() or {}
+
+    try:
+        from_date = datetime.strptime(data['from_date'], '%Y-%m-%d').date()
+        to_date = datetime.strptime(data['to_date'], '%Y-%m-%d').date()
+    except (KeyError, TypeError, ValueError):
+        return jsonify({'error': 'from_date and to_date are required, as YYYY-MM-DD'}), 400
+
+    from_meal = data.get('from_meal_type')
+    to_meal = data.get('to_meal_type') or from_meal
+    valid_meal_types = ['breakfast', 'lunch', 'dinner', 'snack']
+    if from_meal not in valid_meal_types or to_meal not in valid_meal_types:
+        return jsonify(
+            {'error': f'meal types must be one of: {", ".join(valid_meal_types)}'}
+        ), 400
+
+    source = (
+        FoodLog.query
+        .filter_by(user_id=current_user.id, date=from_date, meal_type=from_meal)
+        .order_by(FoodLog.id)
+        .all()
+    )
+    if not source:
+        return jsonify({'error': 'That meal is empty, so there is nothing to copy'}), 400
+
+    created = []
+    for log in source:
+        copy = FoodLog(
+            user_id=current_user.id,
+            food_id=log.food_id,
+            food_name=log.food_name,
+            calories=log.calories,
+            protein_g=log.protein_g,
+            carbs_g=log.carbs_g,
+            fat_g=log.fat_g,
+            calories_per_serving=log.calories_per_serving,
+            protein_per_serving=log.protein_per_serving,
+            carbs_per_serving=log.carbs_per_serving,
+            fat_per_serving=log.fat_per_serving,
+            serving_size=log.serving_size,
+            number_of_servings=log.number_of_servings,
+            brand=log.brand,
+            barcode_id=log.barcode_id,
+            date=to_date,
+            meal_type=to_meal,
+            # photo_url intentionally omitted
+        )
+        db.session.add(copy)
+        created.append(copy)
+
+    db.session.commit()
+    current_app.logger.info(
+        f"Copy meal: {len(created)} entries {from_date}/{from_meal} -> {to_date}/{to_meal}"
+    )
+
+    return jsonify({
+        'copied': len(created),
+        'to_date': to_date.isoformat(),
+        'to_meal_type': to_meal,
+        'logs': [log.to_dict() for log in created],
+    }), 201
+
+
 @bp.route('/log/<int:log_id>', methods=['GET'])
 @login_required
 def get_food_log(log_id):

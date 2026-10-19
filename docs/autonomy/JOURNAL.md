@@ -1657,3 +1657,19 @@ legacy client sending only totals.
 
 Note for the next round: the **form still sends totals**, so the visible symptom persists
 until the two-screen UI lands — the API fix is necessary but not sufficient.
+
+## Round 73 — 2026-10-18 — FF-0082 copy a meal, from the meal itself
+
+Backend is one endpoint, `POST /api/food/log/copy`, doing all entries in a single transaction.
+It copies each log's snapshot including per-serving values rather than re-reading the linked
+Food — a copy records a meal that happened, and picking up a since-edited food would make the
+copy disagree with its source. The photo is deliberately not copied: two rows pointing at one
+file with no owner is how the orphan problems of FF-0080 began, and the sheet says so.
+
+Frontend is a `CopyMealSheet` opened from a Copy control on each meal header, defaulting to
+today and the source meal type. Append rather than replace, with an explicit warning when the
+destination is where the meal already is. The button is disabled for an empty meal.
+
+Verified on the isolated server: copying a seeded 2-item breakfast to the next day's lunch
+produced both entries with calories intact, and the browser check shows the sheet defaulting
+to today/source with "2 items" and the append warning. 8 backend and 6 component tests.

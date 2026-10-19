@@ -830,3 +830,23 @@ directory and removes it, and the smoke gate sets its own. The standing check is
 not promise: `./scripts/gates.sh` must leave `find app/uploads -type f | wc -l` unchanged.
 It did not before this change — the 191-test suite was writing profile photos into
 production on every run.
+
+## 2026-10-18 — Copying a meal reproduces what you ate, not what the food says today
+
+`POST /api/food/log/copy` duplicates every entry of a meal onto another date and meal in one
+request and one transaction — a per-item loop from the client would fire N refresh and toast
+cycles and could half-succeed.
+
+It copies the log's snapshot, including per-serving values, rather than re-reading the linked
+`Food`: a log keeps its own nutrition by design, and a copy records a meal that happened.
+Silently picking up a since-edited food would make the copy disagree with its source.
+
+The photo is not copied. Two rows pointing at one file with no clear owner is how orphan and
+double-delete bugs start, and the sheet says so in plain words rather than leaving it to be
+discovered.
+
+Append, never replace — and say it: copying onto the same date and meal is allowed and
+warned about, because doubling a portion that way is useful but should not be silent.
+
+The control sits on the meal header in the diary, defaulting to today and the source meal
+type, so the common case is one tap and confirm.
