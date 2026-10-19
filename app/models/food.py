@@ -15,6 +15,8 @@ class Food(db.Model):
     carbs_g = db.Column(db.Float, default=0.0)
     fat_g = db.Column(db.Float, default=0.0)
     serving_size = db.Column(db.String(255), nullable=True)
+    serving_amount = db.Column(db.Float, nullable=True)
+    serving_unit = db.Column(db.String(20), nullable=True)
     brand = db.Column(db.String(100), nullable=True)
     barcode_id = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -30,6 +32,8 @@ class Food(db.Model):
             'carbs_g': self.carbs_g,
             'fat_g': self.fat_g,
             'serving_size': self.serving_size,
+            'serving_amount': self.serving_amount,
+            'serving_unit': self.serving_unit,
             'brand': self.brand,
             'barcode_id': self.barcode_id,
             'created_at': self.created_at.isoformat() if self.created_at else None

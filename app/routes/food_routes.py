@@ -14,6 +14,7 @@ from app.utils.serving import (
     per_serving_from_totals,
     totals_from_per_serving,
 )
+from app.utils.quantities import apply_reference, apply_consumed
 from app import db
 from datetime import datetime, date, timedelta
 
@@ -88,6 +89,7 @@ def _apply_nutrition(log, data):
     Case 3 is the bug this fixes: changing Number of Servings used to move the count and
     leave the macros untouched, so the two disagreed.
     """
+    data = apply_consumed(log, data)
     servings = normalise_servings(
         data.get('number_of_servings', log.number_of_servings), default=1.0
     )
@@ -171,7 +173,7 @@ def _clean_barcode(value):
     return cleaned or None
 
 
-def _sync_linked_food(log):
+def _sync_linked_food(log, structured=False):
     """Copy edited nutrition onto the linked Food record.
 
     Other logs referencing the same food are deliberately left alone: each log
@@ -185,11 +187,15 @@ def _sync_linked_food(log):
         return
 
     food.name = log.food_name
-    food.calories = log.calories
-    food.protein_g = log.protein_g
-    food.carbs_g = log.carbs_g
-    food.fat_g = log.fat_g
+    # Structured foods store a REFERENCE serving, never the last amount eaten.
+    nutrition = log.per_serving() if structured and log.serving_amount else {
+        macro: getattr(log, macro) for macro in MACROS
+    }
+    for macro, value in nutrition.items():
+        setattr(food, macro, int(round(value)) if macro == 'calories' else value)
     food.serving_size = log.serving_size
+    food.serving_amount = log.serving_amount
+    food.serving_unit = log.serving_unit
     if log.brand is not None:
         food.brand = log.brand
     if _clean_barcode(log.barcode_id) is not None:
@@ -202,20 +208,10 @@ def get_foods():
     """Search and get foods (user's foods + shared foods)."""
     search_query = request.args.get('q', '').strip()
     
+    query = Food.query.filter(db.or_(Food.user_id == current_user.id, Food.user_id.is_(None)))
     if search_query:
-        foods = Food.query.filter(
-            db.or_(
-                Food.name.ilike(f'%{search_query}%'),
-                Food.user_id.is_(None)
-            )
-        ).limit(20).all()
-    else:
-        foods = Food.query.filter(
-            db.or_(
-                Food.user_id == current_user.id,
-                Food.user_id.is_(None)
-            )
-        ).limit(20).all()
+        query = query.filter(Food.name.ilike(f'%{search_query}%'))
+    foods = query.order_by(Food.name, Food.id).limit(100 if search_query else 1000).all()
     
     return jsonify([{
         'id': f.id,
@@ -226,6 +222,8 @@ def get_foods():
         'carbs_g': f.carbs_g,
         'fat_g': f.fat_g,
         'serving_size': f.serving_size,
+        'serving_amount': f.serving_amount,
+        'serving_unit': f.serving_unit,
         'brand': f.brand,
         'barcode_id': f.barcode_id,
     } for f in foods]), 200
@@ -254,6 +252,7 @@ def get_recent_foods():
                 'total_logs': 0,
                 'last_logged': log.date,
                 'serving_size': log.serving_size,
+                'snapshot': log.to_dict(),
                 # logs are ordered newest first, so the first photo encountered
                 # is the most recent one for this food
                 'photo_url': log.photo_url or None,
@@ -272,6 +271,9 @@ def get_recent_foods():
         food = food_lookup.get(food_id)
         if food:
             result.append({
+                **{key: data['snapshot'].get(key) for key in (
+                    'serving_amount', 'serving_unit', 'amount', 'unit', 'number_of_servings',
+                    'calories_per_serving', 'protein_per_serving', 'carbs_per_serving', 'fat_per_serving')},
                 'food_name': food.name,
                 'food_id': food_id,
                 'calories': food.calories,
@@ -356,6 +358,11 @@ def create_food():
         )
         db.session.add(food)
     
+    try:
+        apply_reference(food, data)
+    except (TypeError, ValueError) as exc:
+        db.session.rollback()
+        return jsonify({'error': str(exc)}), 400
     db.session.commit()
     
     return jsonify({
@@ -367,6 +374,8 @@ def create_food():
         'carbs_g': food.carbs_g,
         'fat_g': food.fat_g,
         'serving_size': food.serving_size,
+        'serving_amount': food.serving_amount,
+        'serving_unit': food.serving_unit,
         'brand': food.brand,
         'barcode_id': food.barcode_id
     }), 201
@@ -433,6 +442,7 @@ def get_food_logs():
         'date': log_date.isoformat(),
         'logs': [{
             'id': log.id,
+            **log.to_dict(),
             'food_name': log.food_name,
             'calories': log.calories,
             'protein_g': log.protein_g,
@@ -507,12 +517,16 @@ def create_food_log():
     # Get brand/barcode_id from food reference or request data
     brand = None
     barcode_id = None
+    food = None
+    structured = any(key in data for key in ('amount', 'unit', 'serving_amount', 'serving_unit'))
     if data.get('food_id'):
         food = Food.query.filter_by(
             id=int(data['food_id']),
             user_id=current_user.id
         ).first()
-        if food:
+        if not food:
+            return jsonify({'error': 'Food not found'}), 404
+        if food and not structured:
             food.name = data.get('food_name', food.name)
             food.calories = data.get('calories', food.calories)
             food.protein_g = data.get('protein_g', food.protein_g)
@@ -553,12 +567,28 @@ def create_food_log():
     
     # One arithmetic path for every write: totals and per-serving stay consistent no
     # matter which unit the client sent (FF-0083).
-    _apply_nutrition(food_log, {**data, 'number_of_servings': number_of_servings})
+    try:
+        if food and food.serving_amount:
+            food_log.serving_amount = food.serving_amount
+            food_log.serving_unit = food.serving_unit
+            food_log.serving_size = food.serving_size
+            if structured:
+                data = dict(data)
+                for macro, field in PER_SERVING_FIELDS.items():
+                    setattr(food_log, field, getattr(food, macro))
+                    data.setdefault(field, getattr(food, macro))
+                brand, barcode_id = food.brand, food.barcode_id
+                food_log.brand, food_log.barcode_id = brand, barcode_id
+        _apply_nutrition(food_log, {**data, 'number_of_servings': number_of_servings})
+    except (TypeError, ValueError) as exc:
+        db.session.rollback()
+        return jsonify({'error': str(exc)}), 400
 
     db.session.add(food_log)
     db.session.commit()
     
     return jsonify({
+        **food_log.to_dict(),
         'id': food_log.id,
         'food_name': food_log.food_name,
         'calories': food_log.calories,
@@ -655,6 +685,10 @@ def copy_meal():
             carbs_per_serving=log.carbs_per_serving,
             fat_per_serving=log.fat_per_serving,
             serving_size=log.serving_size,
+            serving_amount=log.serving_amount,
+            serving_unit=log.serving_unit,
+            amount=log.amount,
+            unit=log.unit,
             number_of_servings=log.number_of_servings,
             brand=log.brand,
             barcode_id=log.barcode_id,
@@ -758,6 +792,7 @@ def update_food_log(log_id):
 
         nutrition_supplied = (
             data.get('calories') is not None
+            or any(key in data for key in ('amount', 'unit', 'serving_amount', 'serving_unit'))
             or data.get('number_of_servings') is not None
             or _requested_per_serving(data) is not None
             or any(data.get(macro) is not None for macro in MACROS[1:])
@@ -788,7 +823,8 @@ def update_food_log(log_id):
     if data.get('photo_url') is not None:
         log.photo_url = data['photo_url']
 
-    _sync_linked_food(log)
+    _sync_linked_food(log, structured=any(key in data for key in (
+        'amount', 'unit', 'serving_amount', 'serving_unit')) or _requested_per_serving(data) is not None)
 
     db.session.commit()
     current_app.logger.info(

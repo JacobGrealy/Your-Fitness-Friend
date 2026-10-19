@@ -1030,3 +1030,13 @@ servings-only rescale.
 The app itself never sent a partial payload, so this was latent rather than live. It is fixed
 because the failure mode is silent data loss on any other client, which is the class of bug this
 project has already met twice (FF-0073's photo wipes, FF-0081's barcode wipe).
+
+## FF-0094 — Structured servings retain a reference and a consumed quantity
+
+Food.serving_amount/unit define the nutrition reference; FoodLog copies that reference and
+stores amount/unit eaten plus the existing derived number_of_servings. Metadata-only migration
+parses whole unambiguous labels; original labels, calorie/macro totals and counts are untouched.
+US customary cup/tbsp/tsp convert through ml; mass converts through grams. No density or
+item weight is guessed. Legacy totals payloads keep their previous sync contract; structured
+quantity/per-serving payloads sync reference nutrition, never the amount eaten, to saved foods.
+Implementation is inline at the owner's explicit request overriding the normal delegation rule.
