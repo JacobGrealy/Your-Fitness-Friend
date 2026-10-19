@@ -1783,3 +1783,25 @@ present when on and gone when off, the setting surviving a trip to Home and back
 slips, both caught by tests rather than by eye: a renamed type left three stale call sites, and
 my first browser probe counted the switch's own "Goal" text as if it were the chart label — the
 assertion was wrong, not the feature.
+
+## Round 79 — 2026-10-19 — FF-0090 the weight card measures from the start
+
+The owner asked whether "vs. Yesterday" is always yesterday. It is — strictly the previous
+calendar day, with no fallback — but reading the code showed that honesty was hiding two
+defects: the comparison vanished on any day without a weigh-in yesterday, and when the newest
+log *was* yesterday's the card compared that log to itself, printing "Current Weight 259.3 /
+vs. Yesterday 0.0 lbs" for someone who had not weighed in at all.
+
+Asked, and the owner chose: compare against the starting weight, and date the current number.
+Starting weight is the earliest weigh-in — no new column, and the date is shown ("since
+Oct 17") so the baseline is never a mystery number.
+
+Rebuilding the block turned up two more issues of exactly the kind this session keeps meeting.
+The old code loaded `.limit(8)` logs and searched that list, so the week-ago row could silently
+fall out; each lookup is now its own query. And the first verification run returned the *older*
+of two same-day weigh-ins as current: the app stores weight logs at midnight, so same-day
+entries tie on `recorded_at` and only the id orders them. Tie-break added, with a test.
+
+Verified on the isolated server (264.7 → 259.3 → 257.5 gives current 257.5, start 264.7, −7.2)
+and in the browser: "Current Weight 257.5 lbs · vs. Starting Weight ↓ -7.2 lbs (-2.7%) since
+Oct 19". 8 backend and 4 frontend tests; all gates green.

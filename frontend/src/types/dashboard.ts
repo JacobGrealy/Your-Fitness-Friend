@@ -30,6 +30,12 @@ export interface DailyMacroData {
  */
 export interface DailyWeightData {
   current: number | null
+  /** ISO date of the newest weigh-in, which may not be today (FF-0090). */
+  current_date: string | null
+  /** The earliest weigh-in: the baseline the card compares against. */
+  start: number | null
+  start_date: string | null
+  change_from_start: number | null
   change_from_yesterday: number | null
   change_from_week_ago: number | null
 }
