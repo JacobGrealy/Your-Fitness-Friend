@@ -7,14 +7,25 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
+  ReferenceArea,
   Label,
 } from 'recharts'
 import { format } from 'date-fns'
+
+export interface BmiOverlay {
+  /** Shaded healthy band, in pounds. */
+  healthyRange?: { low: number; high: number } | null
+  /** Lines where overweight and obese begin, in pounds. */
+  overweightFrom?: number | null
+  obeseFrom?: number | null
+}
 
 export interface WeightChartWithGoalProps {
   data: { date: string; weight: number }[]
   height?: number
   goal?: number
+  /** Reference bands drawn behind the series (FF-0085). */
+  bmi?: BmiOverlay
 }
 
 const formatYAxis = (value: number): string => value.toFixed(1)
@@ -36,7 +47,7 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<
   return null
 }
 
-export default function WeightChartWithGoal({ data, height = 180, goal }: WeightChartWithGoalProps) {
+export default function WeightChartWithGoal({ data, height = 180, goal, bmi }: WeightChartWithGoalProps) {
   const chartData = data.slice(-30)
 
   const yAxisDomain = (() => {
@@ -44,8 +55,19 @@ export default function WeightChartWithGoal({ data, height = 180, goal }: Weight
     const weights = chartData.map(d => d.weight)
     const dataMin = Math.min(...weights)
     const dataMax = Math.max(...weights)
-    if (goal !== undefined && goal !== null) {
-      const allValues = [...weights, goal]
+    const overlayValues = [
+      bmi?.healthyRange?.low,
+      bmi?.healthyRange?.high,
+      bmi?.overweightFrom,
+      bmi?.obeseFrom,
+    ].filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+
+    if (goal !== undefined && goal !== null || overlayValues.length > 0) {
+      const allValues = [
+        ...weights,
+        ...(goal !== undefined && goal !== null ? [goal] : []),
+        ...overlayValues,
+      ]
       const globalMin = Math.min(...allValues)
       const globalMax = Math.max(...allValues)
       const padding = Math.max((globalMax - globalMin) * 0.15, 1)
@@ -79,6 +101,36 @@ export default function WeightChartWithGoal({ data, height = 180, goal }: Weight
             domain={yAxisDomain}
           />
           <Tooltip content={<CustomTooltip />} />
+          {bmi?.healthyRange && (
+              <ReferenceArea
+                y1={bmi.healthyRange.low}
+                y2={bmi.healthyRange.high}
+                fill="#22c55e"
+                fillOpacity={0.12}
+                stroke="none"
+                ifOverflow="hidden"
+              />
+            )}
+            {typeof bmi?.overweightFrom === 'number' && (
+              <ReferenceLine
+                y={bmi.overweightFrom}
+                stroke="#f59e0b"
+                strokeDasharray="4 4"
+                ifOverflow="hidden"
+              >
+                <Label value="Overweight" position="insideTopRight" fill="#b45309" fontSize={10} />
+              </ReferenceLine>
+            )}
+            {typeof bmi?.obeseFrom === 'number' && (
+              <ReferenceLine
+                y={bmi.obeseFrom}
+                stroke="#ef4444"
+                strokeDasharray="4 4"
+                ifOverflow="hidden"
+              >
+                <Label value="Obese" position="insideTopRight" fill="#b91c1c" fontSize={10} />
+              </ReferenceLine>
+            )}
           {goal && (
             <ReferenceLine y={goal} stroke="#22c55e" strokeDasharray="5 5">
               <Label value="Goal" position="right" fill="#22c55e" fontSize={11} />

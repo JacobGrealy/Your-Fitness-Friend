@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-18T22:00
+  updated_at: 2026-10-18T22:05
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue:
-- FF-0085
+queue: []
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -3182,11 +3181,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 3
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-18T19:48
-  updated_at: 2026-10-18T19:48
-  completed_at: null
+  updated_at: 2026-10-18T22:05
+  completed_at: 2026-10-18T22:05
   waiting_on: null
   parent_id: null
   notes: "1) User Story: on the weight graph I want reference lines for the healthy-weight range, the\
@@ -3258,7 +3257,13 @@ intake:
     \ the owner wants it sooner.\n\n\nCorrection to (2): the grep warning was garbled. The point is that\
     \ a naive case-insensitive search for 'bmi' also matches the letters b-m-i inside the word s-u-b-m-i-t\
     \ (e.g. submitLabel), so use a word-boundary grep or you will think BMI code exists when it does not.\
-    \ With word boundaries there really are zero hits."
+    \ With word boundaries there really are zero hits.\n\nClosed: utils/bmi.ts owns the single conversion\
+    \ (cm->m, lb->kg) and the WHO cut-points with the ticket's vectors pinned as tests; three independent\
+    \ toggles (healthy band via ReferenceArea 18.5-25, overweight line at 25, obese line at 30) on the\
+    \ Progress chart, all default off, persisted with the defensive localStorage pattern, and a height-less\
+    \ user sees 'BMI ranges need your height - add it in More > Profile' instead of nothing. Y-axis decision:\
+    \ only enabled thresholds enter the domain, so a toggle always changes what is drawn without flattening\
+    \ the data. 16 new tests. Frontend-only."
   comments: []
 - id: FF-0086
   title: 'Two-screen edit: log serving screen and food detail screen'

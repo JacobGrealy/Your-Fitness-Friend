@@ -875,3 +875,26 @@ scaled the y-axis by their own rule, and judged direction against different thre
 Both screens now state their window on screen ("last 7 days"), so a 7-day verdict cannot be
 mistaken for a lifetime claim, and Progress labels its verdict with the same words. The
 kilograms label in the Home tooltip was simply a bug: everything in this app is pounds.
+
+## 2026-10-18 — BMI bands are computed from height, so a missing height is a state, not an error
+
+Three toggles on the Progress chart draw BMI reference bands in pounds: a shaded healthy band
+(18.5–25), a line where overweight begins (25), and one where obese begins (30). Each switches
+independently, all default to off, and the choice persists.
+
+**One conversion, in `utils/bmi.ts`.** Weight is stored in pounds and height in centimetres, so
+the helper converts once — the imperial `703·lb/in²` form gives identical numbers, and having
+both is how FF-0084's drift started. The ticket's vectors are pinned as tests (74 in: 18.5 →
+144.1 lb, 25 → 194.7 lb, 30 → 233.7 lb; 259.3 lb → BMI 33.29; the 190 lb goal → 24.39, healthy).
+
+**No height means no bands, and the UI says so.** Two of the live accounts have a null height.
+Rendering NaN or a line at zero would be worse than not drawing; the toggles are replaced by
+"BMI ranges need your height — add it in More → Profile", which answers the question the user
+would otherwise ask.
+
+**Only enabled thresholds enter the y-axis domain.** This was the trap in the brief: a band
+outside the axis is silently clipped by recharts, so a working toggle would look broken.
+Folding *every* band in unconditionally would crush the real data flat; folding only what is
+switched on keeps the graph readable and guarantees the toggle always changes what is drawn.
+
+Home's 7-day sparkline gets none of this — it is a glance, not an instrument.
