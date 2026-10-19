@@ -111,6 +111,13 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
   module that joins `root_path` with `'uploads'` or writes the literal anywhere except
   `app/utils/uploads.py` and `app/config.py`.
 
+## UI layering
+- **Dialogs and sheets must outrank the mobile footer.** `BottomNav` is fixed at `z-40` and
+  every overlay (modals, bottom sheets, the loading screen) is `z-50`; equal z-index resolves
+  by DOM order and the nav renders last, so matching them hides a sheet's bottom rows behind the
+  footer — that is what buried "Choose from gallery" (FF-0100). Bottom-anchored panels also
+  carry `pb-[calc(1rem+env(safe-area-inset-bottom))]` so their buttons clear a home indicator.
+
 ## Runtime topology
 - **Production** — `fitnessfriend.service`: gunicorn on `0.0.0.0:5001`, serving
   both the Flask API and the built SPA from `app/static`.

@@ -1099,3 +1099,16 @@ without it the UI would re-offer an already-imported food.
 
 The key lives in `.env` (untracked, mode 600) and reaches gunicorn through `run-backend.sh`'s
 `set -a` sourcing.
+
+## FF-0100 — Overlays outrank the footer; the nav is not a dialog layer
+
+The photo sheet and the mobile footer were both `z-50`. Equal z-index resolves by DOM order,
+BottomNav renders after page content, and so the footer painted over every bottom sheet's last
+rows: "Choose from gallery" was buried and Cancel was invisible. It was not one screen's bug —
+CopyMealSheet, CropModal and FABModal shared the same layer.
+
+The nav is now `z-40`, so dialogs (`z-50`) sit above it, and bottom-anchored panels carry
+`pb-[calc(1rem+env(safe-area-inset-bottom))]` so their buttons clear a home indicator. Measured
+before the fix: with a 34 px inset the footer covered 100% of the gallery button; after, all
+three sheet actions take a tap at their centre. The rule is recorded in AGENTS.md under "UI
+layering", with a test that asserts the relationship rather than the numbers.
