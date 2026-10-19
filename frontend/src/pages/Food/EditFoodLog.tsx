@@ -1,26 +1,36 @@
-import { useState, useCallback, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from 'react-router-dom'
 import { editFoodLogSchema } from '@/utils/schemas'
 import type { FoodLogCreate, MealType } from '@/types'
 import { useFoodStore } from '@/store/foodStore'
+import Modal from '@/components/common/Modal'
 import PhotoSourceChooser from '@/components/common/PhotoSourceChooser'
-import BarcodeScanner from '@/components/food/BarcodeScanner'
 import Button from '@/components/common/Button'
 import Spinner from '@/components/common/Spinner'
 import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
+import {
+  QUICK_SERVINGS,
+  formatNumber,
+  formatPerServing,
+  perServingOf,
+  scalePerServing,
+  type PerServing,
+} from '@/utils/serving'
 
 export default function EditFoodLog() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { getFoodLogById, updateFoodLog, uploadFoodLogPhoto, deleteFoodLogPhoto, error, isLoading } = useFoodStore()
+  const { getFoodLogById, updateFoodLog, uploadFoodLogPhoto, deleteFoodLogPhoto, deleteFoodLog, error, isLoading } = useFoodStore()
 
   // Camera or gallery, chosen explicitly (FF-0078).
   const [showPhotoSources, setShowPhotoSources] = useState(false)
-  // Scanning straight into the barcode field (FF-0081).
-  const [scanning, setScanning] = useState(false)
-  const [scanError, setScanError] = useState<string | null>(null)
+  // The log's own nutrition base: per-serving values loaded with the entry, used to
+  // derive the totals shown as the serving count changes (FF-0086).
+  const [perServing, setPerServing] = useState<PerServing>({ calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 })
+  const [brand, setBrand] = useState('')
+  const [servingSize, setServingSize] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -29,6 +39,7 @@ export default function EditFoodLog() {
   // picked file. Local on purpose: the store's uploadedPhotoUrl belongs to whichever
   // screen wrote it last (FF-0075).
   const [uploadedThisVisit, setUploadedThisVisit] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [formDataLoaded, setFormDataLoaded] = useState(false)
 
   useEffect(() => {
@@ -48,6 +59,7 @@ export default function EditFoodLog() {
     register,
     handleSubmit,
     setValue,
+    control,
     watch,
     formState: { errors },
   } = useForm<FoodLogCreate & { meal_type: MealType }>({
@@ -84,6 +96,9 @@ export default function EditFoodLog() {
         setValue('carbs_g', log.carbs_g ?? 0)
         setValue('fat_g', log.fat_g ?? 0)
         setValue('number_of_servings', log.number_of_servings ?? 1)
+        setPerServing(perServingOf(log))
+        setBrand(log.brand ?? '')
+        setServingSize(log.serving_size ?? '')
         setValue('serving_size', log.serving_size ?? '')
         setValue('brand', log.brand ?? '')
         setValue('barcode_id', log.barcode_id ?? '')
@@ -93,6 +108,19 @@ export default function EditFoodLog() {
       }
     })
   }, [id, getFoodLogById, setValue])
+
+  // useWatch rather than watch(): the typed entry has to re-render the totals as you type,
+  // and watch() alone does not re-subscribe for a registered number input.
+  const watchedServings = useWatch({ control, name: 'number_of_servings' })
+  const currentServings = Number(watchedServings) > 0 ? Number(watchedServings) : 1
+  const totals = useMemo(
+    () => scalePerServing(perServing, currentServings),
+    [perServing, currentServings]
+  )
+  const setServings = useCallback(
+    (value: number) => setValue('number_of_servings', value, { shouldDirty: true, shouldValidate: true }),
+    [setValue]
+  )
 
   const handleFileSelect = useCallback((file: File) => {
     setSelectedFile(file)
@@ -124,6 +152,13 @@ export default function EditFoodLog() {
   // Newly uploaded photo, else the entry's own photo. A picked file previews first.
   const shownPhotoUrl = previewUrl ?? uploadedThisVisit ?? initialPhotoUrl
 
+  const handleDeleteEntry = useCallback(async () => {
+    if (!id) return
+    await deleteFoodLog(id)
+    setConfirmDelete(false)
+    navigate('/food/daily')
+  }, [id, deleteFoodLog, navigate])
+
   const handleDeletePhoto = useCallback(async () => {
     if (!id) return
     await deleteFoodLogPhoto(id)
@@ -144,21 +179,19 @@ export default function EditFoodLog() {
     }
     const basePayload = {
       food_name: data.food_name,
-      calories: data.calories,
-      protein_g: data.protein_g,
-      carbs_g: data.carbs_g,
-      fat_g: data.fat_g,
       number_of_servings: data.number_of_servings,
+      // Per-serving, not totals: the log's macros follow the count on the server, which is
+      // the bug this screen exists to fix (FF-0083/FF-0086).
+      calories_per_serving: perServing.calories,
+      protein_per_serving: perServing.protein_g,
+      carbs_per_serving: perServing.carbs_g,
+      fat_per_serving: perServing.fat_g,
       serving_size: data.serving_size,
-      brand: data.brand,
       date: data.date,
       meal_type: data.meal_type,
-    } satisfies Omit<typeof data, 'barcode_id'>
+    }
 
-    // Only send a barcode when the user actually has one, so editing any other field
-    // cannot wipe the code that came from the scanner.
-    const barcode = (data.barcode_id ?? '').trim()
-    await updateFoodLog(id, barcode ? { ...basePayload, barcode_id: barcode } : basePayload)
+    await updateFoodLog(id, basePayload)
     navigate(-1)
   }
 
@@ -209,111 +242,76 @@ export default function EditFoodLog() {
           </div>
         </div>
 
-        <div className="text-xs font-semibold uppercase tracking-wider text-[#757575] mt-2">Food Info</div>
+        <div className="text-xs font-semibold uppercase tracking-wider text-[#757575] mt-2">Food</div>
 
-        {/* Food Name */}
+        {/* What was eaten. The editable details live on their own screen: macros per
+            serving belong to the food, the serving count belongs to this log (FF-0086). */}
         <div className="bg-white rounded-lg p-4">
-          <label className="block text-sm font-medium text-mfp-text mb-2">Food Name</label>
-          <input
-            type="text"
-            {...register('food_name')}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
-          />
-          {errors.food_name && (
-            <p className="mt-1 text-xs text-mfp-error">{errors.food_name.message}</p>
-          )}
-        </div>
-
-        {/* Brand */}
-        <div className="bg-white rounded-lg p-4">
-          <label className="block text-sm font-medium text-mfp-text mb-2">Brand (optional)</label>
-          <input
-            type="text"
-            {...register('brand')}
-            placeholder="e.g. Perdue"
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
-          />
-          {errors.brand && (
-            <p className="mt-1 text-xs text-mfp-error">{errors.brand.message}</p>
-          )}
-        </div>
-
-        <div className="text-xs font-semibold uppercase tracking-wider text-[#757575] mt-2">Nutrition</div>
-
-        {/* Calories */}
-        <div className="bg-white rounded-lg p-4">
-          <label className="block text-sm font-medium text-mfp-text mb-2">Calories</label>
-          <input
-            type="number"
-            {...register('calories')}
-            className="w-full px-3 py-3 text-3xl font-bold text-center border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
-          />
-          <div className="text-center text-xs text-[#757575] mt-1">kcal</div>
-          {errors.calories && (
-            <p className="mt-1 text-xs text-mfp-error">{errors.calories.message}</p>
-          )}
-        </div>
-
-        {/* Macros */}
-        <div className="bg-white rounded-lg p-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-center">
-              <label className="block text-xs text-[#757575] mb-1.5 uppercase tracking-wider">Protein</label>
-              <input
-                type="number"
-                step="0.1"
-                {...register('protein_g')}
-                className="w-full px-2 py-2.5 border border-gray-300 rounded-lg text-mfp-text text-center focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
-              />
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-base font-semibold truncate" style={{ color: '#212121' }}>
+                {watch('food_name') || 'Untitled food'}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: '#757575' }}>
+                {[brand, servingSize].filter(Boolean).join(' · ') || 'No brand or serving size'}
+              </p>
+              <p className="text-xs mt-2" style={{ color: '#757575' }}>
+                {formatPerServing(perServing)}
+              </p>
             </div>
-            <div className="text-center">
-              <label className="block text-xs text-[#757575] mb-1.5 uppercase tracking-wider">Carbs</label>
-              <input
-                type="number"
-                step="0.1"
-                {...register('carbs_g')}
-                className="w-full px-2 py-2.5 border border-gray-300 rounded-lg text-mfp-text text-center focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
-              />
-            </div>
-            <div className="text-center">
-              <label className="block text-xs text-[#757575] mb-1.5 uppercase tracking-wider">Fat</label>
-              <input
-                type="number"
-                step="0.1"
-                {...register('fat_g')}
-                className="w-full px-2 py-2.5 border border-gray-300 rounded-lg text-mfp-text text-center focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
-              />
-            </div>
+            <button
+              type="button"
+              onClick={() => navigate(`/food/log/${id}/food`)}
+              className="flex-shrink-0 text-xs font-semibold px-3 py-2 rounded-lg border"
+              style={{ borderColor: '#185ADB', color: '#185ADB' }}
+            >
+              Edit food details
+            </button>
           </div>
-          <div className="text-center text-xs text-[#757575] mt-1.5">grams</div>
-          {errors.protein_g && <p className="mt-1 text-xs text-mfp-error">{errors.protein_g.message}</p>}
-          {errors.carbs_g && <p className="mt-1 text-xs text-mfp-error">{errors.carbs_g.message}</p>}
-          {errors.fat_g && <p className="mt-1 text-xs text-mfp-error">{errors.fat_g.message}</p>}
         </div>
 
-        {/* Serving Size */}
-        <div className="bg-white rounded-lg p-4">
-          <label className="block text-sm font-medium text-mfp-text mb-2">Serving Size (optional)</label>
-          <input
-            type="text"
-            {...register('serving_size')}
-            placeholder="e.g. 1 cup, 2 tbsp"
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
-          />
-        </div>
-
-        {/* Number of Servings */}
+        {/* Servings - the only nutrition control that belongs to the log itself. */}
         <div className="bg-white rounded-lg p-4">
           <label className="block text-sm font-medium text-mfp-text mb-2">Number of Servings</label>
           <div className="flex items-center gap-2">
             <input
               type="number"
-              step="0.1"
-              min="0.1"
+              step="0.01"
+              min="0.01"
+              inputMode="decimal"
               {...register('number_of_servings')}
-              className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
+              aria-label="Number of servings"
+              className="flex-1 min-w-0 px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
             />
             <span className="text-sm text-[#757575]">servings</span>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mt-2">
+            {QUICK_SERVINGS.map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setServings(value)}
+                className="px-3 py-1.5 rounded-full text-xs font-semibold border"
+                style={{
+                  borderColor: currentServings === value ? '#185ADB' : '#e0e0e0',
+                  background: currentServings === value ? '#185ADB' : '#fff',
+                  color: currentServings === value ? '#fff' : '#212121',
+                }}
+              >
+                {value === 0.25 ? '¼' : value === 0.5 ? '½' : value === 1.5 ? '1½' : value}
+              </button>
+            ))}
+          </div>
+
+          {/* Totals are derived, so they move the moment the count does. */}
+          <div className="mt-3 rounded-lg px-3 py-2" style={{ background: '#f2f2f2' }}>
+            <p className="text-lg font-bold" style={{ color: '#212121' }}>
+              {Math.round(totals.calories).toLocaleString()} kcal
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: '#757575' }}>
+              P {formatNumber(totals.protein_g)} · C {formatNumber(totals.carbs_g)} · F {formatNumber(totals.fat_g)}
+            </p>
           </div>
           {errors.number_of_servings && (
             <p className="mt-1 text-xs text-mfp-error">{errors.number_of_servings.message}</p>
@@ -443,82 +441,7 @@ export default function EditFoodLog() {
           )}
         </div>
 
-        {/* Barcode */}
-        <div className="bg-white rounded-lg p-4">
-          <label className="block text-sm font-medium text-mfp-text mb-2">Barcode ID (optional)</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              {...register('barcode_id')}
-              placeholder="e.g. 012345678901"
-              className="flex-1 min-w-0 px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
-            />
-            {/* Fill the field with the camera instead of typing the digits (FF-0081). */}
-            <button
-              type="button"
-              onClick={() => { setScanError(null); setScanning(true) }}
-              aria-label="Scan barcode"
-              className="flex-shrink-0 w-12 flex items-center justify-center border border-gray-300 rounded-lg bg-white"
-            >
-              <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#212121" strokeWidth="1.6">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <path d="M7 7v10M10 7v10M13.5 7v10M16 7v10M18 7v10" strokeWidth="1.1" />
-              </svg>
-            </button>
-          </div>
-          {errors.barcode_id && (
-            <p className="mt-1 text-xs text-mfp-error">{errors.barcode_id.message}</p>
-          )}
-        </div>
 
-        {scanning && (
-          <div
-            role="dialog"
-            aria-label="Scan barcode"
-            aria-modal="true"
-            className="fixed inset-0 z-50 flex flex-col"
-            style={{ background: '#000' }}
-          >
-            <div className="flex items-center justify-between px-4 py-3">
-              <p className="text-sm font-semibold text-white">Scan barcode</p>
-              <button
-                type="button"
-                onClick={() => setScanning(false)}
-                aria-label="Close scanner"
-                className="text-white text-2xl leading-none px-2"
-              >
-                ✕
-              </button>
-            </div>
-
-            {scanError ? (
-              <div className="px-4 py-6">
-                <p className="text-sm text-white">{scanError}</p>
-                <p className="text-xs mt-2" style={{ color: '#bdbdbd' }}>
-                  The scanner needs the app over https, or the camera permission.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setScanning(false)}
-                  className="mt-4 w-full py-3 rounded-xl text-sm font-semibold"
-                  style={{ background: '#185ADB', color: '#fff' }}
-                >
-                  Type the code instead
-                </button>
-              </div>
-            ) : (
-              <div className="flex-1 min-h-0">
-                <BarcodeScanner
-                  onDetected={(code) => {
-                    setValue('barcode_id', code, { shouldDirty: true })
-                    setScanning(false)
-                  }}
-                  onUnavailable={(reason) => setScanError(reason)}
-                />
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Buttons */}
         <div className="flex gap-3 pt-2">
@@ -539,6 +462,27 @@ export default function EditFoodLog() {
             Cancel
           </Button>
         </div>
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(true)}
+          className="w-full py-2.5 text-sm font-medium"
+          style={{ color: '#c62828' }}
+        >
+          Delete this entry
+        </button>
+
+        <Modal
+          isOpen={confirmDelete}
+          onClose={() => setConfirmDelete(false)}
+          title="Delete Entry"
+          submitLabel="Delete"
+          onSubmit={handleDeleteEntry}
+          submitLoading={isLoading}
+        >
+          <p style={{ color: '#757575' }}>
+            Delete this entry from the diary? The food itself stays in your list.
+          </p>
+        </Modal>
       </form>
     </div>
   )
