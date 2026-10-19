@@ -130,6 +130,8 @@ export interface FoodRecent {
   serving_size: string | null
   brand: string | null
   barcode_id: string | null
+  /** Newest photo from this food's history, if any (FF-0087). */
+  photo_url?: string | null
   total_logs: number
   last_logged: string
 }

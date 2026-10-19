@@ -898,3 +898,26 @@ Folding *every* band in unconditionally would crush the real data flat; folding 
 switched on keeps the graph readable and guarantees the toggle always changes what is drawn.
 
 Home's 7-day sparkline gets none of this — it is a glance, not an instrument.
+
+## 2026-10-18 — A carried photo is copied, never shared
+
+A new log can inherit the picture from the last time that food was logged, and a photo can be
+attached while logging rather than after.
+
+The ownership rule decides the first one: **two log rows must never point at one photo file.**
+`DELETE /api/food/log/<id>/photo` unlinks the file, so a shared path would let deleting one
+entry's photo silently break another — the same reasoning that stopped the meal copy (FF-0082)
+from duplicating `photo_url`, and the root of the FF-0080 orphan sweep. So `POST /api/food/log`
+**copies** any supplied photo to a fresh filename and stores that, and the client only ever
+passes a stored path. A missing or escaping path stores NULL rather than costing the user the
+log.
+
+`GET /api/food/latest-photo` answers "what did this food look like last time", owner-scoped,
+and searches for the newest log **that has a photo** — the most recent entry may have none
+while an older one has the picture the user means. The recent-foods list already resolved this
+per food, so thumbnails there needed no backend work; wrapping in `onError` means a file that
+has since been deleted hides itself instead of showing a broken image.
+
+Attaching a photo at creation is two requests (create, then upload to the new id) but one
+action; an upload failure is surfaced, not swallowed (FF-0073). A picked file is never also
+sent as a carried path, so the two mechanisms cannot both fire.

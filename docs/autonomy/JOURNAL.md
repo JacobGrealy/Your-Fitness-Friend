@@ -1718,3 +1718,29 @@ Two of my own slips: my JSX edit landed inside the existing `{goal && (` block a
 file's syntax, and adding an import duplicated React's — both caught immediately by tsc, which
 is why the type gate runs before anything else. 16 new tests (9 for the maths, 7 for the
 toggles and their persistence). Gates green, 342 frontend tests.
+
+## Round 76 — 2026-10-18 — FF-0087 photos where you expect them
+
+Three asks in one ticket: carry the last photo into a new log, allow a photo while logging,
+and show thumbnails in the recent-foods list.
+
+The design question was ownership. Sharing one stored path between two log rows is a trap —
+deleting the photo on one unlinks the file for both — so creation now **copies** the file and
+each log owns its bytes. A missing or escaping source stores NULL instead of failing the log.
+`GET /api/food/latest-photo` finds the newest log *with* a photo, since the most recent entry
+may have none.
+
+The create form gained a photo section that offers the previous picture by default ("saving
+copies it onto this entry"), and uploads a freshly picked file straight after creating the log
+so it is one action, with failures surfaced.
+
+Two fixture lessons from this round. The create page hydrates from history only when BOTH
+`name` and `calories` are in the URL, which my first test URL lacked — the page silently fell
+back to Quick Add, and I chased a phantom effect bug before checking the rendered form. And
+`/api/food/recent` only lists logs linked to a saved Food, so my first browser check showed no
+thumbnails for data seeded with bare names; the feature was fine, the fixture was not.
+
+Verified end to end on the isolated server: a photo carried onto a second log landed in a
+*different* file (and the source survived), and the browser check shows the 48×48 thumbnail
+actually loading plus the carried preview on the create form. 8 backend + 8 frontend tests;
+uploads count unchanged at 798.

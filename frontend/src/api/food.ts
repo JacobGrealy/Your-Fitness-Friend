@@ -26,6 +26,11 @@ export const foodApi = {
     api.get<any>('/food/log', { params }).then(res => res.data.logs || []),
   getFoodLog: (id: string) =>
     api.get<FoodLog>(`/food/log/${id}`).then(res => res.data),
+  /** The newest photo logged for a food, so a new log can carry it (FF-0087). */
+  getLatestPhoto: (params: { food_id?: string; food_name?: string }) =>
+    api.get<{ photo_url: string | null; log_id: number | null }>('/food/latest-photo', { params })
+      .then((res) => res.data),
+
   /** Duplicate every entry of one meal onto another date and meal (FF-0082). */
   copyMeal: (payload: {
     from_date: string

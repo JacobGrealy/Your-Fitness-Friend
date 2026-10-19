@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useFoodStore } from '@/store/foodStore'
+import { foodLogPhotoUrl } from '@/utils/photoUrl'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { Food, FoodRecent } from '@/types'
 import { SEARCH_DEBOUNCE_MS } from '@/utils/constants'
@@ -112,6 +113,8 @@ export default function LogFood() {
         fat_g: history.fat_g,
         brand: history.brand ?? undefined,
         barcode_id: history.barcode_id ?? undefined,
+        // The server copies the file so each log owns its own (FF-0087).
+        photo_url: history.photo_url ?? undefined,
         serving_size: history.serving_size ?? undefined,
         meal_type: mealType,
         number_of_servings: 1,
@@ -254,11 +257,25 @@ export default function LogFood() {
             >
               <button
                 onClick={() => handleHistoryTap(history)}
-                className="flex-1 p-3 text-left rounded-l-lg"
+                className="flex-1 p-3 text-left rounded-l-lg flex items-center gap-3"
               >
-                <div className="font-medium text-sm text-[#212121]">{history.food_name}</div>
-                <div className="text-xs text-[#757575] mt-0.5">
-                  {history.calories} cal{history.brand ? ` · ${history.brand}` : ''} · {history.total_logs} log{history.total_logs > 1 ? 's' : ''}
+                {/* The picture you took last time, so a glance at the list is enough
+                    (FF-0087). Hides itself when the file is gone rather than showing a
+                    broken image. */}
+                {history.photo_url && (
+                  <img
+                    src={foodLogPhotoUrl(history.photo_url)}
+                    alt=""
+                    aria-hidden="true"
+                    className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                    onError={(event) => { event.currentTarget.style.display = 'none' }}
+                  />
+                )}
+                <div className="min-w-0">
+                  <div className="font-medium text-sm text-[#212121] truncate">{history.food_name}</div>
+                  <div className="text-xs text-[#757575] mt-0.5">
+                    {history.calories} cal{history.brand ? ` · ${history.brand}` : ''} · {history.total_logs} log{history.total_logs > 1 ? 's' : ''}
+                  </div>
                 </div>
               </button>
               <button

@@ -8,6 +8,16 @@ import FoodLogSelect from '@/pages/Food/FoodLogSelect'
 
 const navigate = jest.fn()
 
+// The page now asks the food API for the previous photo (FF-0087); the axios client it
+// imports uses import.meta.env, which jest cannot parse.
+jest.mock('@/api/food', () => ({
+  foodApi: {
+    getLatestPhoto: jest.fn(async () => ({ photo_url: null, log_id: null })),
+    logFood: jest.fn(),
+    uploadFoodLogPhoto: jest.fn(),
+  },
+}))
+
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => navigate,
