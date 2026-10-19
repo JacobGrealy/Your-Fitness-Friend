@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-18T20:46
+  updated_at: 2026-10-18T21:48
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0086
 - FF-0082
 - FF-0084
 - FF-0085
@@ -3262,11 +3261,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-18T20:46
-  updated_at: 2026-10-18T20:46
-  completed_at: null
+  updated_at: 2026-10-18T21:48
+  completed_at: 2026-10-18T21:48
   waiting_on: null
   parent_id: null
   notes: '1) User Story: split the food-log edit into two screens as agreed in FF-0083. Landing screen
@@ -3301,5 +3300,16 @@ intake:
     current count and updates the saved Food; a log with no food_id can still open the FOOD screen and
     edit its own snapshot; the date can be changed on the LOG screen; ./scripts/gates.sh green with frontend
     tests covering live rescaling, the chips, the absence of a servings field on the food screen, and
-    the payload shape of both screens.'
+    the payload shape of both screens.
+
+
+    Closed: LOG screen owns servings (exact decimal + 1/4, 1/2, 1, 1.5, 2 chips), date, meal type, photo,
+    read-only food summary, live derived totals and Delete; FOOD screen (route food/log/:id/food) owns
+    name/brand/serving size/barcode+scan button and macros per serving with no servings field. Both send
+    per-serving values plus the count so the server multiplies once; utils/serving.ts mirrors the maths
+    for display only and falls back to totals/count for entries with no per-serving data. Fixed a subtle
+    one: chips updated the totals but typing did not, because watch() does not re-subscribe for a registered
+    number input - useWatch({control,name}) does, and the test now types instead of only clicking. Verified
+    in-browser: 1/2 -> 55 kcal, typing 2 -> 220 kcal, food screen 110/serving with no servings field.
+    13 frontend tests; barcode tests moved to the food screen.'
   comments: []

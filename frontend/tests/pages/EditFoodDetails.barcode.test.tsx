@@ -1,10 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import EditFoodLog from '@/pages/Food/EditFoodLog'
+import EditFoodDetails from '@/pages/Food/EditFoodDetails'
 import { useFoodStore } from '@/store/foodStore'
 
-// FF-0081: a blank barcode field must not erase a scanned code, and the field gains a
-// scan button so a missing or wrong code can be filled from the camera.
+// FF-0081 (barcode integrity + scan button) now lives on the FOOD screen, because a
+// barcode describes the food rather than the log (FF-0086). The behaviours are unchanged.
 
 const apiGetFoodLog = jest.fn()
 const apiUpdateFoodLog = jest.fn()
@@ -41,9 +41,9 @@ const LOG = {
 
 function renderEdit() {
   return render(
-    <MemoryRouter initialEntries={['/food/log/food-7/edit']}>
+    <MemoryRouter initialEntries={['/food/log/food-7/food']}>
       <Routes>
-        <Route path="/food/log/:id/edit" element={<EditFoodLog />} />
+        <Route path="/food/log/:id/food" element={<EditFoodDetails />} />
       </Routes>
     </MemoryRouter>
   )
@@ -52,7 +52,7 @@ function renderEdit() {
 const barcodeInput = () =>
   screen.getByPlaceholderText('e.g. 012345678901') as HTMLInputElement
 
-describe('EditFoodLog barcode (FF-0081)', () => {
+describe('EditFoodDetails barcode (FF-0081, moved by FF-0086)', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     detect = null

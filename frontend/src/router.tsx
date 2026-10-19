@@ -5,7 +5,7 @@ import Register from './pages/Auth/Register'
 import Dashboard from './pages/Dashboard'
 import { Weight, LogWeight, WeightHistory, EditWeight, WeightLogView } from './pages/Weight'
 import { Exercise, ExerciseLibrary, LogExercise, ExerciseHistory } from './pages/Exercise'
-import { DailyFood, LogFood, CustomFoods, PhotoLog, FoodLogSelect, EditFoodLog } from './pages/Food'
+import { DailyFood, LogFood, CustomFoods, PhotoLog, FoodLogSelect, EditFoodLog, EditFoodDetails } from './pages/Food'
 import { Meals, UploadPhoto, PhotoGallery } from './pages/Meals'
 import Profile from './pages/Profile'
 import AuthGuard from './components/layout/AuthGuard'
@@ -123,6 +123,16 @@ export const router = createBrowserRouter([
         element: (
           <AuthGuard>
             <FoodLogSelect />
+          </AuthGuard>
+        ),
+      },
+      {
+        // Food details for an entry: name, brand, macros per serving - no serving count
+        // (FF-0086).
+        path: 'food/log/:id/food',
+        element: (
+          <AuthGuard>
+            <EditFoodDetails />
           </AuthGuard>
         ),
       },
