@@ -131,3 +131,55 @@ export function weightYDomain(
   const pad = span * 0.15
   return [Math.round((min - pad) * 10) / 10, Math.round((max + pad) * 10) / 10]
 }
+
+/**
+ * The weigh-in a user's progress is measured from: their earliest (FF-0090).
+ *
+ * Same definition the backend uses for Home's card, so the two screens measure from the same
+ * place. Ties on the timestamp break on id because the app stores weight logs at midnight —
+ * two entries on one day would otherwise order arbitrarily.
+ */
+export function startingWeighIn<
+  T extends { weight: number; recorded_at?: string | null; date?: string | null; id?: string | number }
+>(logs: T[]): { weight: number; day: string; log: T } | null {
+  if (!logs || logs.length === 0) return null
+
+  const ordered = [...logs].sort((a, b) => {
+    const dayA = dayOf(a.recorded_at ?? a.date)
+    const dayB = dayOf(b.recorded_at ?? b.date)
+    if (dayA !== dayB) return dayA < dayB ? -1 : 1
+    const idA = String(a.id ?? '')
+    const idB = String(b.id ?? '')
+    if (idA === idB) return 0
+    // numeric ids compare numerically; anything else falls back to string order
+    const numA = Number(idA)
+    const numB = Number(idB)
+    if (Number.isFinite(numA) && Number.isFinite(numB)) return numA - numB
+    return idA < idB ? -1 : 1
+  })
+
+  const first = ordered[0]
+  return { weight: first.weight, day: dayOf(first.recorded_at ?? first.date), log: first }
+}
+
+/** Change since that first weigh-in, or null when there is nothing to compare. */
+export function changeSinceStart<
+  T extends { weight: number; recorded_at?: string | null; date?: string | null; id?: string | number }
+>(logs: T[]): { change: number; start: number; startDay: string } | null {
+  const start = startingWeighIn(logs)
+  if (!start || logs.length < 2) return null
+
+  const latest = [...logs].sort((a, b) => {
+    const dayA = dayOf(a.recorded_at ?? a.date)
+    const dayB = dayOf(b.recorded_at ?? b.date)
+    if (dayA !== dayB) return dayA < dayB ? 1 : -1
+    return Number(b.id ?? 0) - Number(a.id ?? 0)
+  })[0]
+
+  if (latest === start.log) return null
+  return {
+    change: Math.round((latest.weight - start.weight) * 100) / 100,
+    start: start.weight,
+    startDay: start.day,
+  }
+}

@@ -2,8 +2,10 @@ import {
   TREND_THRESHOLD_LBS,
   TREND_WINDOW_DAYS,
   buildWeightSeries,
+  changeSinceStart,
   dayOf,
   localMidnight,
+  startingWeighIn,
   trendChange,
   trendDirection,
   weightYDomain,
@@ -130,5 +132,57 @@ describe('weightYDomain', () => {
 
   it('survives an empty series', () => {
     expect(weightYDomain([])).toEqual([0, 1])
+  })
+})
+
+describe('startingWeighIn and changeSinceStart (FF-0090)', () => {
+  it('picks the earliest weigh-in', () => {
+    const start = startingWeighIn([
+      { weight: 257.5, recorded_at: '2026-10-19T00:00:00', id: '13' },
+      { weight: 264.7, recorded_at: '2026-10-17T00:00:00', id: '11' },
+      { weight: 259.3, recorded_at: '2026-10-18T00:00:00', id: '12' },
+    ])
+
+    expect(start?.weight).toBe(264.7)
+    expect(start?.day).toBe('2026-10-17')
+  })
+
+  it('breaks a same-day tie on id, oldest first', () => {
+    // weight logs are stored at midnight, so two entries on one day share a timestamp
+    const start = startingWeighIn([
+      { weight: 257.5, recorded_at: '2026-10-19T00:00:00', id: '99' },
+      { weight: 264.7, recorded_at: '2026-10-19T00:00:00', id: '98' },
+    ])
+
+    expect(start?.weight).toBe(264.7)
+  })
+
+  it('has no starting point without logs', () => {
+    expect(startingWeighIn([])).toBeNull()
+    expect(changeSinceStart([])).toBeNull()
+  })
+
+  it('a single weigh-in is not a change', () => {
+    expect(changeSinceStart([{ weight: 257.5, recorded_at: '2026-10-19T00:00:00', id: '1' }])).toBeNull()
+  })
+
+  it('measures the change from the start to the newest entry', () => {
+    const result = changeSinceStart([
+      { weight: 264.7, recorded_at: '2026-10-17T00:00:00', id: '11' },
+      { weight: 257.5, recorded_at: '2026-10-19T00:00:00', id: '13' },
+    ])
+
+    expect(result?.change).toBe(-7.2)
+    expect(result?.start).toBe(264.7)
+    expect(result?.startDay).toBe('2026-10-17')
+  })
+
+  it('reports gains as positive', () => {
+    const result = changeSinceStart([
+      { weight: 200, recorded_at: '2026-10-17T00:00:00', id: '1' },
+      { weight: 205.4, recorded_at: '2026-10-19T00:00:00', id: '2' },
+    ])
+
+    expect(result?.change).toBe(5.4)
   })
 })

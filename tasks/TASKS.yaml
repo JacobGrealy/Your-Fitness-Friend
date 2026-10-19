@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-19T08:45
+  updated_at: 2026-10-19T09:22
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -3573,4 +3573,66 @@ intake:
     with a test. Verified on the isolated server and in the browser (''Current Weight 257.5 lbs | vs.
     Starting Weight down 7.2 lbs (-2.7%) since Oct 19''). 8 backend + 4 frontend tests. Backend half needs
     a restart.'
+  comments: []
+- id: FF-0091
+  title: Show vs. Starting Weight on the Progress page
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-19T09:22
+  updated_at: 2026-10-19T09:22
+  completed_at: 2026-10-19T09:22
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: the Home screen''s weight card now compares against the starting weight; the
+    Progress page should show the same measurement rather than only goal-vs-current.
+
+
+    2) Definition of starting weight, unchanged from FF-0090: the user''s EARLIEST weigh-in. Home computes
+    it server-side (app/routes/dashboard.py); Progress has the full log list client-side, so the rule
+    needs one home on the client too - utils/weightTrend.ts, next to the other weight-series definitions
+    from FF-0084.
+
+
+    3) Trap found while verifying, worth recording: weight logs are stored at MIDNIGHT, so two entries
+    on the same day carry identical recorded_at timestamps and array order decides which is "newest".
+    Progress''s sortedLogs sorted on the timestamp only, so with three same-day logs the card displayed
+    "Current Weight 264.7 lbs" next to "down 7.2 lbs" - two figures that cannot both be true. Anything
+    ordering weight logs must break ties on id, and this is the second round where that bit.
+
+
+    4) Second structural point: the Progress summary card rendered only when a goal weight was set, which
+    would have hidden progress-from-start from any user without a target. The card now renders whenever
+    a current weight exists, with the goal rows as optional children.
+
+
+    5) Delivered: startingWeighIn() and changeSinceStart() in frontend/src/utils/weightTrend.ts (earliest
+    by day, ties by id; a single log is not a change), the Progress card showing "vs. Starting Weight"
+    with the start date and percentage, the current-weight label switching to "Weight (Oct 17)" when the
+    newest entry is not today, and id tie-breaking in sortedLogs.
+
+
+    6) NOTE ON PROCESS: this ticket was filed after the implementation rather than before, contrary to
+    the "every change is a ticket" invariant. The registry should have had it first; recording it now
+    so the history stays honest.
+
+
+    7) Acceptance: Progress shows the same since-start figure as Home; it appears with no goal weight
+    set; nothing shows for a single weigh-in; same-day logs order by id so the current weight and the
+    comparison agree; tests cover the helper and the page; ./scripts/gates.sh green.
+
+
+    Delivered on feat/FF-0091-progress-start: two helpers in utils/weightTrend.ts (startingWeighIn, changeSinceStart)
+    so Progress shares Home''s definition of ''starting weight'' - the earliest weigh-in, 2. Progress
+    card shows ''vs. Starting Weight'' with the start date and percentage and is no longer gated on having
+    a goal weight; the current-weight label switches to ''Weight (Oct 17)'' when the newest entry is not
+    today. 3. Browser verification caught the card showing ''Current Weight 264.7'' beside ''down 7.2
+    lbs'' because three same-day midnight-timestamped logs tied and sortedLogs used array order while
+    the comparison used ids - both now order by id, pinned by a test. 4. Filed after implementing (process
+    slip, recorded in the notes); registry now reflects it. Frontend-only. 5 component tests + 6 util
+    tests; gates green.'
   comments: []
