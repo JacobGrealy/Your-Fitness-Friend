@@ -4,7 +4,8 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useFoodStore } from '@/store/foodStore'
 import { foodLogPhotoUrl } from '@/utils/photoUrl'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
-import type { Food, FoodRecent } from '@/types'
+import type { Food, FoodRecent, ExternalFood } from '@/types'
+import ExternalFoodResults from '@/components/food/ExternalFoodResults'
 import { SEARCH_DEBOUNCE_MS } from '@/utils/constants'
 import { resolveMealType } from '@/utils/meal'
 import { resolveReturnTo, returnState } from '@/utils/returnTo'
@@ -27,6 +28,14 @@ export default function LogFood() {
 
   const [barcodeOpen, setBarcodeOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [externalSearch, setExternalSearch] = useState<{ query: string; id: number } | null>(null)
+  const submitSearch = () => {
+    const query = searchTerm.trim()
+    if (query.length >= 2 && query.length <= 100) setExternalSearch(previous => ({ query, id: (previous?.id || 0) + 1 }))
+  }
+  const selectExternal = (food: ExternalFood) => navigate(`/food/log/select?meal=${mealType}`, {
+    state: { ...originState, externalFood: food },
+  })
   const [searchResults, setSearchResults] = useState<Food[]>([])
   const [historyResults, setHistoryResults] = useState<FoodRecent[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
@@ -44,6 +53,7 @@ export default function LogFood() {
 
   const handleSearch = useCallback((term: string) => {
     setSearchTerm(term)
+    setExternalSearch(null)
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
@@ -58,11 +68,11 @@ export default function LogFood() {
       }
 
       const filtered = foods.filter(f =>
-        f.name.toLowerCase().includes(term.toLowerCase())
+        f.name.toLowerCase().includes(term.trim().toLowerCase())
       ).slice(0, 15)
 
       const matchingHistory = recentFoods.filter(h =>
-        h.food_name.toLowerCase().includes(term.toLowerCase())
+        h.food_name.toLowerCase().includes(term.trim().toLowerCase())
       )
 
       setSearchResults(filtered)
@@ -77,6 +87,7 @@ export default function LogFood() {
 
   const handleClearSearch = () => {
     setSearchTerm('')
+    setExternalSearch(null)
     setSearchResults([])
     setHistoryResults([])
     setShowSearchResults(false)
@@ -157,7 +168,8 @@ export default function LogFood() {
   const displayItems = showSearchResults
     ? [
         ...historyResults.map(h => ({ ...h, _type: 'history' as const })),
-        ...searchResults.map(f => ({ ...f, _type: 'food' as const })),
+        ...searchResults.filter(f => !historyResults.some(h => String(h.food_id) === String(f.id)))
+          .map(f => ({ ...f, _type: 'food' as const })),
       ]
     : recentFoods.map(h => ({ ...h, _type: 'history' as const }))
 
@@ -167,7 +179,8 @@ export default function LogFood() {
       <div className="sticky top-0 z-10 bg-white border-b border-[#e0e0e0]">
         {/* Search Bar */}
         <div className="px-4 py-3">
-          <div className="relative">
+          <div className="flex items-center gap-2">
+          <div className="relative flex-1 min-w-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -175,6 +188,9 @@ export default function LogFood() {
               type="text"
               value={searchTerm}
               onChange={handleInputChange}
+              onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); submitSearch() } }}
+              aria-label="Search foods"
+              maxLength={100}
               onFocus={() => searchTerm && setShowSearchResults(true)}
               placeholder="Search foods..."
               className="w-full pl-10 pr-10 py-2.5 bg-gray-100 border border-gray-300 rounded-lg text-[#212121] text-sm focus:outline-none focus:ring-2 focus:ring-[#185ADB] focus:border-transparent"
@@ -191,6 +207,9 @@ export default function LogFood() {
               </button>
             )}
           </div>
+          <Button size="sm" onClick={submitSearch} disabled={searchTerm.trim().length < 2}>Search</Button>
+          </div>
+          {searchTerm && <p className="text-xs text-[#757575] mt-2">Your foods match as you type. Search to include Open Food Facts.</p>}
         </div>
 
         {/* Action Buttons */}
@@ -224,14 +243,14 @@ export default function LogFood() {
 
         {showSearchResults && searchResults.length === 0 && historyResults.length === 0 && (
           <EmptyState
-            title="No results"
-            description="Try a different search term."
+            title="No saved foods match"
+            description="Press Search to look in Open Food Facts, or use Quick Add."
           />
         )}
 
         {showSearchResults && searchTerm && (
           <h2 className="text-sm font-medium text-[#757575] mt-2">
-            Search Results
+            Your foods
           </h2>
         )}
 
@@ -252,7 +271,7 @@ export default function LogFood() {
               >
                 <div className="font-medium text-sm text-[#212121]">{food.name}</div>
                 <div className="text-xs text-[#757575] mt-0.5">
-                  {food.calories} cal{food.brand ? ` · ${food.brand}` : ''}
+                  {food.calories} cal{food.serving_size ? ` per ${food.serving_size}` : ''}{food.brand ? ` · ${food.brand}` : ''}
                 </div>
               </button>
             )
@@ -262,7 +281,7 @@ export default function LogFood() {
           const added = quickAdded === history.food_name
           return (
             <div
-              key={history.food_name}
+              key={history.food_id || history.food_name}
               className="w-full bg-white rounded-lg flex items-stretch hover:bg-gray-50 transition-colors"
             >
               <button
@@ -306,6 +325,8 @@ export default function LogFood() {
             </div>
           )
         })}
+        {externalSearch && <ExternalFoodResults key={`${externalSearch.query}:${externalSearch.id}`}
+          query={externalSearch.query} localFoods={foods} onSelect={selectExternal} />}
       </div>
 
       <BarcodeLookupModal

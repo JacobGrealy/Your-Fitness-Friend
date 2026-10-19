@@ -1888,3 +1888,14 @@ request for apple returned HTTP 503, so real external search quality is not yet 
 local search and outage behavior remain functional. Compared every one of the 66 existing logs
 against the pre-FF0094 backup: nutrition totals, counts and labels exactly unchanged.
 Next FF-0097: local-first search UI and external result selection.
+
+## FF-0097 — Local-first Add Food search
+
+Existing search keeps local/history matches first, deduplicates saved products and fetches OFF
+only via Search/Enter. Separate provider loading, outage, empty and pagination states do not
+replace local matches; stale responses are ignored. External picks reuse the current logging
+form, carry signed reference snapshots, and import only when logged. Logging failures now
+surface the server error and keep the form instead of navigating away after a swallowed error.
+Five integration tests cover explicit submission, ordering/dedup, outages, stale requests and
+182 g external logging without an early save. Final full gates green: 266 backend / 392 frontend.
+Build and mobile browser verification follow the merge; real OFF response was unavailable (503).

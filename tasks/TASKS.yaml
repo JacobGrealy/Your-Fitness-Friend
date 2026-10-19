@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-19T12:01
+  updated_at: 2026-10-19T12:11
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue:
-- FF-0097
+queue: []
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -3854,14 +3853,14 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-19T11:37
-  updated_at: 2026-10-19T11:37
-  completed_at: null
+  updated_at: 2026-10-19T12:11
+  completed_at: 2026-10-19T12:11
   waiting_on: null
   parent_id: null
-  notes: Depends on OFF search API and serving UI. Enhance existing Add Food screen only, preserve Quick
+  notes: 'Depends on OFF search API and serving UI. Enhance existing Add Food screen only, preserve Quick
     Add Food Photo Barcode and empty-query Recent Foods thumbnails/quick-log. As typing, local foods/history
     matches first with dedup; explicit Search button and Enter fetch OFF section below. Show source/brand/nutrition
     basis, separate loading/no-results/errors so local matches stay usable during outage, guard stale
@@ -3871,4 +3870,11 @@ intake:
     presentation preserved. Component integration tests cover local-first ranking and dedup, explicit
     remote only, external selection/import/log, repeat by weight, error/empty/stale requests. No USDA
     or separate navigation. Worker no static build, registry, instance or services.
+
+
+    Existing Add Food now shows deduplicated local/history matches first and explicitly submitted OFF
+    results below. Separate outage/loading/pagination, race-safe stale responses and source attribution.
+    Selected external references reuse quantity logging form; no save until logging. 5 integration tests
+    plus full gates green (266 backend,392 frontend). Final production build/mobile browser verification
+    follows merge; provider real probe currently503.'
   comments: []

@@ -242,11 +242,10 @@ export const useFoodStore = create<FoodState>((set, get) => ({
         return result
       }
     } catch (error: any) {
-      set({
-        error: error.response?.data?.message || 'Failed to log food',
-        isLoading: false,
-      })
-      useUIStore.getState().showToast(error.response?.data?.message || 'Failed to log food', 'error')
+      const message = error.response?.data?.error || error.response?.data?.message || 'Failed to log food'
+      set({ error: message, isLoading: false })
+      useUIStore.getState().showToast(message, 'error')
+      throw error
     }
   },
 

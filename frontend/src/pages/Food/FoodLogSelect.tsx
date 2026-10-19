@@ -7,7 +7,7 @@ import { foodApi } from '@/api/food'
 import PhotoSourceChooser from '@/components/common/PhotoSourceChooser'
 import { foodLogPhotoUrl } from '@/utils/photoUrl'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
-import type { Food, FoodLogCreate, MealType } from '@/types'
+import type { Food, FoodLogCreate, MealType, ExternalFood } from '@/types'
 import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
 import { quickAddFoodSchema } from '@/utils/schemas'
 import { isMealType } from '@/utils/meal'
@@ -22,6 +22,7 @@ export default function FoodLogSelect() {
   const { setTitle } = usePageTitle()
   const navigate = useNavigate()
   const location = useLocation()
+  const externalFood = (location.state as { externalFood?: ExternalFood } | null)?.externalFood
   const [searchParams] = useSearchParams()
   const { foodId } = useParams<{ foodId?: string }>()
   const { foods, isLoading, logFood, uploadFoodLogPhoto, createFood, fetchFoods, error, clearError } = useFoodStore()
@@ -89,6 +90,23 @@ export default function FoodLogSelect() {
   }, [fetchFoods, clearError])
 
   useEffect(() => {
+    if (!externalFood) return
+    const draft = { ...externalFood, id: `off:${externalFood.barcode_id}`, user_id: '', created_at: '' }
+    setSelectedFood(draft)
+    setIsQuickAdd(false)
+    loadReference(draft)
+    setValue('food_name', draft.name)
+    setValue('calories', draft.calories)
+    setValue('protein_g', draft.protein_g)
+    setValue('carbs_g', draft.carbs_g)
+    setValue('fat_g', draft.fat_g)
+    setValue('serving_size', draft.serving_size || '')
+    setValue('brand', draft.brand || '')
+    setValue('barcode_id', draft.barcode_id || '')
+  }, [externalFood, setValue])
+
+  useEffect(() => {
+    if (externalFood) return
     const historyName = searchParams.get('name')
     const historyCalories = searchParams.get('calories')
 
@@ -146,7 +164,7 @@ export default function FoodLogSelect() {
 
   // Offer the photo from the previous log the moment we know which food this is.
   useEffect(() => {
-    const foodId = selectedFood ? String(selectedFood.id) : undefined
+    const foodId = selectedFood && !externalFood ? String(selectedFood.id) : undefined
     const name = (foodName || '').trim()
     if (!foodId && !name) {
       setCarriedPhoto(null)
@@ -190,7 +208,7 @@ export default function FoodLogSelect() {
       } : { serving_size: data.serving_size || '' }
       let createdFoodId: string | undefined
 
-      if (data.food_name) {
+      if (data.food_name && !externalFood) {
         const foodCreate: any = {
           name: data.food_name,
           calories: data.calories,
@@ -201,7 +219,7 @@ export default function FoodLogSelect() {
           brand: data.brand || undefined,
           barcode_id: data.barcode_id || undefined,
         }
-        if (selectedFood) {
+        if (selectedFood?.user_id) {
           foodCreate.food_id = String(selectedFood.id)
         }
         const response = await createFood(foodCreate)
@@ -212,7 +230,8 @@ export default function FoodLogSelect() {
       }
 
       const logData: FoodLogCreate = {
-        food_id: createdFoodId || (selectedFood ? String(selectedFood.id) : undefined),
+        food_id: externalFood ? undefined : createdFoodId || (selectedFood ? String(selectedFood.id) : undefined),
+        external_food_token: externalFood?.token,
         quantity: quantityNum,
         food_name: data.food_name || 'Quick Add',
         calories: Math.round(data.calories * quantityNum),
@@ -523,7 +542,8 @@ export default function FoodLogSelect() {
           />
         </div>
 
-        {selectedFood && selectedFood.id && (
+        {externalFood && <p className="text-xs text-[#757575]">Open Food Facts · This food is saved to your database when you log it.</p>}
+        {selectedFood && selectedFood.id && !externalFood && (
           <div className="bg-white rounded-lg p-4">
             <label className="block text-sm font-medium text-[#757575] mb-2">
               Food ID

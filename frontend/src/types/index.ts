@@ -31,6 +31,7 @@ export type {
 
 export type {
   Food,
+  ExternalFood,
   FoodLog,
   DailyTotals,
   FoodCreate,
