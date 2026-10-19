@@ -8,3 +8,12 @@
 export function weightPhotoUrl(photoUrl: string): string {
   return `${window.location.origin}/api/weight/uploads/${photoUrl}`
 }
+
+/**
+ * Photo URLs for food-log photos (FF-0087).
+ *
+ * Same shape as weightPhotoUrl; the serve route accepts the stored path unchanged.
+ */
+export function foodLogPhotoUrl(photoUrl: string): string {
+  return `${window.location.origin}/api/food/uploads/${photoUrl}`
+}

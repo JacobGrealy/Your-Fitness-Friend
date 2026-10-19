@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-18T22:05
+  updated_at: 2026-10-19T08:09
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0087
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -3323,4 +3324,72 @@ intake:
     number input - useWatch({control,name}) does, and the test now types instead of only clicking. Verified
     in-browser: 1/2 -> 55 kcal, typing 2 -> 220 kcal, food screen 110/serving with no servings field.
     13 frontend tests; barcode tests moved to the food screen.'
+  comments: []
+- id: FF-0087
+  title: Carry the last photo into a new log, and allow a photo while creating a log
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: in-progress
+  labels: []
+  created_at: 2026-10-19T07:58
+  updated_at: 2026-10-19T08:09
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: two things about photos and logging. (a) When I log a food I have logged before,
+    use the latest picture from a previous log on the new one instead of making me find the photo again.
+    (b) Let me attach a picture while logging a NEW food, instead of having to log it first and then edit
+    the log to add the photo.
+
+
+    2) Technical Details. The create screen (frontend/src/pages/Food/LogFood.tsx) has no photo control
+    at all - only a "Food Photo" button that navigates to the AI photo-log flow (line 132). Photos attach
+    today only after a log exists, via POST /api/food/log/<id>/photo (app/routes/food_routes.py:724).
+    The recent-foods endpoint already resolves the newest photo per food (food_routes.py:214-217: newest
+    log photo, falling back to an older one), so a quick-log from history can carry it, but nothing carries
+    a photo for a food chosen from search or the custom-food list.
+
+
+    2a) OWNERSHIP RULE, decided from two earlier incidents (FF-0073 photo wipes, FF-0080 orphans, and
+    the copy-meal reasoning in DECISIONS): a photo path must never be shared between two log rows. Deleting
+    the photo on one row unlinks the file and breaks the other. So when a new log is created carrying
+    an existing stored path, the server COPIES the file to a new name; each log owns its own bytes. Same
+    rule the meal copy used to justify not duplicating photo_url.
+
+
+    3) Backend: (a) in create_food_log, if the request supplies photo_url and it resolves to an existing
+    file inside the uploads root, copy it to a fresh filename and store that; a missing or escaping path
+    stores NULL instead of failing the log. Use app/utils/uploads.stored_file_path so the traversal guard
+    applies. (b) add GET /api/food/latest-photo?food_id=&food_name= returning {photo_url, log_id} for
+    the newest log of that food that has a photo, owner-scoped, so the create screen can offer it for
+    foods picked from a list.
+
+
+    4) Frontend: the create screen gains a photo section using PhotoSourceChooser (FF-0078) with a preview,
+    plus a "use your last photo" thumbnail when one exists for the chosen food (default selected, since
+    that is the point of the request). On submit: if a file was picked, create the log then upload the
+    photo to it (two requests, one user action) and surface an upload failure instead of pretending; otherwise
+    send the carried photo_url so the server copies it. Quick-log from recent foods should carry history.photo_url
+    the same way. Keep the date on the local day (todayLocal).
+
+
+    5) Acceptance Criteria: logging a food that has a previous photo attaches a copy of that photo automatically,
+    and the two logs then hold independent files (deleting one leaves the other); logging a brand new
+    food can include a photo in the same action; a failed photo upload does not silently claim success;
+    a food with no history shows no phantom thumbnail; frontend and backend tests cover the copy, the
+    missing-path case, the latest-photo lookup and the create-screen behaviour; ./scripts/gates.sh green.
+
+
+    Closed: POST /api/food/log copies any supplied photo to a fresh filename so two logs never share one
+    file (deleting one leaves the other intact - tested), storing NULL for a missing or escaping path;
+    GET /api/food/latest-photo returns the newest log that actually has a photo, owner-scoped. The create
+    form offers the previous picture by default with ''saving copies it onto this entry'' and uploads
+    a freshly picked file straight after creation (one action, failure surfaced). Recent-foods rows show
+    a 48x48 thumbnail that hides itself if the file is gone, and quick-log carries the last photo. Verified
+    on the isolated server (carried photo landed in a distinct file, source survived) and in the browser
+    (thumbnail real-pixels, carried preview on the form). 8 backend + 8 frontend tests; uploads unchanged
+    at 798. Backend half needs a restart.'
   comments: []

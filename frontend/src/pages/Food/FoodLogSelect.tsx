@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useFoodStore } from '@/store/foodStore'
+import { foodApi } from '@/api/food'
+import PhotoSourceChooser from '@/components/common/PhotoSourceChooser'
+import { foodLogPhotoUrl } from '@/utils/photoUrl'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { Food, FoodLogCreate, MealType } from '@/types'
 import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
@@ -18,7 +21,7 @@ export default function FoodLogSelect() {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const { foodId } = useParams<{ foodId?: string }>()
-  const { foods, isLoading, logFood, createFood, fetchFoods, error, clearError } = useFoodStore()
+  const { foods, isLoading, logFood, uploadFoodLogPhoto, createFood, fetchFoods, error, clearError } = useFoodStore()
 
   const [selectedFood, setSelectedFood] = useState<Food | null>(null)
   const [isQuickAdd, setIsQuickAdd] = useState(false)
@@ -27,6 +30,12 @@ export default function FoodLogSelect() {
   const mealFromUrl = searchParams.get('meal')
   const initialMealType: MealType = isMealType(mealFromUrl) ? mealFromUrl : 'breakfast'
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Photo at creation time (FF-0087): either a freshly picked file, or the picture from the
+  // last time this food was logged, which the server will copy.
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [carriedPhoto, setCarriedPhoto] = useState<string | null>(null)
+  const [showPhotoSources, setShowPhotoSources] = useState(false)
 
   const {
     register,
@@ -52,6 +61,7 @@ export default function FoodLogSelect() {
   })
 
   const food_name = watch('food_name')
+  const foodName = food_name
   const calories = watch('calories')
   const meal_type = watch('meal_type')
 
@@ -115,6 +125,37 @@ export default function FoodLogSelect() {
     }
   }, [foods, foodId, searchParams, setValue])
 
+  // Offer the photo from the previous log the moment we know which food this is.
+  useEffect(() => {
+    const foodId = selectedFood ? String(selectedFood.id) : undefined
+    const name = (foodName || '').trim()
+    if (!foodId && !name) {
+      setCarriedPhoto(null)
+      return
+    }
+    void latestFoodPhoto(foodId, name)
+  }, [selectedFood, foodName])
+
+  const latestFoodPhoto = useCallback(
+    async (foodId: string | undefined, name: string) => {
+      try {
+        const result = await foodApi.getLatestPhoto({
+          food_id: foodId,
+          food_name: foodId ? undefined : name,
+        })
+        setCarriedPhoto(result.photo_url ?? null)
+      } catch {
+        setCarriedPhoto(null)
+      }
+    },
+    []
+  )
+
+  const handlePickPhoto = useCallback((file: File) => {
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
+  }, [])
+
   const onSubmit = async (data: any) => {
     setIsSubmitting(true)
     try {
@@ -156,9 +197,18 @@ export default function FoodLogSelect() {
         brand: data.brand || undefined,
         barcode_id: data.barcode_id || undefined,
         date: data.date || todayLocal(),
+        // A carried photo is copied server-side so each log owns its own file.
+        photo_url: !photoFile && carriedPhoto ? carriedPhoto : undefined,
       }
 
-      await logFood(logData)
+      const created = await logFood(logData)
+
+      // A freshly picked photo needs the new log's id, so it is uploaded straight after
+      // creation - one action for the user, two requests, and a failure is reported rather
+      // than swallowed (FF-0073).
+      if (photoFile && created && 'id' in created && created.id) {
+        await uploadFoodLogPhoto(String(created.id), photoFile)
+      }
 
       // Back to wherever the flow was entered from (the diary, usually), never
       // back into the add flow itself (FF-0021).
@@ -327,6 +377,58 @@ export default function FoodLogSelect() {
             placeholder="e.g. 1 cup, 2 tbsp"
             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
           />
+        </div>
+
+        {/* Photo - attach it here rather than logging first and editing after (FF-0087). */}
+        <div className="bg-white rounded-lg p-4">
+          <label className="block text-sm font-medium text-mfp-text mb-2">Photo (optional)</label>
+
+          <PhotoSourceChooser
+            open={showPhotoSources}
+            onClose={() => setShowPhotoSources(false)}
+            onSelect={handlePickPhoto}
+            title="Add a photo"
+          />
+
+          {(photoPreview || carriedPhoto) && (
+            <div className="relative">
+              <img
+                src={photoPreview ?? foodLogPhotoUrl(carriedPhoto as string)}
+                alt={photoPreview ? 'Selected photo' : 'Photo from your last log'}
+                className="w-full max-h-[200px] object-contain rounded-lg"
+              />
+              {!photoPreview && (
+                <p className="text-[11px] mt-1" style={{ color: '#757575' }}>
+                  From your last log — saving copies it onto this entry.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-2 mt-2">
+            <button
+              type="button"
+              onClick={() => setShowPhotoSources(true)}
+              className="flex-1 py-2 text-sm font-medium rounded-lg border"
+              style={{ borderColor: '#185ADB', color: '#185ADB' }}
+            >
+              {photoPreview || carriedPhoto ? 'Change photo' : 'Add photo'}
+            </button>
+            {(photoPreview || carriedPhoto) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPhotoFile(null)
+                  setPhotoPreview(null)
+                  setCarriedPhoto(null)
+                }}
+                className="px-3 py-2 text-sm rounded-lg border"
+                style={{ borderColor: '#e0e0e0', color: '#757575' }}
+              >
+                Remove
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Number of Servings */}

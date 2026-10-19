@@ -1,4 +1,5 @@
 import os
+import shutil
 import uuid
 
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
@@ -6,7 +7,7 @@ from flask_login import login_required, current_user
 from app.models.food import Food
 from app.models.food_log import FoodLog
 from app.config import Config
-from app.utils.uploads import upload_dir, uploads_root
+from app.utils.uploads import stored_file_path, upload_dir, uploads_root
 from app.utils.serving import (
     MACROS,
     normalise_servings,
@@ -110,6 +111,41 @@ def _apply_nutrition(log, data):
     log.carbs_g = totals['carbs_g'] or 0.0
     log.fat_g = totals['fat_g'] or 0.0
     log.number_of_servings = servings
+
+
+def _adopt_photo_file(photo_url):
+    """Copy a stored photo so this log owns its own file (FF-0087).
+
+    Two rows pointing at one file cannot both own it: deleting the photo on one unlinks the
+    file and breaks the other. That is the same reasoning that stopped the meal copy from
+    duplicating `photo_url`, and the orphan problems of FF-0080. So a carried photo becomes a
+    copy with its own name.
+
+    Returns the new stored path, or None when the source is missing or outside the uploads
+    root - a bad photo reference must not cost the user their log entry.
+    """
+    if not photo_url:
+        return None
+
+    try:
+        source = stored_file_path(photo_url)
+    except ValueError:
+        return None
+
+    if not os.path.isfile(source):
+        return None
+
+    folder, name = os.path.split(photo_url)
+    extension = name.rsplit('.', 1)[1].lower() if '.' in name else 'jpg'
+    copy_name = f"{uuid.uuid4().hex}.{extension}"
+    destination = os.path.join(upload_dir(folder or FOOD_LOG_PHOTO_FOLDER), copy_name)
+
+    try:
+        shutil.copyfile(source, destination)
+    except OSError:
+        return None
+
+    return f"{folder or FOOD_LOG_PHOTO_FOLDER}/{copy_name}"
 
 
 def _clean_barcode(value):
@@ -486,6 +522,9 @@ def create_food_log():
         brand = data.get('brand')
         barcode_id = _clean_barcode(data.get('barcode_id'))
     
+    # A photo supplied at creation is copied so this log owns it (FF-0087).
+    photo_url = _adopt_photo_file(photo_url) if photo_url else None
+
     food_log = FoodLog(
         user_id=current_user.id,
         food_id=data.get('food_id'),
@@ -525,6 +564,36 @@ def create_food_log():
         'date': food_log.date.isoformat(),
         'meal_type': food_log.meal_type
     }), 201
+
+
+@bp.route('/latest-photo', methods=['GET'])
+@login_required
+def latest_photo():
+    """The newest photo this user has logged for a food (FF-0087).
+
+    Used by the create screen to offer "use your last photo". Scoped to the owner, and it
+    looks for a photo rather than just the newest log: the most recent entry may have none
+    while an older one has the picture the user means.
+    """
+    food_id = request.args.get('food_id', type=int)
+    food_name = (request.args.get('food_name') or '').strip()
+
+    query = FoodLog.query.filter(
+        FoodLog.user_id == current_user.id,
+        FoodLog.photo_url.isnot(None),
+    )
+    if food_id:
+        query = query.filter(FoodLog.food_id == food_id)
+    elif food_name:
+        query = query.filter(FoodLog.food_name == food_name)
+    else:
+        return jsonify({'error': 'food_id or food_name is required'}), 400
+
+    log = query.order_by(FoodLog.date.desc(), FoodLog.id.desc()).first()
+    if log is None:
+        return jsonify({'photo_url': None, 'log_id': None}), 200
+
+    return jsonify({'photo_url': log.photo_url, 'log_id': log.id}), 200
 
 
 @bp.route('/log/copy', methods=['POST'])
