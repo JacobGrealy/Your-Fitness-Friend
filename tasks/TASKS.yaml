@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-19T09:22
+  updated_at: 2026-10-19T09:29
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -3635,4 +3635,67 @@ intake:
     the comparison used ids - both now order by id, pinned by a test. 4. Filed after implementing (process
     slip, recorded in the notes); registry now reflects it. Frontend-only. 5 component tests + 6 util
     tests; gates green.'
+  comments: []
+- id: FF-0092
+  title: 'Macros display with 10+ decimals: format to at most 2 decimals for display'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-19T09:23
+  updated_at: 2026-10-19T09:29
+  completed_at: 2026-10-19T09:29
+  waiting_on: null
+  parent_id: null
+  notes: '1) User Story: the protein on my peanut butter diary entry displays as 0.7000000000000001 and
+    similar. Macros should never show more than 2 decimals. Storing them at full precision is fine - only
+    the DISPLAY is wrong.
+
+
+    2) Live evidence (read-only, instance/fitness_friend.db): food_logs id 85 ''Creamy Peanut Butter''
+    has protein_g = 0.7000000000000001 AND protein_per_serving = 0.7000000000000001. That value is stored,
+    not just formatted - it came from dividing or scaling (FF-0083''s per_serving_from_totals / totals_from_per_serving)
+    and float arithmetic left it noisy.
+
+
+    3) Owner decision, twice stated (FF-0083 and now): keep precision internally, display at most 2 decimals.
+    So the fix is at the DISPLAY layer only. Do NOT round stored values, do NOT rewrite existing rows,
+    and do not add a migration.
+
+
+    4) The offending render is frontend/src/pages/Food/DailyFood.tsx:136 - `P:{log.protein_g}g C:{log.carbs_g}g
+    F:{log.fat_g}g` interpolates raw numbers. Other raw sites: CustomFoods.tsx:92-98 (food list), CompleteDiaryModal.tsx:58-60
+    (Math.round to whole grams, which is within 2 decimals but inconsistent), and utils/formatters.ts
+    formatMacros() which also interpolates raw values.
+
+
+    5) Approach: one display helper. Add formatMacro(value) to frontend/src/utils/formatters.ts (the existing
+    home for formatWeight/formatCalories/formatMacros): at most 2 decimals with trailing zeros trimmed,
+    so 0.7000000000000001 -> ''0.7'', 1.4000000000000001 -> ''1.4'', 2 -> ''2'', 0.666 -> ''0.67'', null/undefined/NaN
+    -> ''0''. Route formatMacros() through it, and make utils/serving.ts formatNumber() delegate to it
+    rather than keeping a second copy of the same rounding (two implementations of one rule is the drift
+    FF-0084 had to unpick). Apply it at every macro display site found by grepping for protein_g/carbs_g/fat_g
+    renders.
+
+
+    6) Acceptance: the peanut butter entry displays ''0.7'' not ''0.7000000000000001''; no macro anywhere
+    on screen shows more than 2 decimals; stored values are untouched (verify the DB value is unchanged
+    after the fix); formatMacro has unit tests covering the live noisy value, an integer, a roundable
+    fraction and null; a component test renders a diary row with the noisy value and asserts the clean
+    text; ./scripts/gates.sh green.
+
+
+    Closed: display-only fix per the owner''s rule. utils/formatters.ts formatMacro() renders at most
+    2 decimals with trailing zeros trimmed (0.7, not 0.70) and 0 for null/NaN, and every macro display
+    routes through it: the diary row (the reported bug at DailyFood.tsx:136), the food list, the completion
+    modal, the photo gallery estimates, formatMacros(), and the values carried into the create form. serving.ts
+    formatNumber() delegates rather than duplicating the rounding rule. AI photo estimates are normalised
+    when they arrive so the editable inputs do not show noise. Nothing rounded in storage, no rows rewritten,
+    no migration: verified food_logs id 85 still holds 0.7000000000000001 after the fix, and on an isolated
+    server the row renders ''P:0.7g C:0.8g F:1.6g'' with no full-precision leak anywhere. 7 formatter
+    tests + a diary-row component test. Found a separate latent defect while seeding (a partial per-serving
+    payload zeroes the unsupplied macros) - filed separately rather than bundled here.'
   comments: []

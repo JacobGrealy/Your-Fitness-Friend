@@ -1,3 +1,4 @@
+import { formatMacro } from './formatters'
 /**
  * Per-serving maths for the client (FF-0086).
  *
@@ -56,10 +57,14 @@ export function perServingOf(log: {
   }
 }
 
-/** Display helper: at most two decimals, no trailing zeros. */
+/**
+ * Display helper: at most two decimals, no trailing zeros.
+ *
+ * Delegates to utils/formatters so there is one implementation of the rounding rule
+ * (FF-0092); the name stays for existing callers.
+ */
 export function formatNumber(value: number): string {
-  if (!Number.isFinite(value)) return '0'
-  return String(Math.round(value * 100) / 100)
+  return formatMacro(value)
 }
 
 export function formatPerServing(perServing: PerServing): string {

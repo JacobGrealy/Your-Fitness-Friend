@@ -12,6 +12,17 @@ import { useFoodStore } from '@/store/foodStore'
 
 type Step = 'capture' | 'review' | 'loading'
 
+/**
+ * Estimations arrive as floats and are edited in number inputs; round them once at the
+ * boundary so the field shows what a person would type (FF-0092). Full precision is not
+ * lost from anything already stored - this only shapes the draft the AI proposed.
+ */
+function normaliseEntryMacros<T extends { protein_g?: number | null; carbs_g?: number | null; fat_g?: number | null }>(entry: T): T {
+  const round = (value: number | null | undefined) =>
+    value === null || value === undefined || !Number.isFinite(value) ? value : Math.round(value * 100) / 100
+  return { ...entry, protein_g: round(entry.protein_g), carbs_g: round(entry.carbs_g), fat_g: round(entry.fat_g) }
+}
+
 export default function PhotoLog() {
   const { setTitle } = usePageTitle()
   const navigate = useNavigate()
@@ -66,7 +77,7 @@ export default function PhotoLog() {
 
     try {
       const response = await mealsAiLogApi.analyzePhoto(formData)
-      setLogEntries(response.logs)
+      setLogEntries(response.logs.map(normaliseEntryMacros))
       setMessages(response.conversation_history)
       setStep('review')
       setIsSubmitting(false)
@@ -105,7 +116,7 @@ export default function PhotoLog() {
 
       // Prepend new log entries
       if (response.logs && response.logs.length > 0) {
-        setLogEntries(prev => [...prev, ...response.logs])
+        setLogEntries(prev => [...prev, ...response.logs.map(normaliseEntryMacros)])
       }
 
       setUserMessage('')

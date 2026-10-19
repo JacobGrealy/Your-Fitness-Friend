@@ -994,3 +994,23 @@ them agree.
 Progress's summary card is also no longer gated on having a goal weight: your progress from the
 start exists whether or not you have set a target, so the goal rows are optional children of a
 card that renders whenever there is any weight at all.
+
+## 2026-10-19 — Macros display at most 2 decimals; storage keeps its precision
+
+`food_logs` id 85 stores `protein_g = 0.7000000000000001` — the value itself is noisy, not just
+its rendering — and the diary row interpolated it raw, so a peanut butter entry read
+`P:0.7000000000000001g`.
+
+Per the owner's rule, stated twice now: keep precision internally, display at most 2 decimals.
+So nothing was rounded in storage, no rows rewritten, no migration. The fix is a display helper,
+`formatMacro()` in `utils/formatters.ts`: at most 2 decimals, trailing zeros trimmed (`0.7`, not
+`0.70`), and `0` for null/NaN so a missing value never renders as "NaN".
+
+Every macro display routes through it — the diary row (the reported bug), the food list, the
+completion modal, the photo gallery's estimates, and `formatMacros()`. `utils/serving.ts`'s
+`formatNumber()` delegates rather than keeping a second copy of the rounding rule; two
+implementations of one rule is the drift FF-0084 had to unpick.
+
+AI photo estimates are normalised to 2 decimals when they arrive, because they are edited in
+number inputs and a field showing `0.7000000000000001` is the same bug in a different widget.
+Rounding at the boundary shapes the draft without fighting what the user types.
