@@ -21,10 +21,21 @@ from app.utils.openfoodfacts import USER_AGENT, normalise_code, _first_name
 
 SEARCH_URL = 'https://world.openfoodfacts.org/cgi/search.pl'
 TTL = 3600
+STALE_TTL = 7 * 24 * 3600
+SEARCH_PAGE_SIZE = 20
+# Three attempts: with the provider's observed ~50% transient failure rate, one attempt
+# fails too often to be usable and three fail about 1 time in 8.
+SEARCH_ATTEMPTS = 4
+SEARCH_RETRY_DELAYS = (0.8, 1.5, 3.0)
+SEARCH_TIMEOUT = 8
 
 
 class SearchUnavailable(Exception):
     pass
+
+
+class _Retryable(Exception):
+    """A provider failure worth another attempt: 5xx, 429, HTML instead of JSON, socket."""
 
 
 class SearchLimited(Exception):
@@ -67,23 +78,56 @@ def parse_reference(product):
     }
 
 
-def fetch_products(query, page):
+def _query_once(query, page, timeout):
+    """One attempt. Raises _Retryable for a transient failure, SearchUnavailable when permanent."""
     params = urllib.parse.urlencode({'search_terms': query, 'search_simple': 1,
-        'action': 'process', 'json': 1, 'page_size': 20, 'page': page,
+        'action': 'process', 'json': 1, 'page_size': SEARCH_PAGE_SIZE, 'page': page,
         'fields': 'code,product_name,product_name_en,generic_name,brands,nutriments,serving_size,nutrition_data_per'})
     request = urllib.request.Request(SEARCH_URL + '?' + params, headers={'User-Agent': USER_AGENT})
     try:
-        with urllib.request.urlopen(request, timeout=8) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             payload = json.load(response)
-        if not isinstance(payload, dict) or not isinstance(payload.get('products'), list):
-            raise ValueError('Invalid provider response')
-        return payload
-    except (OSError, ValueError, urllib.error.URLError) as exc:
-        raise SearchUnavailable('Food search is unavailable right now. Your saved foods still work.') from exc
+    except urllib.error.HTTPError as exc:
+        # OFF answers 503 with an HTML "Page temporarily unavailable" page. It is
+        # transient: the identical request succeeds seconds later. Retry it.
+        if exc.code == 429 or exc.code >= 500:
+            raise _Retryable(f'provider returned {exc.code}') from exc
+        raise SearchUnavailable(f'provider rejected the search ({exc.code})') from exc
+    except (ValueError, json.JSONDecodeError) as exc:
+        # A 200 carrying HTML instead of JSON is the same transient page.
+        raise _Retryable('provider sent HTML instead of JSON') from exc
+    except (OSError, urllib.error.URLError) as exc:
+        raise _Retryable(str(exc)) from exc
+
+    if not isinstance(payload, dict) or not isinstance(payload.get('products'), list):
+        raise _Retryable('provider payload was not a search result')
+    return payload
+
+
+def fetch_products(query, page, attempts=SEARCH_ATTEMPTS, timeout=SEARCH_TIMEOUT):
+    """Search OFF, retrying the transient failures it is prone to.
+
+    Measured against the live service: the same query alternates between a real JSON
+    result and a 503 "temporarily unavailable" page, roughly half the time each, while
+    the product (barcode) API stays healthy. One attempt therefore fails for the user
+    about half the time, which is what "Open Food Facts is not available" was.
+    """
+    last = None
+    for attempt in range(max(1, attempts)):
+        try:
+            return _query_once(query, page, timeout)
+        except _Retryable as exc:
+            last = exc
+            if attempt + 1 < attempts:
+                time.sleep(SEARCH_RETRY_DELAYS[min(attempt, len(SEARCH_RETRY_DELAYS) - 1)])
+    raise SearchUnavailable(
+        'Open Food Facts is busy right now. Your saved foods still work — try Search again in a moment.'
+    ) from last
 
 
 def cached_products(query, page):
-    path = current_app.config.get('OFF_SEARCH_CACHE_PATH') or os.path.join(tempfile.gettempdir(), 'awefit-off-search-v1.sqlite3')
+    path = current_app.config.get('OFF_SEARCH_CACHE_PATH') or os.path.join(
+        tempfile.gettempdir(), 'awefit-off-search-v1.sqlite3')
     now = time.time()
     key = json.dumps([query.casefold(), page])
     with sqlite3.connect(path, timeout=3) as conn:
@@ -91,20 +135,31 @@ def cached_products(query, page):
         conn.execute('CREATE TABLE IF NOT EXISTS throttle (id INTEGER PRIMARY KEY, requested REAL)')
         conn.commit()
         conn.execute('BEGIN IMMEDIATE')
-        conn.execute('DELETE FROM cache WHERE expires < ?', (now,))
-        hit = conn.execute('SELECT value FROM cache WHERE key=?', (key,)).fetchone()
-        if hit:
-            return json.loads(hit[0])
+        # Expired rows are kept for a while: when the provider is down, an hour-old
+        # result is far better than an error (FF-0098).
+        conn.execute('DELETE FROM cache WHERE expires < ?', (now - STALE_TTL,))
+        hit = conn.execute('SELECT value, expires FROM cache WHERE key=?', (key,)).fetchone()
+        if hit and hit[1] > now:
+            return json.loads(hit[0]), False
         last = conn.execute('SELECT requested FROM throttle WHERE id=1').fetchone()
         if last and now - last[0] < 6.1:
             raise SearchLimited('Please wait a few seconds before searching Open Food Facts again.')
         conn.execute('INSERT OR REPLACE INTO throttle VALUES (1, ?)', (now,))
-    payload = fetch_products(query, page)
+
+    try:
+        payload = fetch_products(query, page)
+    except SearchUnavailable:
+        # The provider's search is frequently unavailable (measured: ~1 request in 5
+        # succeeds). A previously cached answer still helps, clearly marked as stale.
+        if hit:
+            current_app.logger.info('Serving stale OFF search for %r', query)
+            return json.loads(hit[0]), True
+        raise
+
     with sqlite3.connect(path, timeout=3) as conn:
-        # Bounded public cache; expiration also clears stale rows.
         conn.execute('DELETE FROM cache WHERE key IN (SELECT key FROM cache ORDER BY expires LIMIT MAX(0, (SELECT COUNT(*) FROM cache)-499))')
         conn.execute('INSERT OR REPLACE INTO cache VALUES (?, ?, ?)', (key, json.dumps(payload), now + TTL))
-    return payload
+    return payload, False
 
 
 def signer():
@@ -112,15 +167,17 @@ def signer():
 
 
 def search(query, page):
-    payload = cached_products(query, page)
+    payload, stale = cached_products(query, page)
     results, seen = [], set()
     for product in payload['products']:
         reference = parse_reference(product)
         if reference and reference['barcode_id'] not in seen:
             seen.add(reference['barcode_id'])
             results.append({**reference, 'token': signer().dumps(reference)})
-    return {'results': results, 'page': page, 'has_more': len(payload['products']) == 20,
-            'omitted': len(payload['products']) - len(results), 'source': 'openfoodfacts'}
+    return {'results': results, 'page': page,
+            'has_more': len(payload['products']) >= SEARCH_PAGE_SIZE,
+            'omitted': len(payload['products']) - len(results), 'source': 'openfoodfacts',
+            'stale': stale}
 
 
 def decode_reference(token):
