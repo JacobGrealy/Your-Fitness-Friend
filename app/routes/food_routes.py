@@ -71,7 +71,10 @@ def _requested_per_serving(data):
     }
     if not supplied:
         return None
-    return {macro: float(supplied.get(macro, 0) or 0) for macro in MACROS}
+    # Only the macros the client actually described. Filling the gaps with 0 silently wiped
+    # carbs and fat when a request carried protein_per_serving alone (FF-0093) - the rest of
+    # this API treats an absent field as "no change", so this does too.
+    return {macro: float(value or 0) for macro, value in supplied.items()}
 
 
 def _apply_nutrition(log, data):
@@ -91,7 +94,13 @@ def _apply_nutrition(log, data):
     supplied_per_serving = _requested_per_serving(data)
 
     if supplied_per_serving is not None:
-        base = supplied_per_serving
+        # Start from the log's current per-serving values and overlay what was supplied, so
+        # updating one macro cannot zero the others (FF-0093).
+        current = log.per_serving()
+        base = {
+            macro: supplied_per_serving[macro] if macro in supplied_per_serving else current[macro]
+            for macro in MACROS
+        }
     elif data.get('calories') is not None or any(
         data.get(macro) is not None for macro in MACROS[1:]
     ):

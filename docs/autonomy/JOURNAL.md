@@ -1843,3 +1843,16 @@ While seeding that check I tripped over a separate defect worth its own ticket: 
 /api/food/log` builds the per-serving base with `supplied.get(macro, 0)`, so a client that sends
 `protein_per_serving` alone silently zeroes carbs and fat. My frontend always sends all four, so
 it is latent rather than live — filed separately rather than smuggled into this fix.
+
+## Round 82 — 2026-10-19 — FF-0093 partial per-serving payloads were destructive
+
+Found while seeding FF-0092's verification: a log created with `protein_per_serving` and nothing
+else came back with carbs and fat at zero. `_requested_per_serving` filled the gaps with 0 and
+`_apply_nutrition` treated that as the complete truth.
+
+Now it reports only what was supplied, and the update overlays onto the log's current per-serving
+values. Two of the five new tests fail against the old code, so they pin the behaviour rather
+than describing it. The totals path and the full four-field path are unchanged.
+
+This one never bit the app, because both screens always send all four fields. It is worth fixing
+anyway: silently zeroing nutrition is exactly the failure this project already paid for twice.

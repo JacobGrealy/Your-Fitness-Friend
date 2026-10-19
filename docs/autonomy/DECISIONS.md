@@ -1014,3 +1014,19 @@ implementations of one rule is the drift FF-0084 had to unpick.
 AI photo estimates are normalised to 2 decimals when they arrive, because they are edited in
 number inputs and a field showing `0.7000000000000001` is the same bug in a different widget.
 Rounding at the boundary shapes the draft without fighting what the user types.
+
+## 2026-10-19 — A per-serving payload describes only the macros it names
+
+`_requested_per_serving()` used to normalise what a client sent into a complete base with
+`supplied.get(macro, 0)`. That made a partial payload destructive: sending
+`protein_per_serving` alone stored protein and silently zeroed calories, carbs and fat.
+
+It now reports only the macros supplied, and `_apply_nutrition` overlays them onto the log's
+existing per-serving values. That matches how the rest of this API already behaves — an absent
+field means "no change", the same rule `_clean_barcode` follows — and it means the FF-0083
+priority order still holds: explicit per-serving values, then explicit totals, then a
+servings-only rescale.
+
+The app itself never sent a partial payload, so this was latent rather than live. It is fixed
+because the failure mode is silent data loss on any other client, which is the class of bug this
+project has already met twice (FF-0073's photo wipes, FF-0081's barcode wipe).
