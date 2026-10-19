@@ -29,6 +29,7 @@ export interface Food extends ServingReference {
   brand?: string
   serving_size?: string | null
   barcode_id?: string | null
+  external_id?: string | null
   created_at: string
 }
 
@@ -83,8 +84,14 @@ export interface FoodCreate extends ServingReference {
 /**
  * Data required to create a new food log entry.
  */
+export type FoodSearchSource = 'usda' | 'openfoodfacts'
+
 export interface ExternalFood extends Omit<Food, 'id' | 'user_id' | 'created_at'> {
-  source: 'openfoodfacts'
+  source: FoodSearchSource
+  /** Provider-qualified identity, e.g. "usda:2346397" (FF-0099). */
+  external_id: string
+  /** USDA dataset the reference came from (Foundation, SR Legacy). */
+  data_type?: string | null
   token: string
 }
 

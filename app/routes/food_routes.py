@@ -226,6 +226,8 @@ def get_foods():
         'serving_unit': f.serving_unit,
         'brand': f.brand,
         'barcode_id': f.barcode_id,
+        # The search UI deduplicates imported foods against these (FF-0099).
+        'external_id': f.external_id,
     } for f in foods]), 200
 
 

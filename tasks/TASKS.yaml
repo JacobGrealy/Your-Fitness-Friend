@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-19T17:07
+  updated_at: 2026-10-19T17:23
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -3914,4 +3914,37 @@ intake:
     with 4 attempts at 0.8/1.5/3.0s, 7-day stale-cache fallback (served with stale:true) and non-blaming
     error text. Live after fix: 2 of 3 searches succeed. Gates green. Moved to QUESTIONS.md as Q5 with
     the evidence for the USDA decision.'
+  comments: []
+- id: FF-0099
+  title: USDA FoodData Central as the generic-food search source
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-19T17:10
+  updated_at: 2026-10-19T17:23
+  completed_at: 2026-10-19T17:23
+  waiting_on: null
+  parent_id: null
+  notes: 'Owner approved: USDA for text search, Open Food Facts stays for barcodes. Key held in USDA_FDC_API_KEY
+    (owner supplies; DEMO_KEY used only for smoke testing, rate limit 10 shared worldwide). Search normalises
+    USDA Foundation + SR Legacy foods to a 100 g reference reusing the FF-0094 serving model and the FF-0096
+    signed-token import; no separate catalog, still imported per user on log. Nutrition completeness is
+    mandatory: resolve energy across the Energy / Atwater General / Atwater Specific names and both kcal
+    and kJ units, and omit a food rather than log 0 kcal or missing macros. Identity becomes provider-qualified
+    (usda:<fdcId>, openfoodfacts:<barcode>) so dedup and the per-user unique constraint work for both
+    sources; existing barcode-cached foods keep matching. With no key configured, search falls back to
+    OFF rather than failing. Frontend shows which provider a result came from and adapts attribution.
+
+
+    Closed: USDA Foundation+SR Legacy search behind USDA_FDC_API_KEY (fallback to OFF when unset), multi-name/multi-unit
+    energy resolution, mandatory macros, generic-first ranking, provider-qualified identities (usda:<fdcId>)
+    used for import dedup and the unique constraint, dataset kept separate from brand, GET /api/food now
+    returns external_id. Browser found three real defects (React key + loader dedup both keyed on null
+    barcode_id, dataset stored as brand) plus two harness-only failures. Mobile verified with the real
+    key: raw apples first, 182 g -> 111 kcal, reference preserved, deduplicated. Gates green: 288 backend,
+    392 frontend.'
   comments: []

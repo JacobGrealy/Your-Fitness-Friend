@@ -209,7 +209,7 @@ export default function LogFood() {
           </div>
           <Button size="sm" onClick={submitSearch} disabled={searchTerm.trim().length < 2}>Search</Button>
           </div>
-          {searchTerm && <p className="text-xs text-[#757575] mt-2">Your foods match as you type. Search to include Open Food Facts.</p>}
+          {searchTerm && <p className="text-xs text-[#757575] mt-2">Your foods match as you type. Search to include food databases.</p>}
         </div>
 
         {/* Action Buttons */}
@@ -241,14 +241,14 @@ export default function LogFood() {
           />
         )}
 
-        {showSearchResults && searchResults.length === 0 && historyResults.length === 0 && (
+        {showSearchResults && !externalSearch && searchResults.length === 0 && historyResults.length === 0 && (
           <EmptyState
             title="No saved foods match"
-            description="Press Search to look in Open Food Facts, or use Quick Add."
+            description="Press Search to look in a food database, or use Quick Add."
           />
         )}
 
-        {showSearchResults && searchTerm && (
+        {showSearchResults && searchTerm && (searchResults.length > 0 || historyResults.length > 0) && (
           <h2 className="text-sm font-medium text-[#757575] mt-2">
             Your foods
           </h2>

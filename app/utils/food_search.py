@@ -74,6 +74,7 @@ def parse_reference(product):
         **values, 'calories': max(1, round(values['calories'])),
         'serving_amount': 100, 'serving_unit': unit, 'serving_size': f'100 {unit}',
         'barcode_id': ('0' + code) if len(code) == 12 else code,
+        'external_id': 'openfoodfacts:' + (('0' + code) if len(code) == 12 else code),
         'source': 'openfoodfacts',
     }
 
@@ -166,18 +167,55 @@ def signer():
     return URLSafeTimedSerializer(current_app.secret_key, salt='off-food-reference-v1')
 
 
-def search(query, page):
+def active_provider():
+    """USDA when a key is configured, Open Food Facts otherwise (FF-0099).
+
+    Falling back rather than failing keeps search working on a fresh checkout with no
+    key, and keeps the previous behaviour available if a key is ever revoked.
+    """
+    return 'usda' if (current_app.config.get('USDA_FDC_API_KEY') or '').strip() else 'openfoodfacts'
+
+
+def _search_usda(query, page, api_key):
+    from app.utils import usda
+
+    try:
+        payload = usda.search(query, page, api_key)
+    except usda.UsdaUnavailable as exc:
+        raise SearchUnavailable(
+            'USDA search is unavailable right now. Your saved foods still work.'
+        ) from exc
+
+    results, seen = [], set()
+    for food in payload['foods']:
+        reference = usda.parse_food(food)
+        if reference and reference['external_id'] not in seen:
+            seen.add(reference['external_id'])
+            results.append({**reference, 'token': signer().dumps(reference)})
+    return {'results': results, 'page': page,
+            'has_more': len(payload['foods']) >= usda.PAGE_SIZE,
+            'omitted': len(payload['foods']) - len(results), 'source': 'usda',
+            'stale': False}
+
+
+def _search_openfoodfacts(query, page):
     payload, stale = cached_products(query, page)
     results, seen = [], set()
     for product in payload['products']:
         reference = parse_reference(product)
-        if reference and reference['barcode_id'] not in seen:
-            seen.add(reference['barcode_id'])
+        if reference and reference['external_id'] not in seen:
+            seen.add(reference['external_id'])
             results.append({**reference, 'token': signer().dumps(reference)})
     return {'results': results, 'page': page,
             'has_more': len(payload['products']) >= SEARCH_PAGE_SIZE,
             'omitted': len(payload['products']) - len(results), 'source': 'openfoodfacts',
             'stale': stale}
+
+
+def search(query, page):
+    if active_provider() == 'usda':
+        return _search_usda(query, page, current_app.config.get('USDA_FDC_API_KEY'))
+    return _search_openfoodfacts(query, page)
 
 
 def decode_reference(token):
@@ -194,13 +232,27 @@ def import_reference(token, user_id):
     from sqlalchemy.exc import IntegrityError
 
     snapshot = decode_reference(token)
-    external_id = 'off:' + snapshot['barcode_id']
-    food = Food.query.filter(Food.user_id == user_id, db.or_(
-        Food.external_id == external_id,
-        Food.barcode_id.in_(code_variants(snapshot['barcode_id'])))).first()
+
+    # Provider-qualified identity (FF-0099). Tokens signed before that existed carry only
+    # a barcode, and they expire within a day, so the fallback is short-lived by design.
+    barcode = snapshot.get('barcode_id')
+    external_id = snapshot.get('external_id') or (
+        'openfoodfacts:' + barcode if barcode else None
+    )
+    if not external_id:
+        raise ValueError('This search selection is not a food reference.')
+
+    matches = [Food.external_id == external_id]
+    if barcode:
+        # A product cached by an earlier barcode scan predates the import and must be
+        # reused rather than duplicated.
+        from app.routes.barcode_lookup import code_variants
+        matches.append(Food.barcode_id.in_(code_variants(barcode)))
+    food = Food.query.filter(Food.user_id == user_id, db.or_(*matches)).first()
     if food:
         return food, snapshot
-    fields = {key: snapshot[key] for key in ('name', 'brand', 'calories', 'protein_g',
+
+    fields = {key: snapshot.get(key) for key in ('name', 'brand', 'calories', 'protein_g',
         'carbs_g', 'fat_g', 'serving_amount', 'serving_unit', 'serving_size', 'barcode_id')}
     food = Food(user_id=user_id, external_id=external_id, **fields)
     # SQLite must have a real outer transaction before SAVEPOINT, otherwise RELEASE

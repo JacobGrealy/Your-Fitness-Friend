@@ -49,6 +49,12 @@ class Config:
     QWEN_MAX_TOKENS = int(os.environ.get('QWEN_MAX_TOKENS') or 50000)
     QWEN_TIMEOUT = 120  # seconds
     
+    # USDA FoodData Central API key for generic-food search (FF-0099). Free, and the
+    # owner supplies it: the shared DEMO_KEY is limited to a pool of ~10 shared
+    # worldwide, so it is only usable for a smoke test. Absent means search falls
+    # back to Open Food Facts rather than failing.
+    USDA_FDC_API_KEY = os.environ.get('USDA_FDC_API_KEY') or ''
+
     # Published AweFit release directory (APK + version.json). Outside
     # app/static on purpose: `vite build` empties app/static on every web build.
     APP_RELEASE_DIR = os.environ.get('APP_RELEASE_DIR') or os.path.join(
