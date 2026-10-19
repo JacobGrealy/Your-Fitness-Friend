@@ -26,6 +26,14 @@ export const foodApi = {
     api.get<any>('/food/log', { params }).then(res => res.data.logs || []),
   getFoodLog: (id: string) =>
     api.get<FoodLog>(`/food/log/${id}`).then(res => res.data),
+  /** Duplicate every entry of one meal onto another date and meal (FF-0082). */
+  copyMeal: (payload: {
+    from_date: string
+    from_meal_type: string
+    to_date: string
+    to_meal_type: string
+  }) => api.post('/food/log/copy', payload).then((res) => res.data),
+
   logFood: (data: FoodLogCreate) =>
     api.post<FoodLog>('/food/log', data).then(res => res.data),
   updateFoodLog: (id: string, data: Partial<FoodLogCreate>) =>

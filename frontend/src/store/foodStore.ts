@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { foodApi } from '@/api/food'
-import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch, MacroGoals, FoodRecent } from '@/types'
+import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch, MacroGoals, FoodRecent, MealType } from '@/types'
 import { useUIStore } from './uiStore'
 import { RECENT_FOODS_DAYS } from '@/utils/constants'
 import { todayLocal } from '@/utils/localDate'
@@ -19,6 +19,10 @@ interface FoodState {
   fetchDailyTotals: (date?: string) => Promise<void>
   fetchMacroGoals: () => Promise<void>
   createFood: (data: FoodCreate) => Promise<Food>
+  copyMeal: (
+    from: { date: string; mealType: MealType },
+    to: { date: string; mealType: MealType; label: string }
+  ) => Promise<number>
   logFood: (data: FoodLogCreate) => Promise<FoodLog | void>
   updateFoodLog: (id: string, data: Partial<FoodLogCreate>) => Promise<void>
   getFoodLogById: (id: string) => Promise<FoodLog | null>
@@ -126,6 +130,32 @@ export const useFoodStore = create<FoodState>((set, get) => ({
         isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to add food', 'error')
+      throw error
+    }
+  },
+
+  copyMeal: async (from, to) => {
+    set({ isLoading: true, error: null })
+    try {
+      const result = await foodApi.copyMeal({
+        from_date: from.date,
+        from_meal_type: from.mealType,
+        to_date: to.date,
+        to_meal_type: to.mealType,
+      })
+      get().fetchFoodLogs()
+      get().fetchDailyTotals()
+      set({ isLoading: false })
+      useUIStore.getState().showToast(
+        `Copied ${result.copied} item${result.copied === 1 ? '' : 's'} to ${to.label}`,
+        'success'
+      )
+      return result.copied as number
+    } catch (error: any) {
+      const message =
+        error.response?.data?.error || error.response?.data?.message || 'Failed to copy meal'
+      set({ error: message, isLoading: false })
+      useUIStore.getState().showToast(message, 'error')
       throw error
     }
   },
