@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-19T09:29
+  updated_at: 2026-10-19T09:32
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -3698,4 +3698,62 @@ intake:
     server the row renders ''P:0.7g C:0.8g F:1.6g'' with no full-precision leak anywhere. 7 formatter
     tests + a diary-row component test. Found a separate latent defect while seeding (a partial per-serving
     payload zeroes the unsupplied macros) - filed separately rather than bundled here.'
+  comments: []
+- id: FF-0093
+  title: A partial per-serving payload silently zeroes the macros it omits
+  source: agent
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: done
+  labels: []
+  created_at: 2026-10-19T09:30
+  updated_at: 2026-10-19T09:32
+  completed_at: 2026-10-19T09:32
+  waiting_on: null
+  parent_id: null
+  notes: '1) Found while verifying FF-0092, not reported by the owner. A client that sends SOME per-serving
+    fields silently zeroes the rest.
+
+
+    2) Evidence: app/routes/food_routes.py `_requested_per_serving()` returns `{macro: float(supplied.get(macro,
+    0) or 0) for macro in MACROS}`. `_apply_nutrition()` then treats that dict as the complete base, so
+    a request carrying only `protein_per_serving` stores calories/carbs/fat as 0. Reproduced on an isolated
+    server: POST /api/food/log with totals 19 kcal / 0.7 protein / 0.8 carbs / 1.6 fat plus ONLY `protein_per_serving:
+    0.7` stored protein 0.7 but carbs and fat as 0, and the diary row read ''P:0.7g C:0g F:0g''.
+
+
+    3) Why it is latent today: FoodLogSelect and EditFoodDetails always send all four per-serving fields,
+    so the app itself never triggers it. It bites any other client, a future screen, or a hand-written
+    request - and it destroys data silently, which is the worst failure mode this project has already
+    met twice (FF-0073 photo wipes, FF-0081 barcode wipe).
+
+
+    4) The rest of the API already treats an ABSENT field as "no change": `_clean_barcode` distinguishes
+    blank from absent, and `_apply_nutrition` leaves macros alone when the client sends neither per-serving
+    nor totals. `_requested_per_serving` should follow the same rule: return only the macros actually
+    supplied, and let `_apply_nutrition` fill the gaps from the log''s current per-serving value (or its
+    totals divided by servings) instead of assuming 0.
+
+
+    5) Do not change the response shape or the FF-0083 priority order (explicit per-serving, then explicit
+    totals, then servings-only rescale). Do not round anything (FF-0092 keeps full precision in storage).
+    Do not touch the barcode handling.
+
+
+    6) Acceptance: a request carrying only `protein_per_serving` updates protein and leaves calories,
+    carbs and fat untouched; a request carrying no per-serving fields behaves exactly as before (totals
+    path); a request carrying all four still replaces all four; tests cover all three cases and fail against
+    the current code; ./scripts/gates.sh green.
+
+
+    Closed: _requested_per_serving() now returns only the macros a client actually supplied, and _apply_nutrition
+    overlays them onto the log''s existing per-serving values instead of assuming 0. Matches the API''s
+    existing absent-means-no-change rule (same as _clean_barcode) and leaves the FF-0083 priority order
+    intact: explicit per-serving, then explicit totals, then servings-only rescale. 5 new tests (partial
+    update, full four-field replacement, totals contract, partial update combined with a servings change,
+    payload with no nutrition fields); 2 of them fail against the old code. Verified while seeding FF-0092
+    that the app itself always sent all four fields, so this was latent rather than live - fixed because
+    the failure mode is silent data loss.'
   comments: []
