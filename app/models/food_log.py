@@ -16,6 +16,10 @@ class FoodLog(db.Model):
     carbs_g = db.Column(db.Float, default=0.0)
     fat_g = db.Column(db.Float, default=0.0)
     serving_size = db.Column(db.String(255), nullable=True)
+    serving_amount = db.Column(db.Float, nullable=True)
+    serving_unit = db.Column(db.String(20), nullable=True)
+    amount = db.Column(db.Float, nullable=True)
+    unit = db.Column(db.String(20), nullable=True)
     number_of_servings = db.Column(db.Float, nullable=True)
 
     # Per-serving nutrition, so `calories`/`protein_g`/... above are unambiguously TOTALS
@@ -46,6 +50,10 @@ class FoodLog(db.Model):
             'carbs_g': self.carbs_g,
             'fat_g': self.fat_g,
             'serving_size': self.serving_size,
+            'serving_amount': self.serving_amount,
+            'serving_unit': self.serving_unit,
+            'amount': self.amount,
+            'unit': self.unit,
             'number_of_servings': self.number_of_servings,
             'calories_per_serving': self.calories_per_serving,
             'protein_per_serving': self.protein_per_serving,

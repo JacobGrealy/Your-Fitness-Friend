@@ -1,9 +1,12 @@
 meta:
-  updated_at: 2026-10-19T09:32
+  updated_at: 2026-10-19T11:47
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0095
+- FF-0096
+- FF-0097
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -3756,4 +3759,107 @@ intake:
     payload with no nutrition fields); 2 of them fail against the old code. Verified while seeding FF-0092
     that the app itself always sent all four fields, so this was latent rather than live - fixed because
     the failure mode is silent data loss.'
+  comments: []
+- id: FF-0094
+  title: 'Structured serving amounts and units: model, migration and API'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-19T11:37
+  updated_at: 2026-10-19T11:47
+  completed_at: 2026-10-19T11:47
+  waiting_on: null
+  parent_id: null
+  notes: 'Owner approved separate servings and OFF search work. Backend slice first: structured numeric
+    serving_amount and serving_unit on saved foods and log snapshots as appropriate, plus amount/unit
+    consumed; support g kg oz lb ml cup tbsp tsp serving item. Keep existing contracts compatible. Explicit
+    conversions only within mass/volume families; volume or item to mass requires food-specific evidence,
+    never density guesses. Preserve stored full precision and ALL existing historical nutrition totals.
+    Conservative parser for unambiguous legacy labels (100 g, 2 tbsp); ambiguous labels stay legacy serving
+    text. Migration required with tests fresh upgrade and backfill, no live migration by worker. Snapshot
+    before coordinator live schema upgrade. Tests cover validation, scaling, compatibility, copies, create/edit/recent,
+    partial updates and privacy. Only application backend/migrations/tests in this slice. No frontend,
+    registry, live instance, static build or services. Follow AGENTS clean-context delegation.
+
+
+    Implemented reference serving_amount/unit and log amount/unit snapshots; conservative metadata-only
+    migration c19400000001, compatible conversions with no density guesses; legacy edit/copy/recent preserved.
+    Full gates green. Owner explicitly requested inline implementation after subagent runtime failures.'
+  comments: []
+- id: FF-0095
+  title: 'Structured serving amounts and units: food logging and editing UI'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-19T11:37
+  updated_at: 2026-10-19T11:37
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Depends on structured-serving backend ticket. Replace free-text serving size with numeric amount
+    and unit for clear structured foods; distinguish reference serving from amount eaten. Reuse existing
+    form controls, allow logging 182 g against reference 100 g without entering 1.82 manually. Units g
+    kg oz lb ml cup tbsp tsp serving item, only compatible conversions supported by backend. Preserve
+    legacy ambiguous serving labels and existing log nutrition totals. Update create saved/custom food,
+    log/select/edit, repeat/recent and diary display consistently. Show macros max 2 decimal places without
+    rounding stored values. Keep photos, meal and return navigation working. Component/util tests; typecheck
+    and full gates. Worker no static build, registry, instance or services.
+  comments: []
+- id: FF-0096
+  title: 'Open Food Facts text search: cached API and saved-food import'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-19T11:37
+  updated_at: 2026-10-19T11:37
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Depends on structured servings. Extend existing OFF barcode integration, no USDA. Authenticated
+    text search API with explicit search (not per keystroke), bounded queries/page sizes/timeouts, server
+    caching/rate limiting respecting OFF search limit. Return source identifiers, names brands and trustworthy
+    per-100g nutrition/structured serving reference; never mislabel per-serving as per100g, never infer
+    ml=g or missing macros=0. Search results do not automatically save. Logging selected external result
+    imports to existing Food table with provider identity and duplicate prevention respecting ownership;
+    no separate catalog. Prefer shared OFF parsing boundary preserving barcode compatibility. Snapshot
+    migration if needed by coordinator only. Network-stubbed tests for parsing, malformed/missing macros,
+    rate/cache, provider outages, import/dedup and auth. No frontend, registry, static build, live instance
+    or services.
+  comments: []
+- id: FF-0097
+  title: Local-first Add Food search with Open Food Facts results
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-19T11:37
+  updated_at: 2026-10-19T11:37
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Depends on OFF search API and serving UI. Enhance existing Add Food screen only, preserve Quick
+    Add Food Photo Barcode and empty-query Recent Foods thumbnails/quick-log. As typing, local foods/history
+    matches first with dedup; explicit Search button and Enter fetch OFF section below. Show source/brand/nutrition
+    basis, separate loading/no-results/errors so local matches stay usable during outage, guard stale
+    response races, bounded load more if supported. Selecting result reuses logging form with numeric
+    amount/unit and live preview; external food saved into existing database only when logging, reuse
+    source id to prevent duplicates. Existing source nutrition snapshot/full precision and max2 decimals
+    presentation preserved. Component integration tests cover local-first ranking and dedup, explicit
+    remote only, external selection/import/log, repeat by weight, error/empty/stale requests. No USDA
+    or separate navigation. Worker no static build, registry, instance or services.
   comments: []

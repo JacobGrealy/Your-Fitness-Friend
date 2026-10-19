@@ -1856,3 +1856,13 @@ than describing it. The totals path and the full four-field path are unchanged.
 
 This one never bit the app, because both screens always send all four fields. It is worth fixing
 anyway: silently zeroing nutrition is exactly the failure this project already paid for twice.
+
+## FF-0094 — Structured serving backend
+
+Added reference amount/unit and consumed quantity snapshots with metadata-only legacy backfill.
+No historical nutrition totals change. Compatible mass and US volume conversions only; no
+implicit density. Local food query now scopes ownership before applying search. Legacy edit
+sync tests exposed a compatibility difference; preserved the old totals contract for old clients,
+while new explicit quantity/per-serving clients keep saved reference nutrition. All gates green
+(260 backend tests). Next FF-0095: reuse logging controls for numeric amounts and units.
+Owner requested inline work after delegation failed. Live schema deployment follows backup.
