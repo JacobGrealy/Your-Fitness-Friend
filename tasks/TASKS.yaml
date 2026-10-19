@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-18T21:53
+  updated_at: 2026-10-18T22:00
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0084
 - FF-0085
 intake:
 - id: FF-0001
@@ -3095,11 +3094,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-18T19:47
-  updated_at: 2026-10-18T19:47
-  completed_at: null
+  updated_at: 2026-10-18T22:00
+  completed_at: 2026-10-18T22:00
   waiting_on: null
   parent_id: null
   notes: "1) User Story: Home has a \"Weight Trend\" chart and the Progress tab has a weight chart, and\
@@ -3166,7 +3165,15 @@ intake:
     \ three chart components, and possibly app/utils/aggregations.py or app/routes/dashboard.py. WeightHistory.tsx\
     \ also needs touching for any further Progress work, so keep this out of a lane running another Progress\
     \ ticket. A backend change here needs a gunicorn restart; a frontend-only change does not. Check ff-gates'\
-    \ uploads rule before touching anything: no joining of root_path with 'uploads' belongs in these files.\n"
+    \ uploads rule before touching anything: no joining of root_path with 'uploads' belongs in these files.\n\
+    \n\nClosed the behavioural half: utils/weightTrend.ts is now the single definition - dayOf() (date-only\
+    \ returned unchanged, timestamps via localDateOf), buildWeightSeries(logs, days|null) with latest-per-day\
+    \ chosen by timestamp, trendDirection() with one 0.5 lb threshold plus trendChange(), and weightYDomain()\
+    \ folding the goal in. Home asks for 7 days and states 'last 7 days' on screen; Progress asks for\
+    \ the whole history but derives its verdict from the same 7-day subseries and labels it with the same\
+    \ words. The kg tooltip label is gone. 15 new frontend tests pinning the parse, ordering, threshold\
+    \ and domain; gates green with 333 frontend tests. Remaining for a follow-up: the three chart components\
+    \ are still three near-copies (shared domain now passed in, but not collapsed into one)."
   comments: []
 - id: FF-0085
   title: 'Toggleable BMI range lines on the weight chart: healthy, overweight, obese'
