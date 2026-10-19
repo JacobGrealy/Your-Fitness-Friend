@@ -921,3 +921,20 @@ has since been deleted hides itself instead of showing a broken image.
 Attaching a photo at creation is two requests (create, then upload to the new id) but one
 action; an upload failure is surfaced, not swallowed (FF-0073). A picked file is never also
 sent as a carried path, so the two mechanisms cannot both fire.
+
+## 2026-10-19 — A DateTime column is never compared against a bare date
+
+`get_weight_trend()` filtered `WeightLog.recorded_at >= start_date` / `<= end_date` with those
+values being `datetime.date` objects. SQLite stores the column as TEXT
+(`'2026-10-19 00:00:00.000000'`) and compares it lexicographically against the bound
+`'2026-10-19'` — the stored value is longer with the same prefix, so it sorts *after* the end
+date and every entry dated the end day was dropped. Today's weigh-in could never appear on
+Home, at any time of day, and the weekly summary missed the same day.
+
+The pattern was already correct in `app/routes/weight.py`
+(`datetime.combine(day, datetime.min.time())` / `datetime.max.time()`); `aggregations.py` was
+the outlier in two places. Both now use datetime bounds.
+
+The general rule: **compare a DateTime column to datetimes, never to dates** — and prefer the
+half-open form (`>= start` and `< next_day`) when writing new code, since it avoids the
+`max.time()` edge and reads correctly to the next person.

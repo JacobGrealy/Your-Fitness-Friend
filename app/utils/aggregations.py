@@ -1,5 +1,5 @@
 """Aggregation utilities for dashboard."""
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional, List, Dict, Any
 from app.models.food_log import FoodLog
 from app.models.exercise_log import ExerciseLog
@@ -72,11 +72,14 @@ def get_weight_trend(user_id: int, days: int = 7) -> List[Dict[str, Any]]:
     """Get weight entries for the last N days."""
     end_date = date.today()
     start_date = end_date - timedelta(days=days-1)
-    
+
+    # recorded_at is a DateTime, so it must be compared against datetimes. A bare date binds
+    # as '2026-10-19', which is less than the stored '2026-10-19 00:00:00.000000', so the end
+    # day was silently excluded and today's weigh-in never appeared on Home (FF-0089).
     weights = WeightLog.query.filter(
         WeightLog.user_id == user_id,
-        WeightLog.recorded_at >= start_date,
-        WeightLog.recorded_at <= end_date
+        WeightLog.recorded_at >= datetime.combine(start_date, datetime.min.time()),
+        WeightLog.recorded_at <= datetime.combine(end_date, datetime.max.time())
     ).order_by(WeightLog.recorded_at.desc()).all()
     
     return [
@@ -199,10 +202,11 @@ def get_weekly_summary(user_id: int, week_start: Optional[date] = None) -> Dict[
     ).all()
     
     # Get all weights for the week
+    # Same date-vs-datetime correction as get_weight_trend (FF-0089).
     weights = WeightLog.query.filter(
         WeightLog.user_id == user_id,
-        WeightLog.recorded_at >= week_start,
-        WeightLog.recorded_at <= week_end
+        WeightLog.recorded_at >= datetime.combine(week_start, datetime.min.time()),
+        WeightLog.recorded_at <= datetime.combine(week_end, datetime.max.time())
     ).all()
     
     # Calculate totals
