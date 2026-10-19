@@ -9,7 +9,7 @@ import StreakStrip from '@/components/food/StreakStrip'
 import { useFoodStore } from '@/store/foodStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { MealType, FoodLog } from '@/types'
-import { formatCalories, formatServing } from '@/utils/formatters'
+import { formatCalories, formatMacro, formatServing } from '@/utils/formatters'
 import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
 import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
 import Loading from '@/components/common/Loading'
@@ -133,7 +133,7 @@ function MealSection({
                       const serving = formatServing(log.number_of_servings, log.serving_size)
                       return serving ? `${serving} · ` : ''
                     })()}
-                    {formatCalories(log.calories)} cal · P:{log.protein_g}g C:{log.carbs_g}g F:{log.fat_g}g
+                    {formatCalories(log.calories)} cal · P:{formatMacro(log.protein_g)}g C:{formatMacro(log.carbs_g)}g F:{formatMacro(log.fat_g)}g
                   </div>
                 </div>
                 <button

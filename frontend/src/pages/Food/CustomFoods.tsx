@@ -1,3 +1,4 @@
+import { formatMacro } from '@/utils/formatters'
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -89,13 +90,13 @@ export default function CustomFoods() {
                         <span className="font-medium">{food.calories}</span> cal
                       </span>
                       <span className="text-mfp-textSecondary">
-                        <span className="font-medium">{food.protein_g}g</span> protein
+                        <span className="font-medium">{formatMacro(food.protein_g)}g</span> protein
                       </span>
                       <span className="text-mfp-textSecondary">
-                        <span className="font-medium">{food.carbs_g}g</span> carbs
+                        <span className="font-medium">{formatMacro(food.carbs_g)}g</span> carbs
                       </span>
                       <span className="text-mfp-textSecondary">
-                        <span className="font-medium">{food.fat_g}g</span> fat
+                        <span className="font-medium">{formatMacro(food.fat_g)}g</span> fat
                       </span>
                     </div>
                   </div>

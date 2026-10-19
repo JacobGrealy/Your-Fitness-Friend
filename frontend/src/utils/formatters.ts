@@ -16,8 +16,21 @@ export function formatCalories(calories: number): string {
   return calories.toLocaleString()
 }
 
+/**
+ * A macro value, at most 2 decimals (FF-0092).
+ *
+ * Values are stored at full precision - dividing total protein by servings leaves things like
+ * 0.7000000000000001 - so every display site formats through here rather than interpolating
+ * the raw number. Trailing zeros are trimmed: 0.7, not 0.70.
+ */
+export function formatMacro(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '0'
+  const rounded = Math.round(value * 100) / 100
+  return String(rounded)
+}
+
 export function formatMacros(protein: number, carbs: number, fat: number): string {
-  return `P: ${protein}g C: ${carbs}g F: ${fat}g`
+  return `P: ${formatMacro(protein)}g C: ${formatMacro(carbs)}g F: ${formatMacro(fat)}g`
 }
 
 export function formatDuration(minutes: number): string {

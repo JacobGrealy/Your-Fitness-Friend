@@ -1,3 +1,4 @@
+import { formatMacro } from '@/utils/formatters'
 import type { DiaryCompletionSummary } from '@/api/diary'
 
 interface Props {
@@ -55,9 +56,9 @@ export default function CompleteDiaryModal({ summary, onClose, onReopen, reopeni
           <div className="grid grid-cols-4 gap-2 text-center">
             {[
               { label: 'Cal', value: totals.calories.toLocaleString() },
-              { label: 'Protein', value: `${Math.round(totals.protein_g)}g` },
-              { label: 'Carbs', value: `${Math.round(totals.carbs_g)}g` },
-              { label: 'Fat', value: `${Math.round(totals.fat_g)}g` },
+              { label: 'Protein', value: `${formatMacro(totals.protein_g)}g` },
+              { label: 'Carbs', value: `${formatMacro(totals.carbs_g)}g` },
+              { label: 'Fat', value: `${formatMacro(totals.fat_g)}g` },
             ].map((item) => (
               <div key={item.label} className="rounded-lg bg-[#f2f2f2] py-2">
                 <p className="text-sm font-semibold" style={{ color: '#212121' }}>{item.value}</p>

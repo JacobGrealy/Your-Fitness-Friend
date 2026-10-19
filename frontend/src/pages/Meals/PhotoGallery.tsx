@@ -6,7 +6,7 @@ import Card from '@/components/common/Card'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
 import Modal from '@/components/common/Modal'
-import { formatDate } from '@/utils/formatters'
+import { formatMacro, formatDate } from '@/utils/formatters'
 import type { MealPhoto } from '@/types'
 
 export default function PhotoGallery() {
@@ -78,7 +78,7 @@ export default function PhotoGallery() {
                 <p className="text-xs text-base-content/60">{formatDate(photo.date)}</p>
                 {photo.estimated_protein !== null && (
                   <p className="text-xs text-base-content/50">
-                    P:{photo.estimated_protein}g C:{photo.estimated_carbs ?? 0}g F:{photo.estimated_fat ?? 0}g
+                    P:{formatMacro(photo.estimated_protein)}g C:{formatMacro(photo.estimated_carbs)}g F:{formatMacro(photo.estimated_fat)}g
                   </p>
                 )}
                 <div className="card-actions mt-1">

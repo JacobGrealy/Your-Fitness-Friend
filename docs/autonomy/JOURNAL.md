@@ -1824,3 +1824,22 @@ fixes it, and a test now pins the two figures agreeing.
 
 That is the second time in two rounds that same-day timestamps caused a wrong number; the
 pattern is worth remembering: **anything ordering weight logs must break ties on id.**
+
+## Round 81 — 2026-10-19 — FF-0092 macros stop showing float noise
+
+The owner reported protein displaying 10+ decimals on a peanut butter entry. The live row was
+worse than a formatting slip: `protein_g` really is stored as `0.7000000000000001`, left behind
+by per-serving division.
+
+The rule is display-only — store full precision, show at most 2 decimals — so `formatMacro()`
+in `utils/formatters.ts` now does all of it, and every macro display goes through it: the diary
+row (the reported bug), the food list, the completion modal, the photo gallery estimates and
+`formatMacros()`. `serving.ts` delegates instead of duplicating the rounding.
+
+Verified against the live value on an isolated server: the row renders `P:0.7g C:0.8g F:1.6g`,
+no screen leaks the float, and the stored value is untouched (checked the database afterwards).
+
+While seeding that check I tripped over a separate defect worth its own ticket: `POST
+/api/food/log` builds the per-serving base with `supplied.get(macro, 0)`, so a client that sends
+`protein_per_serving` alone silently zeroes carbs and fat. My frontend always sends all four, so
+it is latent rather than live — filed separately rather than smuggled into this fix.

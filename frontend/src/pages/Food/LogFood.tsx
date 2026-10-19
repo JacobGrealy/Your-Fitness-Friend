@@ -1,3 +1,4 @@
+import { formatMacro } from '@/utils/formatters'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useFoodStore } from '@/store/foodStore'
@@ -88,7 +89,7 @@ export default function LogFood() {
   const handleHistoryTap = (history: FoodRecent) => {
     const foodIdParam = history.food_id ? `&foodId=${history.food_id}` : ''
     navigate(
-      `/food/log/select?meal=${mealType}&name=${encodeURIComponent(history.food_name)}&calories=${history.calories}&protein=${history.protein_g}&carbs=${history.carbs_g}&fat=${history.fat_g}&brand=${encodeURIComponent(history.brand || '')}&barcode_id=${encodeURIComponent(history.barcode_id || '')}&serving_size=${encodeURIComponent(history.serving_size || '')}${foodIdParam}`,
+      `/food/log/select?meal=${mealType}&name=${encodeURIComponent(history.food_name)}&calories=${history.calories}&protein=${formatMacro(history.protein_g)}&carbs=${formatMacro(history.carbs_g)}&fat=${formatMacro(history.fat_g)}&brand=${encodeURIComponent(history.brand || '')}&barcode_id=${encodeURIComponent(history.barcode_id || '')}&serving_size=${encodeURIComponent(history.serving_size || '')}${foodIdParam}`,
       { state: originState }
     )
   }
