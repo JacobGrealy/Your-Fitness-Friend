@@ -83,7 +83,13 @@ export interface FoodCreate extends ServingReference {
 /**
  * Data required to create a new food log entry.
  */
+export interface ExternalFood extends Omit<Food, 'id' | 'user_id' | 'created_at'> {
+  source: 'openfoodfacts'
+  token: string
+}
+
 export interface FoodLogCreate extends ConsumedQuantity {
+  external_food_token?: string
   calories_per_serving?: number
   protein_per_serving?: number
   carbs_per_serving?: number

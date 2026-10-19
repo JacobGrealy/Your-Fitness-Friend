@@ -1,9 +1,13 @@
 import { api } from './client'
-import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch, MacroGoals, FoodRecent } from '@/types'
+import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch, MacroGoals, FoodRecent, ExternalFood } from '@/types'
 
 export const foodApi = {
+  searchOpenFoodFacts: (q: string, page = 1) =>
+    api.get<{ results: ExternalFood[]; page: number; has_more: boolean; omitted: number }>(
+      '/food/search/openfoodfacts', { params: { q, page } }).then(res => res.data),
+
   // Food entries
-  getFoods: (params?: FoodSearch) =>
+  getFoods: (params?: FoodSearch | { q: string }) =>
     api.get<Food[]>('/food', { params }).then(res => res.data),
   getFood: (id: string) =>
     api.get<Food>(`/food/${id}`).then(res => res.data),
