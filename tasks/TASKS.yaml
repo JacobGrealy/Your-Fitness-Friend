@@ -3,8 +3,7 @@ meta:
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue:
-- FF-0090
+queue: []
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -3508,11 +3507,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-19T08:38
   updated_at: 2026-10-19T08:45
-  completed_at: null
+  completed_at: 2026-10-19T08:45
   waiting_on: null
   parent_id: null
   notes: '1) User Story: on Home, the weight card''s comparison should be against my STARTING weight (progress
