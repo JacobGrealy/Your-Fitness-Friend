@@ -88,8 +88,9 @@ export default function LogFood() {
 
   const handleHistoryTap = (history: FoodRecent) => {
     const foodIdParam = history.food_id ? `&foodId=${history.food_id}` : ''
+    const quantityParams = history.amount && history.unit ? `&amount=${history.amount}&unit=${encodeURIComponent(history.unit)}` : ''
     navigate(
-      `/food/log/select?meal=${mealType}&name=${encodeURIComponent(history.food_name)}&calories=${history.calories}&protein=${formatMacro(history.protein_g)}&carbs=${formatMacro(history.carbs_g)}&fat=${formatMacro(history.fat_g)}&brand=${encodeURIComponent(history.brand || '')}&barcode_id=${encodeURIComponent(history.barcode_id || '')}&serving_size=${encodeURIComponent(history.serving_size || '')}${foodIdParam}`,
+      `/food/log/select?meal=${mealType}&name=${encodeURIComponent(history.food_name)}&calories=${history.calories}&protein=${formatMacro(history.protein_g)}&carbs=${formatMacro(history.carbs_g)}&fat=${formatMacro(history.fat_g)}&brand=${encodeURIComponent(history.brand || '')}&barcode_id=${encodeURIComponent(history.barcode_id || '')}&serving_size=${encodeURIComponent(history.serving_size || '')}${foodIdParam}${quantityParams}`,
       { state: originState }
     )
   }
@@ -118,7 +119,15 @@ export default function LogFood() {
         photo_url: history.photo_url ?? undefined,
         serving_size: history.serving_size ?? undefined,
         meal_type: mealType,
-        number_of_servings: 1,
+        number_of_servings: history.number_of_servings || 1,
+        ...(history.serving_amount && history.amount ? {
+          serving_amount: history.serving_amount, serving_unit: history.serving_unit,
+          amount: history.amount, unit: history.unit,
+          calories_per_serving: history.calories_per_serving,
+          protein_per_serving: history.protein_per_serving,
+          carbs_per_serving: history.carbs_per_serving,
+          fat_per_serving: history.fat_per_serving,
+        } : {}),
       })
       setQuickAdded(history.food_name)
       window.setTimeout(() => setQuickAdded(null), 1500)

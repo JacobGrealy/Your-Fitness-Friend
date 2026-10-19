@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import type { FoodLogCreate, MealType } from '@/types'
 import { useFoodStore } from '@/store/foodStore'
 import BarcodeScanner from '@/components/food/BarcodeScanner'
+import QuantityFields from '@/components/food/QuantityFields'
 import Button from '@/components/common/Button'
 import Spinner from '@/components/common/Spinner'
 import { formatNumber, perServingOf, type PerServing } from '@/utils/serving'
@@ -28,6 +29,8 @@ export default function EditFoodDetails() {
     calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0,
   })
   const [servings, setServings] = useState(1)
+  const [referenceAmount, setReferenceAmount] = useState('')
+  const [referenceUnit, setReferenceUnit] = useState('serving')
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
 
@@ -49,6 +52,8 @@ export default function EditFoodDetails() {
       setValue('serving_size', log.serving_size ?? '')
       setValue('barcode_id', log.barcode_id ?? '')
       setPerServing(perServingOf(log))
+      setReferenceAmount(log.serving_amount ? String(log.serving_amount) : '')
+      setReferenceUnit(log.serving_unit || 'serving')
       setServings(
         typeof log.number_of_servings === 'number' && log.number_of_servings > 0
           ? log.number_of_servings
@@ -66,7 +71,8 @@ export default function EditFoodDetails() {
     await updateFoodLog(id, {
       food_name: data.food_name ?? '',
       brand: data.brand || undefined,
-      serving_size: data.serving_size || undefined,
+      serving_size: referenceAmount ? `${referenceAmount} ${referenceUnit}` : data.serving_size || undefined,
+      ...(referenceAmount ? { serving_amount: Number(referenceAmount), serving_unit: referenceUnit } : {}),
       // Per-serving, always: the server multiplies by this log's serving count.
       calories_per_serving: perServing.calories,
       protein_per_serving: perServing.protein_g,
@@ -125,6 +131,8 @@ export default function EditFoodDetails() {
         </div>
 
         <div className="bg-white rounded-lg p-4">
+          {referenceAmount !== '' ? <QuantityFields label="Serving size" amount={referenceAmount} unit={referenceUnit}
+            onAmount={setReferenceAmount} onUnit={setReferenceUnit} /> : <>
           <label className="block text-sm font-medium mb-2" style={{ color: '#212121' }}>
             Serving size (optional)
           </label>
@@ -134,6 +142,8 @@ export default function EditFoodDetails() {
             placeholder="e.g. 2 slices (90 g)"
             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-[#fafafa]"
           />
+          <button type="button" className="text-sm text-[#185ADB] mt-2" onClick={() => setReferenceAmount('1')}>Set numeric serving size and unit</button>
+          </>}
           <p className="text-xs mt-1" style={{ color: '#757575' }}>
             The nutrition below is for one of these.
           </p>

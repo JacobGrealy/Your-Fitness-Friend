@@ -1866,3 +1866,13 @@ sync tests exposed a compatibility difference; preserved the old totals contract
 while new explicit quantity/per-serving clients keep saved reference nutrition. All gates green
 (260 backend tests). Next FF-0095: reuse logging controls for numeric amounts and units.
 Owner requested inline work after delegation failed. Live schema deployment follows backup.
+
+## FF-0095 — Numeric amount and unit controls in existing food forms
+
+Reference serving and amount eaten now use a shared number/unit control, with compatible units
+and a live nutrition preview. Custom food creation and food-details editing use structured
+references; log editing, diary quantity labels and recent repeat preserve explicit quantities.
+Ambiguous legacy labels remain usable without guessing. Store payloads retain structured fields.
+A create-flow test logs 182 g of a 100 g reference and checks unchanged saved nutrition.
+The first full gate run caught an intermediate unused variable while validation alert markup was
+being added; the finished implementation is reverified before merge. Next FF-0096 OFF search.

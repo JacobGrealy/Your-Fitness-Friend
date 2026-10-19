@@ -9,7 +9,16 @@
  * A user-defined food item with nutritional information.
  * Mirrors the backend Food model.
  */
-export interface Food {
+export interface ServingReference {
+  serving_amount?: number | null
+  serving_unit?: string | null
+}
+export interface ConsumedQuantity extends ServingReference {
+  amount?: number | null
+  unit?: string | null
+}
+
+export interface Food extends ServingReference {
   id: string
   user_id: string
   name: string
@@ -27,7 +36,7 @@ export interface Food {
  * A log entry recording consumption of a food item.
  * Mirrors the backend FoodLog model.
  */
-export interface FoodLog {
+export interface FoodLog extends ConsumedQuantity {
   id: string
   user_id: string
   food_name: string
@@ -61,7 +70,7 @@ export interface DailyTotals {
 /**
  * Data required to create a new food item.
  */
-export interface FoodCreate {
+export interface FoodCreate extends ServingReference {
   name: string
   calories: number
   protein_g: number
@@ -74,7 +83,11 @@ export interface FoodCreate {
 /**
  * Data required to create a new food log entry.
  */
-export interface FoodLogCreate {
+export interface FoodLogCreate extends ConsumedQuantity {
+  calories_per_serving?: number
+  protein_per_serving?: number
+  carbs_per_serving?: number
+  fat_per_serving?: number
   food_id?: string
   quantity?: number
   food_name?: string
@@ -120,7 +133,12 @@ export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 /**
  * Summary of a recently logged food, grouped by name.
  */
-export interface FoodRecent {
+export interface FoodRecent extends ConsumedQuantity {
+  number_of_servings?: number
+  calories_per_serving?: number
+  protein_per_serving?: number
+  carbs_per_serving?: number
+  fat_per_serving?: number
   food_name: string
   food_id?: string | null
   calories: number

@@ -175,6 +175,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
           const totalCarbs = food.carbs_g * quantity
           const totalFat = food.fat_g * quantity
           const result = await foodApi.logFood({
+            ...data,
             food_id: data.food_id,
             food_name: food.name,
             calories: totalCalories,
@@ -196,6 +197,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
           return result
         } else {
           const result = await foodApi.logFood({
+            ...data,
             food_id: data.food_id,
             food_name: data.food_name!,
             calories: data.calories!,
@@ -218,6 +220,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
         }
       } else {
         const result = await foodApi.logFood({
+          ...data,
           food_id: data.food_id,
           food_name: data.food_name!,
           calories: data.calories!,
