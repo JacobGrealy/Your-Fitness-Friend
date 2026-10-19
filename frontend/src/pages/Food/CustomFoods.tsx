@@ -10,11 +10,14 @@ import Card from '@/components/common/Card'
 import Modal from '@/components/common/Modal'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
+import QuantityFields from '@/components/food/QuantityFields'
 
 export default function CustomFoods() {
   const { foods, isLoading, fetchFoods, createFood, deleteFood } = useFoodStore()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [servingAmount, setServingAmount] = useState('1')
+  const [servingUnit, setServingUnit] = useState('serving')
 
   useEffect(() => {
     fetchFoods()
@@ -38,7 +41,10 @@ export default function CustomFoods() {
   })
 
   const onAddSubmit = async (data: FoodCreate) => {
-    await createFood(data)
+    await createFood({ ...data, serving_amount: Number(servingAmount), serving_unit: servingUnit,
+      serving_size: `${servingAmount} ${servingUnit}` })
+    setServingAmount('1')
+    setServingUnit('serving')
     reset({
       name: '',
       calories: undefined,
@@ -197,12 +203,9 @@ export default function CustomFoods() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-mfp-text mb-2">Serving Size (optional)</label>
-            <input
-              placeholder="e.g. 100g"
-              {...register('serving_size')}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-white"
-            />
+            <QuantityFields label="Serving Size" amount={servingAmount} unit={servingUnit}
+              onAmount={setServingAmount} onUnit={setServingUnit} />
+            <p className="text-xs text-[#757575] mt-2">Nutrition above is for this amount.</p>
             {errors.serving_size?.message && (
               <p className="mt-1 text-xs text-mfp-error">{errors.serving_size.message}</p>
             )}

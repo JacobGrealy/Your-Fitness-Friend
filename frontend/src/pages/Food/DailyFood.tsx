@@ -130,7 +130,9 @@ function MealSection({
                     {(() => {
                       // Serving first when it is known: "how much did I have"
                       // is what a diary row is scanned for (FF-0029).
-                      const serving = formatServing(log.number_of_servings, log.serving_size)
+                      const serving = log.amount && log.unit && log.unit !== 'serving'
+                        ? `${formatMacro(log.amount)} ${log.unit}`
+                        : formatServing(log.number_of_servings, log.serving_size)
                       return serving ? `${serving} · ` : ''
                     })()}
                     {formatCalories(log.calories)} cal · P:{formatMacro(log.protein_g)}g C:{formatMacro(log.carbs_g)}g F:{formatMacro(log.fat_g)}g

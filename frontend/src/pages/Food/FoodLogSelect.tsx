@@ -14,6 +14,9 @@ import { isMealType } from '@/utils/meal'
 import Loading from '@/components/common/Loading'
 import { resolveReturnTo } from '@/utils/returnTo'
 import { todayLocal } from '@/utils/localDate'
+import QuantityFields from '@/components/food/QuantityFields'
+import { servingCount } from '@/utils/quantities'
+import { scalePerServing, formatNumber } from '@/utils/serving'
 
 export default function FoodLogSelect() {
   const { setTitle } = usePageTitle()
@@ -24,6 +27,20 @@ export default function FoodLogSelect() {
   const { foods, isLoading, logFood, uploadFoodLogPhoto, createFood, fetchFoods, error, clearError } = useFoodStore()
 
   const [selectedFood, setSelectedFood] = useState<Food | null>(null)
+  const [referenceAmount, setReferenceAmount] = useState('1')
+  const [referenceUnit, setReferenceUnit] = useState('serving')
+  const [amount, setAmount] = useState('1')
+  const [unit, setUnit] = useState('serving')
+  const [structured, setStructured] = useState(true)
+  const [quantityError, setQuantityError] = useState<string | null>(null)
+  const reference = { serving_amount: Number(referenceAmount), serving_unit: referenceUnit }
+  const loadReference = (food: Food) => {
+    setStructured(!!food.serving_amount)
+    setReferenceAmount(food.serving_amount ? String(food.serving_amount) : '')
+    setReferenceUnit(food.serving_unit || 'serving')
+    setAmount(searchParams.get('amount') || String(food.serving_amount || 1))
+    setUnit(searchParams.get('unit') || food.serving_unit || 'serving')
+  }
   const [isQuickAdd, setIsQuickAdd] = useState(false)
   // ?meal= comes from whichever meal section opened the flow; anything else
   // (or nothing) falls back to breakfast as before (FF-0038).
@@ -98,6 +115,7 @@ export default function FoodLogSelect() {
       const food = foods.find(f => String(f.id) === historyFoodId)
       if (food) {
         setSelectedFood(food)
+        loadReference(food)
         setValue('food_name', food.name)
         setValue('calories', food.calories)
         setValue('protein_g', food.protein_g)
@@ -113,6 +131,7 @@ export default function FoodLogSelect() {
       const food = foods.find(f => String(f.id) === foodId)
       if (food) {
         setSelectedFood(food)
+        loadReference(food)
         setValue('food_name', food.name)
         setValue('calories', food.calories)
         setValue('protein_g', food.protein_g)
@@ -159,7 +178,16 @@ export default function FoodLogSelect() {
   const onSubmit = async (data: any) => {
     setIsSubmitting(true)
     try {
-      const quantityNum = parseFloat(data.number_of_servings) || 1
+      const quantityNum = structured ? servingCount(Number(amount), unit, reference) : parseFloat(data.number_of_servings) || 1
+      if (quantityNum <= 0 || !Number.isFinite(quantityNum) ||
+          (structured && (!Number.isFinite(Number(referenceAmount)) || Number(referenceAmount) <= 0))) {
+        setQuantityError('Enter a positive serving size and amount eaten.')
+        return
+      }
+      setQuantityError(null)
+      const servingFields = structured ? {
+        ...reference, serving_size: `${referenceAmount} ${referenceUnit}`,
+      } : { serving_size: data.serving_size || '' }
       let createdFoodId: string | undefined
 
       if (data.food_name) {
@@ -169,7 +197,7 @@ export default function FoodLogSelect() {
           protein_g: data.protein_g || 0,
           carbs_g: data.carbs_g || 0,
           fat_g: data.fat_g || 0,
-          serving_size: data.serving_size || '',
+          ...servingFields,
           brand: data.brand || undefined,
           barcode_id: data.barcode_id || undefined,
         }
@@ -193,7 +221,12 @@ export default function FoodLogSelect() {
         fat_g: (data.fat_g || 0) * quantityNum,
         meal_type: meal_type as FoodLogCreate['meal_type'],
         number_of_servings: quantityNum,
-        serving_size: data.serving_size || '',
+        ...servingFields,
+        ...(structured ? {
+          amount: Number(amount), unit,
+          calories_per_serving: Number(data.calories), protein_per_serving: Number(data.protein_g || 0),
+          carbs_per_serving: Number(data.carbs_g || 0), fat_per_serving: Number(data.fat_g || 0),
+        } : {}),
         brand: data.brand || undefined,
         barcode_id: data.barcode_id || undefined,
         date: data.date || todayLocal(),
@@ -370,13 +403,15 @@ export default function FoodLogSelect() {
 
         {/* Serving Size */}
         <div className="bg-white rounded-lg p-4">
-          <label className="block text-sm font-medium text-mfp-text mb-2">Serving Size (optional)</label>
-          <input
-            type="text"
-            {...register('serving_size')}
-            placeholder="e.g. 1 cup, 2 tbsp"
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
-          />
+          {structured ? <>
+            <QuantityFields label="Serving Size" amount={referenceAmount} unit={referenceUnit}
+              onAmount={setReferenceAmount} onUnit={value => { setReferenceUnit(value); setUnit(value) }} />
+            <p className="text-xs text-[#757575] mt-2">The nutrition above is for this amount.</p>
+          </> : <>
+            <label className="block text-sm font-medium text-mfp-text mb-2">Serving Size (optional)</label>
+            <input type="text" {...register('serving_size')} className="w-full px-3 py-2.5 border rounded-lg" />
+            <button type="button" className="text-sm text-[#185ADB] mt-2" onClick={() => { setStructured(true); setReferenceAmount('1') }}>Set numeric serving size and unit</button>
+          </>}
         </div>
 
         {/* Photo - attach it here rather than logging first and editing after (FF-0087). */}
@@ -431,8 +466,20 @@ export default function FoodLogSelect() {
           </div>
         </div>
 
-        {/* Number of Servings */}
-        <div className="bg-white rounded-lg p-4">
+        {quantityError && <p role="alert" className="text-sm text-red-700">{quantityError}</p>}
+        {structured && <div className="bg-white rounded-lg p-4">
+          <QuantityFields label="Amount eaten" amount={amount} unit={unit} referenceUnit={referenceUnit}
+            onAmount={setAmount} onUnit={setUnit} />
+          <div aria-live="polite" className="mt-3 pt-3 border-t text-sm text-[#757575]">
+            {(() => {
+              const preview = scalePerServing({ calories: Number(calories), protein_g: Number(watch('protein_g')),
+                carbs_g: Number(watch('carbs_g')), fat_g: Number(watch('fat_g')) }, servingCount(Number(amount), unit, reference))
+              return `${formatNumber(preview.calories)} cal · P ${formatNumber(preview.protein_g)} · C ${formatNumber(preview.carbs_g)} · F ${formatNumber(preview.fat_g)}`
+            })()}
+          </div>
+        </div>}
+        {/* Legacy servings remain usable without guessing a reference. */}
+        {!structured && <div className="bg-white rounded-lg p-4">
           <label className="block text-sm font-medium text-mfp-text mb-2">Number of Servings</label>
           <div className="flex items-center gap-2">
             <input
@@ -447,7 +494,7 @@ export default function FoodLogSelect() {
           {formErrors.number_of_servings && (
             <p className="mt-1 text-xs text-mfp-error">{formErrors.number_of_servings.message}</p>
           )}
-        </div>
+        </div>}
 
 
         <div className="text-xs font-semibold uppercase tracking-wider text-[#757575] mt-2">Date</div>

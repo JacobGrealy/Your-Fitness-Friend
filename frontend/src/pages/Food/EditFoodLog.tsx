@@ -5,6 +5,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { editFoodLogSchema } from '@/utils/schemas'
 import type { FoodLogCreate, MealType } from '@/types'
 import { useFoodStore } from '@/store/foodStore'
+import QuantityFields from '@/components/food/QuantityFields'
+import { servingCount, type Reference } from '@/utils/quantities'
 import Modal from '@/components/common/Modal'
 import PhotoSourceChooser from '@/components/common/PhotoSourceChooser'
 import Button from '@/components/common/Button'
@@ -31,6 +33,9 @@ export default function EditFoodLog() {
   const [perServing, setPerServing] = useState<PerServing>({ calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 })
   const [brand, setBrand] = useState('')
   const [servingSize, setServingSize] = useState('')
+  const [reference, setReference] = useState<Reference>({})
+  const [amount, setAmount] = useState('1')
+  const [unit, setUnit] = useState('serving')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -97,6 +102,9 @@ export default function EditFoodLog() {
         setValue('fat_g', log.fat_g ?? 0)
         setValue('number_of_servings', log.number_of_servings ?? 1)
         setPerServing(perServingOf(log))
+        setReference({ serving_amount: log.serving_amount, serving_unit: log.serving_unit })
+        setAmount(String(log.amount || (log.serving_amount || 1) * (log.number_of_servings || 1)))
+        setUnit(log.unit || log.serving_unit || 'serving')
         setBrand(log.brand ?? '')
         setServingSize(log.serving_size ?? '')
         setValue('serving_size', log.serving_size ?? '')
@@ -112,7 +120,8 @@ export default function EditFoodLog() {
   // useWatch rather than watch(): the typed entry has to re-render the totals as you type,
   // and watch() alone does not re-subscribe for a registered number input.
   const watchedServings = useWatch({ control, name: 'number_of_servings' })
-  const currentServings = Number(watchedServings) > 0 ? Number(watchedServings) : 1
+  const currentServings = reference.serving_amount ? servingCount(Number(amount), unit, reference)
+    : Number(watchedServings) > 0 ? Number(watchedServings) : 1
   const totals = useMemo(
     () => scalePerServing(perServing, currentServings),
     [perServing, currentServings]
@@ -179,7 +188,8 @@ export default function EditFoodLog() {
     }
     const basePayload = {
       food_name: data.food_name,
-      number_of_servings: data.number_of_servings,
+      number_of_servings: currentServings,
+      ...(reference.serving_amount ? { ...reference, amount: Number(amount), unit } : {}),
       // Per-serving, not totals: the log's macros follow the count on the server, which is
       // the bug this screen exists to fix (FF-0083/FF-0086).
       calories_per_serving: perServing.calories,
@@ -272,6 +282,8 @@ export default function EditFoodLog() {
 
         {/* Servings - the only nutrition control that belongs to the log itself. */}
         <div className="bg-white rounded-lg p-4">
+          {reference.serving_amount ? <QuantityFields label="Amount eaten" amount={amount} unit={unit}
+            referenceUnit={reference.serving_unit} onAmount={setAmount} onUnit={setUnit} /> : <>
           <label className="block text-sm font-medium text-mfp-text mb-2">Number of Servings</label>
           <div className="flex items-center gap-2">
             <input
@@ -304,6 +316,7 @@ export default function EditFoodLog() {
             ))}
           </div>
 
+          </>}
           {/* Totals are derived, so they move the moment the count does. */}
           <div className="mt-3 rounded-lg px-3 py-2" style={{ background: '#f2f2f2' }}>
             <p className="text-lg font-bold" style={{ color: '#212121' }}>

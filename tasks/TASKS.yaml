@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-19T11:47
+  updated_at: 2026-10-19T11:56
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0095
 - FF-0096
 - FF-0097
 intake:
@@ -3797,14 +3796,14 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-19T11:37
-  updated_at: 2026-10-19T11:37
-  completed_at: null
+  updated_at: 2026-10-19T11:56
+  completed_at: 2026-10-19T11:56
   waiting_on: null
   parent_id: null
-  notes: Depends on structured-serving backend ticket. Replace free-text serving size with numeric amount
+  notes: 'Depends on structured-serving backend ticket. Replace free-text serving size with numeric amount
     and unit for clear structured foods; distinguish reference serving from amount eaten. Reuse existing
     form controls, allow logging 182 g against reference 100 g without entering 1.82 manually. Units g
     kg oz lb ml cup tbsp tsp serving item, only compatible conversions supported by backend. Preserve
@@ -3812,6 +3811,11 @@ intake:
     log/select/edit, repeat/recent and diary display consistently. Show macros max 2 decimal places without
     rounding stored values. Keep photos, meal and return navigation working. Component/util tests; typecheck
     and full gates. Worker no static build, registry, instance or services.
+
+
+    Shared QuantityFields; compatible-unit live preview and quantity payloads in create/edit/custom foods/recent;
+    diary shows physical amount. Legacy ambiguous references retained. Added quantity math and 182g reference-preservation
+    component test. Full gates green.'
   comments: []
 - id: FF-0096
   title: 'Open Food Facts text search: cached API and saved-food import'
