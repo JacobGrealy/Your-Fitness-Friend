@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWeightStore } from '@/store/weightStore'
 import { useAuthStore } from '@/store/authStore'
@@ -8,6 +8,9 @@ import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
 import Modal from '@/components/common/Modal'
 import WeightChartWithGoal from '@/components/charts/WeightChartWithGoal'
+import BmiToggles, { type BmiToggleState } from '@/components/charts/BmiToggles'
+import { bmiThresholds } from '@/utils/bmi'
+import { loadBmiToggles, saveBmiToggles } from '@/utils/bmiPreferences'
 import {
   TREND_WINDOW_DAYS,
   buildWeightSeries,
@@ -54,6 +57,30 @@ export default function WeightHistory() {
     date: `${point.day}T00:00:00`,
     weight: point.weight,
   }))
+
+  // BMI reference lines (FF-0085). Null height means no bands, and the toggles say why.
+  const [bmiToggles, setBmiToggles] = useState<BmiToggleState>(() => loadBmiToggles())
+  const bmiLines = useMemo(() => {
+    const lines = bmiThresholds(user?.height ?? null)
+    return lines.healthyLow === null ? null : lines
+  }, [user?.height])
+
+  const handleBmiToggle = useCallback((next: BmiToggleState) => {
+    setBmiToggles(next)
+    saveBmiToggles(next)
+  }, [])
+
+  const bmiOverlay = useMemo(() => {
+    if (!bmiLines) return undefined
+    return {
+      healthyRange:
+        bmiToggles.healthy && bmiLines.healthyLow !== null && bmiLines.healthyHigh !== null
+          ? { low: bmiLines.healthyLow, high: bmiLines.healthyHigh }
+          : null,
+      overweightFrom: bmiToggles.overweight ? bmiLines.healthyHigh : null,
+      obeseFrom: bmiToggles.obese ? bmiLines.obeseLow : null,
+    }
+  }, [bmiLines, bmiToggles])
 
   const currentWeight = sortedLogs.length > 0 ? sortedLogs[0].weight : null
   const goalWeight = user?.weight_goal_lbs
@@ -137,7 +164,13 @@ export default function WeightHistory() {
               {direction === 'stable' ? 'holding steady' : `trending ${direction}`}
             </span>
           </div>
-          <WeightChartWithGoal data={chartData} height={180} goal={goalWeight} />
+          <BmiToggles value={bmiToggles} onChange={handleBmiToggle} lines={bmiLines} />
+          <WeightChartWithGoal
+            data={chartData}
+            height={180}
+            goal={goalWeight}
+            bmi={bmiOverlay}
+          />
         </div>
       )}
 

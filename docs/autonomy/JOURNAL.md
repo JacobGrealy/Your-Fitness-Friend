@@ -1696,3 +1696,25 @@ on every overlapping day, which is the criterion that mattered.
 
 15 new tests pin the parse (date-only and timestamp forms of one day agree), the ordering, the
 single threshold, the goal folding and the empty case. Gates green at 333 frontend tests.
+
+## Round 75 — 2026-10-18 — FF-0085 BMI bands you can switch on
+
+New feature, so the brief's warning mattered: there was no BMI logic anywhere, height is
+nullable, and two live accounts have none.
+
+`utils/bmi.ts` owns the conversion (cm → m, pounds → kg) and the WHO cut-points; the ticket's
+vectors are pinned as tests rather than re-derived, including 259.3 lb → 33.29 and the 190 lb
+goal → 24.39 which sits in the healthy band as a sanity check. `BmiToggles` renders three
+independent switches, all off by default, persisted through the same defensive localStorage
+pattern the reminders use; a height-less user gets "add it in More → Profile" instead of an
+empty row.
+
+The y-axis decision went the honest way: only the *enabled* thresholds are folded into the
+domain. The brief's trap is real — a band outside the axis is clipped silently, so the toggle
+looks broken — and folding every band in unconditionally would flatten the data into a line.
+Folding what is switched on keeps both the graph and the toggle honest.
+
+Two of my own slips: my JSX edit landed inside the existing `{goal && (` block and broke the
+file's syntax, and adding an import duplicated React's — both caught immediately by tsc, which
+is why the type gate runs before anything else. 16 new tests (9 for the maths, 7 for the
+toggles and their persistence). Gates green, 342 frontend tests.
