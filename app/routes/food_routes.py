@@ -229,6 +229,24 @@ def get_foods():
     } for f in foods]), 200
 
 
+@bp.route('/search/openfoodfacts', methods=['GET'])
+@login_required
+def search_openfoodfacts():
+    from app.utils.food_search import search, SearchLimited, SearchUnavailable
+    import sqlite3
+    query = request.args.get('q', '').strip()
+    page = request.args.get('page', 1, type=int)
+    if not 2 <= len(query) <= 100 or page is None or not 1 <= page <= 10:
+        return jsonify({'error': 'Search must be 2–100 characters; page must be 1–10'}), 400
+    try:
+        return jsonify(search(query, page))
+    except SearchLimited as exc:
+        return jsonify({'error': str(exc)}), 429, {'Retry-After': '7'}
+    except (SearchUnavailable, sqlite3.Error) as exc:
+        current_app.logger.warning('Food search unavailable: %s', exc)
+        return jsonify({'error': 'Open Food Facts is unavailable right now. Your saved foods still work.'}), 503
+
+
 @bp.route('/recent', methods=['GET'])
 @login_required
 def get_recent_foods():
@@ -514,6 +532,19 @@ def create_food_log():
             return jsonify({'error': 'number_of_servings must be a positive number'}), 400
     number_of_servings = normalise_servings(number_of_servings, default=1.0)
     
+    if data.get('external_food_token'):
+        from app.utils.food_search import import_reference
+        try:
+            imported, snapshot = import_reference(data['external_food_token'], current_user.id)
+            data = {**data, 'food_id': imported.id}
+            for key in ('serving_amount', 'serving_unit', 'serving_size'):
+                data.setdefault(key, snapshot[key])
+            for macro, field in PER_SERVING_FIELDS.items():
+                data.setdefault(field, snapshot[macro])
+        except (TypeError, ValueError) as exc:
+            db.session.rollback()
+            return jsonify({'error': str(exc)}), 400
+
     # Get brand/barcode_id from food reference or request data
     brand = None
     barcode_id = None

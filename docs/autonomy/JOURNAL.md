@@ -1875,4 +1875,16 @@ references; log editing, diary quantity labels and recent repeat preserve explic
 Ambiguous legacy labels remain usable without guessing. Store payloads retain structured fields.
 A create-flow test logs 182 g of a 100 g reference and checks unchanged saved nutrition.
 The first full gate run caught an intermediate unused variable while validation alert markup was
-being added; the finished implementation is reverified before merge. Next FF-0096 OFF search.
+being added; the finished implementation passed all gates before merge. Next FF-0096 OFF search.
+
+## FF-0096 — OFF text search and transactional import
+
+Added authenticated explicit text search, cross-worker cached/throttled provider requests,
+strict nutrition completeness checks and signed reference selections. Logging imports a selected
+food into the existing database, deduplicated per user/provider and barcode, in the same
+transaction as the log. Invalid logs leave no imported food behind, including on SQLite.
+All gates green; six search tests plus the serving/migration regression suite. A real provider
+request for apple returned HTTP 503, so real external search quality is not yet verified; the
+local search and outage behavior remain functional. Compared every one of the 66 existing logs
+against the pre-FF0094 backup: nutrition totals, counts and labels exactly unchanged.
+Next FF-0097: local-first search UI and external result selection.

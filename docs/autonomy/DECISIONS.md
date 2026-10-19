@@ -1040,3 +1040,14 @@ US customary cup/tbsp/tsp convert through ml; mass converts through grams. No de
 item weight is guessed. Legacy totals payloads keep their previous sync contract; structured
 quantity/per-serving payloads sync reference nutrition, never the amount eaten, to saved foods.
 Implementation is inline at the owner's explicit request overriding the normal delegation rule.
+
+## FF-0096 — Explicit OFF search, signed snapshots, and save only on log
+
+OFF search uses a bounded explicit query/page, an hour cache and a SQLite-backed 6.1-second
+outbound request reservation shared across workers. The cache contains public product data only
+and expires under /tmp; OFF_SEARCH_CACHE_PATH can override it. Unknown macros exclude a result,
+not masquerade as zero. Liquid labels remain ml and cannot be converted to grams.
+Search results carry signed, one-day reference snapshots. Logging verifies the snapshot and
+imports into the existing foods table in the same transaction as the diary entry. A per-user
+external identity constraint deduplicates new imports, and existing barcode variants are reused.
+Browsing and failed logging do not create foods. USDA remains deferred.
