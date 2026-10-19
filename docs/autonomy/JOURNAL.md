@@ -1898,4 +1898,12 @@ form, carry signed reference snapshots, and import only when logged. Logging fai
 surface the server error and keep the form instead of navigating away after a swallowed error.
 Five integration tests cover explicit submission, ordering/dedup, outages, stale requests and
 182 g external logging without an early save. Final full gates green: 266 backend / 392 frontend.
-Build and mobile browser verification follow the merge; real OFF response was unavailable (503).
+Production frontend built after merge. Mobile Chromium at 390 px passed local-first explicit
+search, deferred import, actual 182 g logging, saved reference preservation, quick-repeat of
+182 g and editing to 200 g (104 kcal), without page errors or horizontal overflow. External
+search response was stubbed because a real provider probe returned 503; actual import/log/edit
+API paths were exercised. Two browser fixture retries fixed return-navigation expectations
+(Home for direct entry, caller for edit), not application bugs. Screenshots /tmp/ff97-*-mobile.png.
+Both live migrations ran after verified backups; all 66 preexisting logs compared unchanged.
+Awaiting restart: sudo -n systemctl restart fitnessfriend requires interactive authentication.
+Owner should restart once and refresh. All four tickets merged, queue empty.
