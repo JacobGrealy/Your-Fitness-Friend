@@ -1763,3 +1763,23 @@ fail against the old code, so these tests bite.
 
 Worth noting for the next sweep: the frontend half of FF-0084 was already correct — it filters
 by calendar-day strings — so the graph needed no change once the API returned today's row.
+
+## Round 78 — 2026-10-19 — FF-0088 the goal line joins the switches
+
+Added a Goal switch beside the three BMI ones. It defaults ON, unlike them, because the goal is
+a number the user typed rather than a computed reference; and it stays usable with no height,
+since a goal line needs none.
+
+The subtle part was the axis. Turning the line off naively would leave the y-domain stretched to
+include a goal that is no longer drawn — the FF-0085 "toggle does nothing visible" trap in
+reverse — so the switch passes `undefined` to the chart, which is what tells it to stop folding
+the goal in. Measured in the browser: goal on, the ticks run 179.5–270.5; off, 258–262.
+
+Storage consolidated into `awefit.chartToggles` with a fallback read of the old
+`awefit.bmiToggles`, so an existing choice survives the upgrade.
+
+Verified in the browser: four switches at rest (Goal on, three bands off), the SVG "Goal" label
+present when on and gone when off, the setting surviving a trip to Home and back. Two of my own
+slips, both caught by tests rather than by eye: a renamed type left three stale call sites, and
+my first browser probe counted the switch's own "Goal" text as if it were the chart label — the
+assertion was wrong, not the feature.

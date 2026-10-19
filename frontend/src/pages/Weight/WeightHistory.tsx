@@ -8,9 +8,9 @@ import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
 import Modal from '@/components/common/Modal'
 import WeightChartWithGoal from '@/components/charts/WeightChartWithGoal'
-import BmiToggles, { type BmiToggleState } from '@/components/charts/BmiToggles'
+import BmiToggles, { type ChartToggleState } from '@/components/charts/BmiToggles'
 import { bmiThresholds } from '@/utils/bmi'
-import { loadBmiToggles, saveBmiToggles } from '@/utils/bmiPreferences'
+import { loadChartToggles, saveChartToggles } from '@/utils/bmiPreferences'
 import {
   TREND_WINDOW_DAYS,
   buildWeightSeries,
@@ -59,28 +59,28 @@ export default function WeightHistory() {
   }))
 
   // BMI reference lines (FF-0085). Null height means no bands, and the toggles say why.
-  const [bmiToggles, setBmiToggles] = useState<BmiToggleState>(() => loadBmiToggles())
+  const [chartToggles, setChartToggles] = useState<ChartToggleState>(() => loadChartToggles())
   const bmiLines = useMemo(() => {
     const lines = bmiThresholds(user?.height ?? null)
     return lines.healthyLow === null ? null : lines
   }, [user?.height])
 
-  const handleBmiToggle = useCallback((next: BmiToggleState) => {
-    setBmiToggles(next)
-    saveBmiToggles(next)
+  const handleChartToggle = useCallback((next: ChartToggleState) => {
+    setChartToggles(next)
+    saveChartToggles(next)
   }, [])
 
   const bmiOverlay = useMemo(() => {
     if (!bmiLines) return undefined
     return {
       healthyRange:
-        bmiToggles.healthy && bmiLines.healthyLow !== null && bmiLines.healthyHigh !== null
+        chartToggles.healthy && bmiLines.healthyLow !== null && bmiLines.healthyHigh !== null
           ? { low: bmiLines.healthyLow, high: bmiLines.healthyHigh }
           : null,
-      overweightFrom: bmiToggles.overweight ? bmiLines.healthyHigh : null,
-      obeseFrom: bmiToggles.obese ? bmiLines.obeseLow : null,
+      overweightFrom: chartToggles.overweight ? bmiLines.healthyHigh : null,
+      obeseFrom: chartToggles.obese ? bmiLines.obeseLow : null,
     }
-  }, [bmiLines, bmiToggles])
+  }, [bmiLines, chartToggles])
 
   const currentWeight = sortedLogs.length > 0 ? sortedLogs[0].weight : null
   const goalWeight = user?.weight_goal_lbs
@@ -164,11 +164,11 @@ export default function WeightHistory() {
               {direction === 'stable' ? 'holding steady' : `trending ${direction}`}
             </span>
           </div>
-          <BmiToggles value={bmiToggles} onChange={handleBmiToggle} lines={bmiLines} />
+          <BmiToggles value={chartToggles} onChange={handleChartToggle} lines={bmiLines} />
           <WeightChartWithGoal
             data={chartData}
             height={180}
-            goal={goalWeight}
+            goal={chartToggles.goal ? goalWeight : undefined}
             bmi={bmiOverlay}
           />
         </div>
