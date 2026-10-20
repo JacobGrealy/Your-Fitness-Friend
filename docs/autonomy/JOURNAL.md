@@ -2020,5 +2020,9 @@ Verification: full gates green (293 backend, 430 frontend) plus seven native rem
 tests and Android compilation. The first gate found a profile unit test importing the real Vite
 HTTP client through the new lifecycle module; mocked that boundary, with dedicated lifecycle
 integration tests still exercising it. No USB/emulator device is connected, so physical Android
-notification delivery remains unverified. Version bumped to 0.1.8 (9); release build follows merge.
-No database/backend changes or service restart needed. Owner's prior no-subagents request honored.
+notification delivery remains unverified. Published signed APK 0.1.8 (9) after merge; web build,
+Capacitor sync, release assembly and signature verification all passed. Downloaded the published
+APK over the existing Tailscale HTTPS origin: 3,921,545 bytes and SHA256 match release metadata.
+No database/backend changes or service restart needed. Owner must install the update and reopen
+AweFit to migrate old alarms and sync today's completion. Cross-device changes still require
+foreground/resume; no background server polling. Owner's prior no-subagents request honored.
