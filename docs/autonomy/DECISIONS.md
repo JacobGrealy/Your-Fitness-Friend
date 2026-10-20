@@ -1112,3 +1112,22 @@ The nav is now `z-40`, so dialogs (`z-50`) sit above it, and bottom-anchored pan
 before the fix: with a 34 px inset the footer covered 100% of the gallery button; after, all
 three sheet actions take a tap at their centre. The rule is recorded in AGENTS.md under "UI
 layering", with a test that asserts the relationship rather than the numbers.
+
+## FF-0101 — Re-adding a food asks how much, not what it is
+
+Tapping a recent food opened the full create form: name, brand, macros, serving size and
+barcode all editable. That is the screen for describing a food, and a repeat log is not that —
+it is a statement of how much of a known food you ate.
+
+Foods that are already saved (a `food_id` is known) now open the same screen in an amount-only
+mode: the name and per-serving nutrition are read-only, and only Amount eaten, Date, Meal and
+Photo are offered. The last amount is pre-filled from that food's most recent log, so the common
+case is "same again, tweaked".
+
+Two things this fixed beyond the layout. The screen used to **re-save the food** on every repeat
+log, so editing the amount in one log quietly rewrote the saved food's nutrition; amount-only
+skips that entirely. And the heading said "Quick Add" for recent foods, because the food id
+arrives as a query parameter while only the route parameter was consulted.
+
+Recent entries with no `food_id` — quick adds that never became a food — keep the full form,
+because their nutrition has to be captured somewhere.

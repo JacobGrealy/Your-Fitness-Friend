@@ -98,7 +98,17 @@ export default function LogFood() {
   }
 
   const handleHistoryTap = (history: FoodRecent) => {
-    const foodIdParam = history.food_id ? `&foodId=${history.food_id}` : ''
+    // A recent food that is already saved only needs amount/date/meal: its nutrition is
+    // the food's, and offering macro inputs made a repeat log feel like editing it (FF-0101).
+    if (history.food_id) {
+      // Pre-fill the amount from the last time, so the usual case is "same again, tweaked".
+      const lastAmount = history.amount && history.unit
+        ? `&amount=${history.amount}&unit=${encodeURIComponent(history.unit)}`
+        : ''
+      navigate(`/food/log/select?meal=${mealType}&foodId=${history.food_id}&mode=amount${lastAmount}`, { state: originState })
+      return
+    }
+    const foodIdParam = ''
     const quantityParams = history.amount && history.unit ? `&amount=${history.amount}&unit=${encodeURIComponent(history.unit)}` : ''
     navigate(
       `/food/log/select?meal=${mealType}&name=${encodeURIComponent(history.food_name)}&calories=${history.calories}&protein=${formatMacro(history.protein_g)}&carbs=${formatMacro(history.carbs_g)}&fat=${formatMacro(history.fat_g)}&brand=${encodeURIComponent(history.brand || '')}&barcode_id=${encodeURIComponent(history.barcode_id || '')}&serving_size=${encodeURIComponent(history.serving_size || '')}${foodIdParam}${quantityParams}`,
