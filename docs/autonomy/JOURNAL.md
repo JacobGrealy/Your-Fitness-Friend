@@ -2002,3 +2002,23 @@ hand-written shape hid a new column.
 Live data: backfilled 11 foods from their newest log photo, folded 7 byte-identical duplicates
 (5 row references repointed) after a verified backup, leaving 12 files, 11 referenced, none
 broken. Migrations c10200000001 applied; backend restart still outstanding.
+
+## FF-0103 — Skip reminders when today's task is already done
+
+Added a native SmartReminders plugin/receiver and JS completion coordinator. Meals suppress only
+the matching local-day meal; today's weigh-in suppresses today's weekly reminder. Future daily
+and weekly occurrences re-arm natively, including after reboot/time-zone changes. Completion is
+user/date-scoped, unknown network state does not erase it, and successful create/edit/copy/delete
+writes reconcile authoritative dated logs before the caller resumes. App launch/resume, settings
+updates and foreground date changes also refresh. Logout/account switches clear old schedules.
+
+The Android plugin's `at + repeats` is an interval from now, NOT "repeat daily starting tomorrow";
+a native guard avoids both that trap and a finite reminder queue expiring while the app is closed.
+Legacy and smart notification ids use separate namespaces to avoid dismissal during migration.
+
+Verification: full gates green (293 backend, 430 frontend) plus seven native reminder-policy JVM
+tests and Android compilation. The first gate found a profile unit test importing the real Vite
+HTTP client through the new lifecycle module; mocked that boundary, with dedicated lifecycle
+integration tests still exercising it. No USB/emulator device is connected, so physical Android
+notification delivery remains unverified. Version bumped to 0.1.8 (9); release build follows merge.
+No database/backend changes or service restart needed. Owner's prior no-subagents request honored.
