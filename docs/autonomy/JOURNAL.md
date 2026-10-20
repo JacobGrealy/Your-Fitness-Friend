@@ -1963,3 +1963,20 @@ the gallery button entirely.
 Moved the nav to `z-40` so dialogs outrank it, padded bottom sheets for the safe area, and pinned
 the relationship in a test plus a line in AGENTS.md, because the same fault affected CopyMealSheet
 and the FAB. Verified by hit-testing each sheet button's centre with a taller footer simulated.
+
+## FF-0101 — Repeat logging is an amount, not a food editor
+
+The owner reported that adding from recent foods opened the full food screen. It now opens in an
+amount-only mode: food name and per-serving nutrition read-only, and just Amount eaten, Date,
+Meal and Photo, with the previous amount pre-filled.
+
+The test written for it caught something the report did not mention: the repeat flow called
+`createFood`, so changing an amount in one log rewrote the saved food's nutrition. Amount-only
+skips that path. Browser verification also showed the screen still titled "Quick Add" for recent
+foods (the food id arrives as a query parameter, and only the route parameter was checked), plus
+editable serving-size, barcode and raw food-id panels. All trimmed.
+
+Getting here cost two harness detours worth noting: running `npx jest` directly hit the
+documented `NODE_ENV=production` trap, and my first store mock returned a fresh `foods` array on
+every render, which re-fired the page's load effect forever and hung the run. Both are test
+harness mistakes, not app bugs. Gates green (288 backend / 399 frontend).

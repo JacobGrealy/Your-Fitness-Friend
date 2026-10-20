@@ -28,6 +28,13 @@ export default function FoodLogSelect() {
   const { foods, isLoading, logFood, uploadFoodLogPhoto, createFood, fetchFoods, error, clearError } = useFoodStore()
 
   const [selectedFood, setSelectedFood] = useState<Food | null>(null)
+  /**
+   * Re-adding a food that already exists (a recent item, or the search result of one):
+   * its nutrition is the food's business, so this screen only asks how much, when and
+   * which meal (FF-0101). Editing macros here is what made a repeat log feel like a
+   * full food editor.
+   */
+  const amountOnly = searchParams.get('mode') === 'amount'
   const [referenceAmount, setReferenceAmount] = useState('1')
   const [referenceUnit, setReferenceUnit] = useState('serving')
   const [amount, setAmount] = useState('1')
@@ -82,6 +89,7 @@ export default function FoodLogSelect() {
   const foodName = food_name
   const calories = watch('calories')
   const meal_type = watch('meal_type')
+  const brandName = watch('brand')
 
   useEffect(() => {
     setTitle('Add Food')
@@ -120,7 +128,7 @@ export default function FoodLogSelect() {
       setValue('serving_size', searchParams.get('serving_size') || '')
       setValue('brand', searchParams.get('brand') || '')
       setValue('barcode_id', searchParams.get('barcode_id') || '')
-    } else if (!foodId) {
+    } else if (!foodId && !searchParams.get('foodId')) {
       setIsQuickAdd(true)
     }
   }, [searchParams, setValue, foodId])
@@ -208,7 +216,8 @@ export default function FoodLogSelect() {
       } : { serving_size: data.serving_size || '' }
       let createdFoodId: string | undefined
 
-      if (data.food_name && !externalFood) {
+      // A repeat log must not rewrite the saved food: this screen only says how much.
+      if (data.food_name && !externalFood && !amountOnly) {
         const foodCreate: any = {
           name: data.food_name,
           calories: data.calories,
@@ -336,6 +345,22 @@ export default function FoodLogSelect() {
           </div>
         </div>
 
+        {amountOnly ? (
+          <div className="bg-white rounded-lg p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#757575]">Food</p>
+            <p className="text-lg font-bold text-mfp-text mt-1">{foodName}</p>
+            {brandName && <p className="text-sm text-[#757575]">{brandName}</p>}
+            <p className="text-sm text-[#757575] mt-2">
+              {formatNumber(Number(calories))} cal
+              {referenceAmount ? ` per ${referenceAmount} ${referenceUnit}` : ' per serving'}
+              {' · '}P {formatNumber(Number(watch('protein_g')))}
+              {' · '}C {formatNumber(Number(watch('carbs_g')))}
+              {' · '}F {formatNumber(Number(watch('fat_g')))}
+            </p>
+            <p className="text-xs text-[#757575] mt-2">Change the amount below. To edit the food itself, use Food details on a diary entry.</p>
+          </div>
+        ) : (
+          <>
         <div className="text-xs font-semibold uppercase tracking-wider text-[#757575] mt-2">Food Info</div>
 
         {/* Food Name */}
@@ -420,8 +445,11 @@ export default function FoodLogSelect() {
           {formErrors.fat_g && <p className="mt-1 text-xs text-mfp-error">{formErrors.fat_g.message}</p>}
         </div>
 
-        {/* Serving Size */}
-        <div className="bg-white rounded-lg p-4">
+          </>
+        )}
+
+        {/* Serving Size - the food's reference, so not editable when re-adding (FF-0101) */}
+        {!amountOnly && <div className="bg-white rounded-lg p-4">
           {structured ? <>
             <QuantityFields label="Serving Size" amount={referenceAmount} unit={referenceUnit}
               onAmount={setReferenceAmount} onUnit={value => { setReferenceUnit(value); setUnit(value) }} />
@@ -431,7 +459,7 @@ export default function FoodLogSelect() {
             <input type="text" {...register('serving_size')} className="w-full px-3 py-2.5 border rounded-lg" />
             <button type="button" className="text-sm text-[#185ADB] mt-2" onClick={() => { setStructured(true); setReferenceAmount('1') }}>Set numeric serving size and unit</button>
           </>}
-        </div>
+        </div>}
 
         {/* Photo - attach it here rather than logging first and editing after (FF-0087). */}
         <div className="bg-white rounded-lg p-4">
@@ -532,7 +560,7 @@ export default function FoodLogSelect() {
         </div>
 
         {/* Barcode */}
-        <div className="bg-white rounded-lg p-4">
+        {!amountOnly && <div className="bg-white rounded-lg p-4">
           <label className="block text-sm font-medium text-mfp-text mb-2">Barcode ID (optional)</label>
           <input
             type="text"
@@ -540,12 +568,12 @@ export default function FoodLogSelect() {
             placeholder="e.g. 012345678901"
             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"
           />
-        </div>
+        </div>}
 
         {externalFood && <p className="text-xs text-[#757575]">
           {externalFood.source === 'usda' ? 'USDA FoodData Central' : 'Open Food Facts'} · This food is saved to your database when you log it.
         </p>}
-        {selectedFood && selectedFood.id && !externalFood && (
+        {selectedFood && selectedFood.id && !externalFood && !amountOnly && (
           <div className="bg-white rounded-lg p-4">
             <label className="block text-sm font-medium text-[#757575] mb-2">
               Food ID

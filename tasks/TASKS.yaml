@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-19T18:02
+  updated_at: 2026-10-19T22:38
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0102
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -3976,4 +3977,64 @@ intake:
     gallery button hidden once a 34px home-indicator inset grows the footer. After: hit-testing the centre
     of Take photo, Choose from gallery and Cancel lands on each button with a taller footer. 3 layering
     tests pin the relationship; durable rule added to AGENTS.md under UI layering. Gates green.'
+  comments: []
+- id: FF-0101
+  title: Re-adding a recent food opens a log-only screen, not the full food form
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-19T22:17
+  updated_at: 2026-10-19T22:38
+  completed_at: 2026-10-19T22:38
+  waiting_on: null
+  parent_id: null
+  notes: 'Owner: adding from recent foods shows the full food screen with editable macros; it should only
+    offer serving amount, date and meal. Cause: LogFood.handleHistoryTap sends every recent food to FoodLogSelect,
+    the create/edit form that exposes name, brand, macros, serving size and barcode. Fix: for a recent
+    food linked to a saved Food (history.food_id present) open FoodLogSelect in amount-only mode - food
+    name and per-serving nutrition shown read-only, no macro/name/barcode editing, keeping Amount eaten,
+    Date, Meal and Photo. Do not create or overwrite a Food row in that flow; the server already takes
+    per-serving values from the food for structured payloads. Recent entries with no food_id (quick adds
+    that never became a food) keep the current form, since they still need their nutrition captured. Acceptance:
+    tapping a saved recent food shows no macro inputs; saving with a different amount, date and meal writes
+    exactly one log and leaves the food unchanged; quick-add and search flows unchanged.
+
+
+    Closed: recent foods with a food_id open FoodLogSelect in mode=amount - name and per-serving nutrition
+    read-only, only Amount eaten, Date, Meal, Photo; previous amount pre-filled; no macro/name/serving-size/barcode
+    editing. Repeat logs no longer call createFood (the test caught that repeat logging was rewriting
+    the saved food). Heading fixed for query-param food ids. 4 component tests; mobile verified: 150 g
+    -> 78 cal, one food, unchanged reference. Gates green. Harness notes: npx jest direct hit the NODE_ENV=production
+    trap; a mock returning a fresh foods array each render hung the suite.'
+  comments: []
+- id: FF-0102
+  title: Photos are shared between logs instead of copied, and deletion is reference-aware
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: in-progress
+  labels: []
+  created_at: 2026-10-19T22:17
+  updated_at: 2026-10-19T22:17
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: 'Owner: copying a log with a photo must link the same photo, and asked whether we are multiplying
+    image files. Measured on the live uploads tree: 19 files for 14 distinct images - one image is stored
+    5 times under 5 names, three more twice - because _adopt_photo_file copies on every carry (FF-0087)
+    and copy_meal drops the photo entirely. New rule: one file, many referencing rows. copy_meal carries
+    photo_url; the logged-food carry links instead of copying (validating the file still exists, and never
+    failing the log if it does not). Deletion becomes reference-aware: a path is unlinked only when no
+    other row (food_logs, plus meal_photos/user/weight_logs where the same string could appear) still
+    references it, so replacing or deleting one log photo cannot break another. Existing duplicates: repoint
+    byte-identical copies to one path and remove the extra files, only after a backup and only when sha256
+    matches. Acceptance: copying a meal yields two rows sharing one path and no new file; deleting the
+    photo on one keeps the other rendering and the file present until the last reference goes; uploads
+    file count drops to the distinct-image count.'
   comments: []
