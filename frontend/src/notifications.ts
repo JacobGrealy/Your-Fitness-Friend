@@ -1,5 +1,31 @@
 import { Capacitor, registerPlugin } from '@capacitor/core'
 
+export interface ReminderCompletion {
+  userId: string
+  date: string
+  /** Omitted domains mean unknown/offline, not "not logged". */
+  meals?: Partial<Record<'breakfast' | 'lunch' | 'dinner', boolean>>
+  weighIn?: boolean
+}
+
+interface SmartRemindersPlugin {
+  configure(options: { userId: string; settings: ReminderSettings; completion: ReminderCompletion }): Promise<void>
+  clear(): Promise<void>
+}
+
+function smartPlugin(): SmartRemindersPlugin | null {
+  if (!Capacitor.isNativePlatform() || !Capacitor.isPluginAvailable?.('SmartReminders')) return null
+  return registerPlugin<SmartRemindersPlugin>('SmartReminders')
+}
+
+// Serialize native writes, including logout, so older completions cannot land last.
+let bridgeQueue: Promise<unknown> = Promise.resolve()
+function onBridge<T>(work: () => Promise<T>): Promise<T> {
+  const next = bridgeQueue.then(work, work)
+  bridgeQueue = next.catch(() => undefined)
+  return next
+}
+
 /**
  * Reminder scheduling (FF-0056).
  *
@@ -128,7 +154,9 @@ export function saveReminders(settings: ReminderSettings): void {
   }
 }
 
-/** The notifications a given settings object implies. Pure, so it is testable. */
+/** Legacy calendar descriptors, retained for settings/compatibility tests and enabled-count.
+ * Never send these unconditional repeats to LocalNotifications: FF-0103 uses the native guard.
+ */
 export function buildSchedule(settings: ReminderSettings): ScheduleOptions['notifications'] {
   const notifications: ScheduleOptions['notifications'] = []
 
@@ -176,45 +204,48 @@ export type ScheduleOutcome = 'scheduled' | 'denied' | 'unsupported' | 'nothing-
 /**
  * Make the device's schedule match `settings`.
  *
- * Idempotent by design: everything is cancelled first, then re-scheduled with
- * fixed ids. That makes it safe to run on every app start, which is how a phone
- * reboot or a cleared alarm survives without extra bookkeeping.
+ * The native receiver preserves indefinite future occurrences and consults dated
+ * completion flags before delivery. Only legacy alarms are cancelled here; Android
+ * restores smart alarms itself on reboot, package update and time-zone changes.
  */
-export async function applyReminders(settings: ReminderSettings): Promise<ScheduleOutcome> {
-  const local = plugin()
-  if (!local) return 'unsupported'
-
-  const wanted = buildSchedule(settings)
-  const allIds = [...Object.values(MEAL_IDS), WEIGH_IN_ID].map((id) => ({ id }))
-
-  try {
-    await local.cancel({ notifications: allIds })
-  } catch {
-    // Nothing scheduled yet, or the plugin refused; rescheduling is still worth a try.
-  }
-
-  if (wanted.length === 0) return 'nothing-enabled'
-
-  const permission = await notificationPermission()
-  if (permission === 'denied') return 'denied'
-  if (permission === 'unsupported') return 'unsupported'
-
-  try {
-    await local.schedule({ notifications: wanted })
-    return 'scheduled'
-  } catch {
-    return 'unsupported'
-  }
+export function applyReminders(
+  settings: ReminderSettings, completion?: ReminderCompletion, passive = false
+): Promise<ScheduleOutcome> {
+  return onBridge(async () => {
+    const local = plugin()
+    const smart = smartPlugin()
+    if (!local || !smart || !completion?.userId) return 'unsupported'
+    const wanted = buildSchedule(settings)
+    if (wanted.length > 0) {
+      const permission = passive
+        ? (await local.checkPermissions()).display === 'granted' ? 'available' : 'denied'
+        : await notificationPermission()
+      if (permission === 'denied') return 'denied'
+      if (permission === 'unsupported') return 'unsupported'
+    }
+    try {
+      // Migrate away from unconditional repeating alarms. A failed cancel must not leave
+      // both the old and new schedulers delivering the same reminder.
+      await local.cancel({ notifications: [...Object.values(MEAL_IDS), WEIGH_IN_ID].map(id => ({ id })) })
+      if (wanted.length === 0) {
+        await smart.clear()
+        return 'nothing-enabled'
+      }
+      await smart.configure({ userId: completion.userId, settings, completion })
+      return 'scheduled'
+    } catch {
+      return 'unsupported'
+    }
+  }).catch(() => 'unsupported')
 }
 
-export async function clearReminders(): Promise<void> {
-  const local = plugin()
-  if (!local) return
-  try {
-    await local.cancel({
-      notifications: [...Object.values(MEAL_IDS), WEIGH_IN_ID].map((id) => ({ id })),
-    })
-  } catch {
-    // Nothing to clear.
-  }
+export function clearReminders(): Promise<void> {
+  return onBridge(async () => {
+    try { await smartPlugin()?.clear() } catch { /* Older APK or no native state. */ }
+    try {
+      await plugin()?.cancel({
+        notifications: [...Object.values(MEAL_IDS), WEIGH_IN_ID].map(id => ({ id })),
+      })
+    } catch { /* Nothing to clear. */ }
+  })
 }

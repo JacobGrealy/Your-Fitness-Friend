@@ -37,6 +37,11 @@ jest.mock('@/api/diary', () => ({
 // FF-0011: the Account and Help rows of the More page used to be dead tap
 // targets. They now open real sheets instead of silently doing nothing.
 
+// Reminder lifecycle HTTP/native wiring has its own integration tests.
+jest.mock('@/reminderLifecycle', () => ({
+  refreshReminderSchedule: jest.fn(async () => 'unsupported'),
+}))
+
 const mockNavigate = jest.fn()
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),

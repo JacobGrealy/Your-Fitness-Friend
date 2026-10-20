@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import {
   DEFAULT_REMINDERS,
-  applyReminders,
   loadReminders,
   remindersAvailable,
   saveReminders,
   type ReminderSettings,
 } from '@/notifications'
+
+import { refreshReminderSchedule } from '@/reminderLifecycle'
 
 const GREY = '#757575'
 
@@ -47,14 +48,14 @@ export default function RemindersCard() {
     // Re-apply on mount so a rebooted phone gets its schedule back without the
     // user touching anything.
     if (supported && (stored.breakfast.enabled || stored.lunch.enabled || stored.dinner.enabled || stored.weighIn.enabled)) {
-      void applyReminders(stored)
+      void refreshReminderSchedule(stored)
     }
   }, [supported])
 
   const update = async (next: ReminderSettings) => {
     setSettings(next)
     saveReminders(next)
-    const outcome = await applyReminders(next)
+    const outcome = await refreshReminderSchedule(next, true)
     if (outcome === 'denied') {
       setStatus('Notifications are blocked for AweFit. Turn them on in Android settings, then flip a reminder again.')
     } else if (outcome === 'unsupported') {
@@ -160,7 +161,8 @@ export default function RemindersCard() {
         )}
 
         <p className="text-[11px]" style={{ color: GREY }}>
-          Reminders are scheduled on this phone. Nothing is sent from the server.
+          Reminders skip meals and weigh-ins already logged for today. Changes from other devices
+          sync when this app opens or resumes. Notifications are scheduled on this phone, not sent from the server.
         </p>
       </div>
     </div>

@@ -20,9 +20,12 @@ const requestPermissions = jest.fn()
 const schedule = jest.fn()
 const cancel = jest.fn()
 const registerPlugin = jest.fn()
+const configure = jest.fn()
+const clearSmart = jest.fn()
+const completion = { userId: '7', date: '2026-10-20', meals: { lunch: true }, weighIn: false }
 
 jest.mock('@capacitor/core', () => ({
-  Capacitor: { isNativePlatform: jest.fn(() => true) },
+  Capacitor: { isNativePlatform: jest.fn(() => true), isPluginAvailable: jest.fn(() => true) },
   registerPlugin: (...args: unknown[]) => registerPlugin(...args),
 }))
 
@@ -41,7 +44,11 @@ describe('reminder scheduling (FF-0056)', () => {
     requestPermissions.mockReset().mockResolvedValue({ display: 'granted' })
     schedule.mockReset().mockResolvedValue(undefined)
     cancel.mockReset().mockResolvedValue(undefined)
-    registerPlugin.mockReset().mockReturnValue({ checkPermissions, requestPermissions, schedule, cancel })
+    configure.mockReset().mockResolvedValue(undefined)
+    clearSmart.mockReset().mockResolvedValue(undefined)
+    core.Capacitor.isPluginAvailable.mockReturnValue(true)
+    registerPlugin.mockReset().mockImplementation(name => name === 'SmartReminders'
+      ? { configure, clear: clearSmart } : { checkPermissions, requestPermissions, schedule, cancel })
     core.Capacitor.isNativePlatform.mockReturnValue(true)
     localStorage.clear()
   })
@@ -99,17 +106,19 @@ describe('reminder scheduling (FF-0056)', () => {
 
   describe('applyReminders', () => {
     it('cancels the known ids before scheduling, so it is safe to re-run', async () => {
-      const outcome = await applyReminders(enabledAll)
+      const outcome = await applyReminders(enabledAll, completion)
       expect(outcome).toBe('scheduled')
       expect(cancel).toHaveBeenCalledWith({
         notifications: [{ id: 1001 }, { id: 1002 }, { id: 1003 }, { id: 1010 }],
       })
-      expect(schedule).toHaveBeenCalledTimes(1)
-      expect(cancel.mock.invocationCallOrder[0]).toBeLessThan(schedule.mock.invocationCallOrder[0])
+      expect(configure).toHaveBeenCalledTimes(1)
+      expect(configure).toHaveBeenCalledWith({ userId: '7', settings: enabledAll, completion })
+      expect(schedule).not.toHaveBeenCalled() // Never restore unconditional repeating alarms.
+      expect(cancel.mock.invocationCallOrder[0]).toBeLessThan(configure.mock.invocationCallOrder[0])
     })
 
     it('clears the schedule and schedules nothing when all are off', async () => {
-      await expect(applyReminders(DEFAULT_REMINDERS)).resolves.toBe('nothing-enabled')
+      await expect(applyReminders(DEFAULT_REMINDERS, completion)).resolves.toBe('nothing-enabled')
       expect(cancel).toHaveBeenCalled()
       expect(schedule).not.toHaveBeenCalled()
     })
@@ -118,29 +127,61 @@ describe('reminder scheduling (FF-0056)', () => {
       checkPermissions.mockResolvedValue({ display: 'prompt' })
       requestPermissions.mockResolvedValue({ display: 'denied' })
 
-      await expect(applyReminders(enabledAll)).resolves.toBe('denied')
+      await expect(applyReminders(enabledAll, completion)).resolves.toBe('denied')
       expect(schedule).not.toHaveBeenCalled()
     })
 
     it('schedules without prompting when permission is already granted', async () => {
-      await applyReminders(enabledAll)
+      await applyReminders(enabledAll, completion)
       expect(requestPermissions).not.toHaveBeenCalled()
-      expect(schedule).toHaveBeenCalled()
+      expect(configure).toHaveBeenCalled()
     })
 
     it('reports unsupported when the plugin is missing from the installed APK', async () => {
       registerPlugin.mockImplementation(() => {
         throw new Error('LocalNotifications is not implemented')
       })
-      await expect(applyReminders(enabledAll)).resolves.toBe('unsupported')
+      await expect(applyReminders(enabledAll, completion)).resolves.toBe('unsupported')
       expect(schedule).not.toHaveBeenCalled()
     })
 
     it('reports unsupported in a browser tab', async () => {
       core.Capacitor.isNativePlatform.mockReturnValue(false)
       expect(remindersAvailable()).toBe(false)
-      await expect(applyReminders(enabledAll)).resolves.toBe('unsupported')
+      await expect(applyReminders(enabledAll, completion)).resolves.toBe('unsupported')
       await expect(notificationPermission()).resolves.toBe('unsupported')
+    })
+  })
+
+  describe('completion-aware native bridge (FF-0103)', () => {
+    it('does not claim smart reminders work on an old APK', async () => {
+      core.Capacitor.isPluginAvailable.mockReturnValue(false)
+      await expect(applyReminders(enabledAll, completion)).resolves.toBe('unsupported')
+      expect(configure).not.toHaveBeenCalled()
+      expect(cancel).not.toHaveBeenCalled() // Keep old reminders until an update can replace them.
+    })
+
+    it('never prompts for permission during background reconciliation', async () => {
+      checkPermissions.mockResolvedValue({ display: 'prompt' })
+      await expect(applyReminders(enabledAll, completion, true)).resolves.toBe('denied')
+      expect(requestPermissions).not.toHaveBeenCalled()
+    })
+
+    it('does not install a second scheduler if legacy cancellation fails', async () => {
+      cancel.mockRejectedValue(new Error('native unavailable'))
+      await expect(applyReminders(enabledAll, completion)).resolves.toBe('unsupported')
+      expect(configure).not.toHaveBeenCalled()
+    })
+
+    it('clears the native scheduler as well as the legacy ids on logout', async () => {
+      await clearReminders()
+      expect(clearSmart).toHaveBeenCalled()
+      expect(cancel).toHaveBeenCalled()
+    })
+
+    it('handles bridge failure without rejecting a successful log write', async () => {
+      configure.mockRejectedValue(new Error('bridge failure'))
+      await expect(applyReminders(enabledAll, completion)).resolves.toBe('unsupported')
     })
   })
 

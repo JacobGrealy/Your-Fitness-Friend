@@ -118,6 +118,14 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
   footer — that is what buried "Choose from gallery" (FF-0100). Bottom-anchored panels also
   carry `pb-[calc(1rem+env(safe-area-inset-bottom))]` so their buttons clear a home indicator.
 
+## Reminder scheduling
+- **Do not restore unconditional repeating LocalNotifications alarms.** Smart reminders use
+  `SmartRemindersPlugin` / `SmartReminderReceiver`: completion is scoped to user and local date,
+  future occurrences are re-armed natively, and only successful dated-log reads can clear a
+  completion flag. Unknown/offline status is not an empty diary. Legacy ids (1001–1010) and
+  smart ids (21001–21010) stay separate so migration cannot dismiss current smart reminders.
+  Native reminder changes require publishing an APK, not just rebuilding the web bundle.
+
 ## Runtime topology
 - **Production** — `fitnessfriend.service`: gunicorn on `0.0.0.0:5001`, serving
   both the Flask API and the built SPA from `app/static`.

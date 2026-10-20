@@ -1153,3 +1153,24 @@ Copying a meal now carries the photo instead of dropping it; logging a food link
 file instead of duplicating it; uploading a photo on a log also gives the food a picture if it had
 none. The 7 duplicate files were folded into one copy each after sha256 verification, leaving 12
 files and no broken reference.
+
+## FF-0103 — Conditional reminders need a native delivery guard, not a cancelled repeat
+
+The old daily/weekly LocalNotifications alarms could not skip today's occurrence while keeping
+future ones. Cancelling a repeat removes future reminders too, and the installed plugin's
+`at + repeats` computes an interval from NOW, not a calendar recurrence. A rolling finite queue
+would silently run out if the app stayed closed. Instead a local SmartReminders bridge persists
+user/date completion flags and settings; its receiver re-arms the next calendar occurrence and
+checks completion before posting. It survives reboot/time-zone changes without background HTTP.
+This requires an updated APK; old installations report unsupported rather than claiming skipping.
+
+JS reads authoritative food and weight logs for the phone-local calendar date after successful
+log mutations (including AI and copy), launch/resume, foreground minute rollover and settings
+changes. It never uses a currently displayed/backdated page's filtered store. Jobs and native
+writes are serialized, account changes discard old responses, and failed reads preserve known
+completion. Deleting the last entry restores an occurrence only if its time is still future.
+
+Legacy and smart notification ids deliberately differ: repeatedly cancelling legacy ids must
+not dismiss a smart notification already delivered. Cross-device writes are observed only on
+foreground refresh/resume; no server push/FCM was introduced. Native timing policy has seven
+JVM tests, including DST, missing hours, midnight, deletion and next-week recurrence.

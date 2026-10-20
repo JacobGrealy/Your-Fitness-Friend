@@ -7,6 +7,10 @@ import RemindersCard from '@/components/profile/RemindersCard'
 const applyReminders = jest.fn()
 const remindersAvailable = jest.fn(() => true)
 
+jest.mock('@/reminderLifecycle', () => ({
+  refreshReminderSchedule: (...args: unknown[]) => applyReminders(...args),
+}))
+
 jest.mock('@/notifications', () => {
   const actual = jest.requireActual('@/notifications')
   return {
