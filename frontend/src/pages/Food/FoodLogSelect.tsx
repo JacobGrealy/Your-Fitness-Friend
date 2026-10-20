@@ -173,6 +173,10 @@ export default function FoodLogSelect() {
   // Offer the photo from the previous log the moment we know which food this is.
   useEffect(() => {
     const foodId = selectedFood && !externalFood ? String(selectedFood.id) : undefined
+    if (selectedFood?.photo_url) {
+      setCarriedPhoto(selectedFood.photo_url)
+      return
+    }
     const name = (foodName || '').trim()
     if (!foodId && !name) {
       setCarriedPhoto(null)

@@ -54,19 +54,23 @@ def _log(client, name='Eggo toaster sticks', photo_url=None, day=TODAY):
 
 
 class TestCarryingAPhotoIntoANewLog:
-    def test_copies_the_file_so_each_log_owns_one(self, client, app, user_id):
+    """Photos are shared between rows, not copied (FF-0102, replacing FF-0087's copies).
+
+    The copy existed because two rows pointing at one file had no clear owner when that
+    file was deleted. Deletion is reference-aware now, so one file can serve many logs
+    without the earlier breakage - and without storing one image five times.
+    """
+
+    def test_links_the_same_file_instead_of_copying_it(self, client, app, user_id):
         stored = _stored_photo()
 
         response = _log(client, photo_url=stored)
 
         assert response.status_code == 201
-        copied = response.get_json()['photo_url']
-        assert copied is not None
-        assert copied != stored, 'the two logs must not share one file'
+        assert response.get_json()['photo_url'] == stored, 'the carried photo is the same file'
         with app.app_context():
             folder = upload_dir('food_log_photos')
-            assert os.path.basename(copied) in os.listdir(folder)
-            assert os.path.basename(stored) in os.listdir(folder)   # source untouched
+            assert os.listdir(folder).count(os.path.basename(stored)) == 1
 
     def test_deleting_one_photo_leaves_the_other_intact(self, client, app, user_id):
         stored = _stored_photo()
@@ -75,10 +79,22 @@ class TestCarryingAPhotoIntoANewLog:
 
         client.delete(f"/api/food/log/{first['id']}/photo")
 
+        # the second log still shows the shared picture, and the file survives
+        assert client.get(f"/api/food/log/{second['id']}").get_json()['photo_url'] == stored
         with app.app_context():
-            folder = upload_dir('food_log_photos')
-            remaining = os.listdir(folder)
-            assert os.path.basename(second['photo_url']) in remaining
+            assert os.path.basename(second['photo_url']) in os.listdir(upload_dir('food_log_photos'))
+
+    def test_the_file_goes_when_its_last_reference_does(self, client, app, user_id):
+        stored = _stored_photo()
+        first = _log(client, photo_url=stored).get_json()
+        second = _log(client, photo_url=stored).get_json()
+
+        client.delete(f"/api/food/log/{first['id']}/photo")
+        response = client.delete(f"/api/food/log/{second['id']}/photo")
+
+        assert response.get_json()['file_kept'] is False
+        with app.app_context():
+            assert os.path.basename(stored) not in os.listdir(upload_dir('food_log_photos'))
 
     def test_a_missing_source_still_creates_the_log(self, client, app, user_id):
         response = _log(client, photo_url='food_log_photos/does-not-exist.jpg')

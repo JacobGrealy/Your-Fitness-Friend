@@ -1980,3 +1980,25 @@ Getting here cost two harness detours worth noting: running `npx jest` directly 
 documented `NODE_ENV=production` trap, and my first store mock returned a fresh `foods` array on
 every render, which re-fired the page's load effect forever and hung the run. Both are test
 harness mistakes, not app bugs. Gates green (288 backend / 399 frontend).
+
+## FF-0102 — One picture per food, shared by reference
+
+The owner asked whether copying a log with a photo should link it, and whether we were multiplying
+image files. We were: 19 files, 12 distinct images, one picture stored five times, because
+FF-0087 copied on every carry and copying a meal dropped the photo entirely.
+
+The fix is structural rather than a dedupe: `foods.photo_url` is the food's picture and logs
+inherit it, with a log photo as an optional override. Deletion became reference-aware, which is
+what makes sharing safe — the old objection to sharing was that deleting one photo blanked
+another, and that was the missing check rather than a reason to copy. Measured after: copying a
+meal yields two rows on one file, and deleting the first log's photo leaves the second rendering
+(verified with a real upload over HTTP).
+
+Two traps worth recording. The FF-0087 test asserting copies was genuinely obsolete, so it was
+replaced with the sharing contract rather than deleted. And `GET /api/food` hand-builds its
+response, so `photo_url` had to be added there — the second time this round that endpoint's
+hand-written shape hid a new column.
+
+Live data: backfilled 11 foods from their newest log photo, folded 7 byte-identical duplicates
+(5 row references repointed) after a verified backup, leaving 12 files, 11 referenced, none
+broken. Migrations c10200000001 applied; backend restart still outstanding.

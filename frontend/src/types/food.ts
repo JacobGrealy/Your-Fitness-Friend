@@ -30,6 +30,8 @@ export interface Food extends ServingReference {
   serving_size?: string | null
   barcode_id?: string | null
   external_id?: string | null
+  /** The food's picture, which its logs inherit (FF-0102). */
+  photo_url?: string | null
   created_at: string
 }
 
