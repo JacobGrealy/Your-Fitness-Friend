@@ -19,6 +19,9 @@ class Food(db.Model):
     serving_unit = db.Column(db.String(20), nullable=True)
     brand = db.Column(db.String(100), nullable=True)
     barcode_id = db.Column(db.String(100), nullable=True)
+    # The food's picture, which every log of it inherits (FF-0102). Stored by reference:
+    # one file, many rows, and the file dies only with its last reference.
+    photo_url = db.Column(db.String(512), nullable=True)
     external_id = db.Column(db.String(100), nullable=True)
     __table_args__ = (db.UniqueConstraint('user_id', 'external_id', name='uq_food_user_external'),)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -38,6 +41,7 @@ class Food(db.Model):
             'serving_unit': self.serving_unit,
             'brand': self.brand,
             'barcode_id': self.barcode_id,
+            'photo_url': self.photo_url,
             'external_id': self.external_id,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }

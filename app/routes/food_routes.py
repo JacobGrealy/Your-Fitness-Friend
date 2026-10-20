@@ -7,7 +7,12 @@ from flask_login import login_required, current_user
 from app.models.food import Food
 from app.models.food_log import FoodLog
 from app.config import Config
-from app.utils.uploads import stored_file_path, upload_dir, uploads_root
+from app.utils.uploads import (
+    remove_if_unreferenced,
+    stored_file_path,
+    upload_dir,
+    uploads_root,
+)
 from app.utils.serving import (
     MACROS,
     normalise_servings,
@@ -124,39 +129,23 @@ def _apply_nutrition(log, data):
     log.number_of_servings = servings
 
 
-def _adopt_photo_file(photo_url):
-    """Copy a stored photo so this log owns its own file (FF-0087).
+def _link_photo(photo_url):
+    """A carried photo is shared, not copied (FF-0102).
 
-    Two rows pointing at one file cannot both own it: deleting the photo on one unlinks the
-    file and breaks the other. That is the same reasoning that stopped the meal copy from
-    duplicating `photo_url`, and the orphan problems of FF-0080. So a carried photo becomes a
-    copy with its own name.
+    FF-0087 copied the file so every log owned its own, which multiplied one image into
+    five (measured on the live tree). A log now references the same file as the log it was
+    carried from, and deletion is reference-aware, so sharing cannot blank a neighbour.
 
-    Returns the new stored path, or None when the source is missing or outside the uploads
-    root - a bad photo reference must not cost the user their log entry.
+    Returns the stored path, or None when the reference is unusable — a bad photo must not
+    cost the user their log entry.
     """
     if not photo_url:
         return None
-
     try:
         source = stored_file_path(photo_url)
     except ValueError:
         return None
-
-    if not os.path.isfile(source):
-        return None
-
-    folder, name = os.path.split(photo_url)
-    extension = name.rsplit('.', 1)[1].lower() if '.' in name else 'jpg'
-    copy_name = f"{uuid.uuid4().hex}.{extension}"
-    destination = os.path.join(upload_dir(folder or FOOD_LOG_PHOTO_FOLDER), copy_name)
-
-    try:
-        shutil.copyfile(source, destination)
-    except OSError:
-        return None
-
-    return f"{folder or FOOD_LOG_PHOTO_FOLDER}/{copy_name}"
+    return photo_url if os.path.isfile(source) else None
 
 
 def _clean_barcode(value):
@@ -228,6 +217,8 @@ def get_foods():
         'barcode_id': f.barcode_id,
         # The search UI deduplicates imported foods against these (FF-0099).
         'external_id': f.external_id,
+        'photo_url': f.photo_url,
+        'created_at': f.created_at.isoformat() if f.created_at else None,
     } for f in foods]), 200
 
 
@@ -301,7 +292,8 @@ def get_recent_foods():
                 'carbs_g': food.carbs_g,
                 'fat_g': food.fat_g,
                 'serving_size': data['serving_size'],
-                'photo_url': data['photo_url'],
+                # The food's picture wins over whichever log happened to have one (FF-0102).
+                'photo_url': food.photo_url or data['photo_url'],
                 'brand': food.brand,
                 'barcode_id': food.barcode_id,
                 'total_logs': data['total_logs'],
@@ -578,8 +570,8 @@ def create_food_log():
         brand = data.get('brand')
         barcode_id = _clean_barcode(data.get('barcode_id'))
     
-    # A photo supplied at creation is copied so this log owns it (FF-0087).
-    photo_url = _adopt_photo_file(photo_url) if photo_url else None
+    # A carried photo is linked, not duplicated (FF-0102).
+    photo_url = _link_photo(photo_url) if photo_url else None
 
     food_log = FoodLog(
         user_id=current_user.id,
@@ -641,14 +633,24 @@ def create_food_log():
 @bp.route('/latest-photo', methods=['GET'])
 @login_required
 def latest_photo():
-    """The newest photo this user has logged for a food (FF-0087).
+    """The picture for a food: its own first, then the newest one logged (FF-0102).
 
-    Used by the create screen to offer "use your last photo". Scoped to the owner, and it
-    looks for a photo rather than just the newest log: the most recent entry may have none
-    while an older one has the picture the user means.
+    This used to search the user's logs by name to *infer* which picture belonged to a
+    food, which is why carrying a photo needed a lookup and a copy. The food now stores
+    its picture, so this is normally a column read; the log search remains as a fallback
+    for rows written before that column existed.
     """
-    food_id = request.args.get('food_id', type=int)
-    food_name = (request.args.get('food_name') or '').strip()
+    food_id = request.args.get('food_id')
+    food_name = request.args.get('food_name')
+
+    food = None
+    if food_id:
+        food = Food.query.filter_by(id=food_id, user_id=current_user.id).first()
+    elif food_name:
+        food = Food.query.filter_by(name=food_name, user_id=current_user.id).first()
+
+    if food and food.photo_url:
+        return jsonify({'photo_url': food.photo_url, 'food_id': food.id, 'source': 'food'}), 200
 
     query = FoodLog.query.filter(
         FoodLog.user_id == current_user.id,
@@ -659,13 +661,12 @@ def latest_photo():
     elif food_name:
         query = query.filter(FoodLog.food_name == food_name)
     else:
-        return jsonify({'error': 'food_id or food_name is required'}), 400
-
-    log = query.order_by(FoodLog.date.desc(), FoodLog.id.desc()).first()
-    if log is None:
         return jsonify({'photo_url': None, 'log_id': None}), 200
 
-    return jsonify({'photo_url': log.photo_url, 'log_id': log.id}), 200
+    log = query.order_by(FoodLog.date.desc(), FoodLog.id.desc()).first()
+    if not log:
+        return jsonify({'photo_url': None, 'log_id': None}), 200
+    return jsonify({'photo_url': log.photo_url, 'log_id': log.id, 'source': 'log'}), 200
 
 
 @bp.route('/log/copy', methods=['POST'])
@@ -727,7 +728,8 @@ def copy_meal():
             barcode_id=log.barcode_id,
             date=to_date,
             meal_type=to_meal,
-            # photo_url intentionally omitted
+            # The copy shows the same picture: one file, two rows (FF-0102).
+            photo_url=log.photo_url,
         )
         db.session.add(copy)
         created.append(copy)
@@ -894,11 +896,18 @@ def upload_food_log_photo(log_id):
     os.makedirs(photo_dir, exist_ok=True)
     file.save(os.path.join(photo_dir, filename))
 
-    # Replace any previous photo so old files don't accumulate
-    _remove_photo_file(log.photo_url)
-
+    # Replace any previous photo so old files don't accumulate - but only if this log was
+    # its last reference (FF-0102).
+    previous = log.photo_url
     log.photo_url = f"{FOOD_LOG_PHOTO_FOLDER}/{filename}"
     db.session.commit()
+    if previous and previous != log.photo_url:
+        remove_if_unreferenced(previous)
+    if log.food_id:
+        food = Food.query.filter_by(id=log.food_id, user_id=current_user.id).first()
+        if food and not food.photo_url:
+            food.photo_url = log.photo_url
+            db.session.commit()
 
     return jsonify({'id': log.id, 'photo_url': log.photo_url}), 200
 
@@ -917,11 +926,13 @@ def delete_food_log_photo(log_id):
     if not log.photo_url:
         return jsonify({'error': 'Food log has no photo'}), 404
 
-    _remove_photo_file(log.photo_url)
+    removed = log.photo_url
     log.photo_url = None
     db.session.commit()
+    # The food and any sibling logs may still show this file (FF-0102).
+    kept = not remove_if_unreferenced(removed)
 
-    return jsonify({'message': 'Photo deleted', 'id': log.id}), 200
+    return jsonify({'message': 'Photo deleted', 'id': log.id, 'file_kept': kept}), 200
 
 
 @bp.route('/uploads/<path:filename>')

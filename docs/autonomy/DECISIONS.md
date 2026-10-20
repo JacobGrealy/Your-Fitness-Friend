@@ -1131,3 +1131,25 @@ arrives as a query parameter while only the route parameter was consulted.
 
 Recent entries with no `food_id` — quick adds that never became a food — keep the full form,
 because their nutrition has to be captured somewhere.
+
+## FF-0102 — The food owns its picture; a log may override it
+
+Photos lived only on logs, so "the food's picture" did not exist as a fact — it was inferred by
+`GET /api/food/latest-photo` searching the user's logs by name. That inference is why carrying a
+picture needed a copy, and FF-0087's copy is why one image ended up stored five times: the live
+tree held **19 files for 12 distinct images**.
+
+`foods.photo_url` now holds the picture and every log inherits it. A `food_logs.photo_url` remains
+as an optional per-meal override — the picture of *that plate on that day* is a real thing.
+
+Why sharing is safe now, when FF-0087 rejected it: deletion is **reference-aware**. A file is
+unlinked only when no row still points at it, checked across `food_logs`, `foods`, `meal_photos`,
+`users` and `weight_logs`. The earlier fear — deleting one entry's photo blanks another — was the
+absence of that check, not sharing itself. `remove_if_unreferenced()` lives in
+`app/utils/uploads.py`, the module that already owns every upload path, and it inspects the schema
+before querying so a missing column can neither raise nor roll back a caller's transaction.
+
+Copying a meal now carries the photo instead of dropping it; logging a food links the existing
+file instead of duplicating it; uploading a photo on a log also gives the food a picture if it had
+none. The 7 duplicate files were folded into one copy each after sha256 verification, leaving 12
+files and no broken reference.
