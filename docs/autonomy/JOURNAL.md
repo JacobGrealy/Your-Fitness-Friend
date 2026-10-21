@@ -2157,4 +2157,7 @@ modal, failure-safe deletion and immediate daily calorie-total update. Mutation/
 stale results on date/account changes. Old exercise/history deep links redirect to /food/daily;
 removed obsolete page/export/tests, saves return to diary, and overview link points to diary.
 Photo UI ticket updated to target diary rows instead of removed journal. Food allowance unchanged.
-Full gates green: 361 backend, 459 frontend plus all ancillary gates. Next: build/browser verification.
+Full gates green: 361 backend, 459 frontend plus all ancillary gates. Production build passed;
+HTTPS serves index-C_555Di3.js. Isolated mobile Chromium verified old journal redirects to diary,
+row click opens edit, save returns diary, X confirms removal without editing, and layout fits.
+Verification server stopped. Code 833f644. Web-only: no restart/APK required.
