@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-21T13:32
+  updated_at: 2026-10-21T13:39
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0107
 - FF-0113
 - FF-0108
 - FF-0109
@@ -4200,11 +4199,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-21T13:32
-  completed_at: null
+  updated_at: 2026-10-21T13:39
+  completed_at: 2026-10-21T13:38
   waiting_on: null
   parent_id: null
   notes: 'Use built-in activities plus recent/favorites/custom without requiring library setup. Build
@@ -4237,7 +4236,13 @@ intake:
     and 4 new walking-form tests pass. Not merged/built/deployed yet. Remaining before closeout: history
     filters/details/edit/repeat actions, new picker/API/stale-preview tests, historical edit preview must
     use saved weight snapshot (currently preview/new estimate can differ from edit save), browser verification/full
-    gates. Photo UI remains FF-0113.'
+    gates. Photo UI remains FF-0113.
+
+
+    Full gates green (346 backend, 453 frontend). Production build succeeded. Isolated Chromium 390x844
+    verified real catalog -> preview -> create -> dated history -> edit -> repeat (blank duration), no
+    horizontal overflow or page errors; screenshot /tmp/ff0107-walking-mobile.png. Code 3749e36. Backend
+    restart still required; no APK needed. FF-0113 photo UI next.'
   comments: []
 - id: FF-0108
   title: 'Strength backend: persisted per-set exercise sessions'
