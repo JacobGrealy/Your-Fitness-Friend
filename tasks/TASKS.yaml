@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-21T14:32
+  updated_at: 2026-10-21T14:34
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0117
 - FF-0113
 - FF-0108
 - FF-0109
@@ -4468,11 +4467,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-21T14:28
-  updated_at: 2026-10-21T14:29
-  completed_at: null
+  updated_at: 2026-10-21T14:34
+  completed_at: 2026-10-21T14:34
   waiting_on: null
   parent_id: null
   notes: 'Owner requests removing View/edit session link; clicking exercise row opens edit, X removes
@@ -4483,5 +4482,10 @@ intake:
 
     Additional owner request: remove separate Movement Journal page. Use daily diary as sole exercise-log
     destination, redirect old exercise/history URL to food/daily, remove obsolete page/export and entry
-    links, and return session saves to diary. Preserve old deep links via redirect; no loss of saved data.'
+    links, and return session saves to diary. Preserve old deep links via redirect; no loss of saved data.
+
+
+    Full gates green: 361 backend/459 frontend. Web build passed. Isolated mobile Chromium verified old
+    journal redirect, full-row edit, save returns diary, X confirmation deletes without editing and updates
+    rows, no horizontal overflow. Code 833f644. Web-only release; no restart/APK required.'
   comments: []
