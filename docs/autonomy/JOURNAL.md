@@ -2102,5 +2102,9 @@ Diary has inclusive date filters, normalized session details, edit/repeat links 
 An owned log_id in estimate requests makes historical edit preview use the same weight snapshot as save.
 Multipart client requests explicitly override Axios JSON defaults. No automatic food allowance changes.
 
-Full gates green: 346 backend, 453 frontend, tsc/layout/uploads/smoke/tooling. Next: production build
-and isolated mobile browser verification before marking ticket done; photo controls are FF-0113.
+Full gates green: 346 backend, 453 frontend, tsc/layout/uploads/smoke/tooling. Production build
+succeeded; HTTPS serves bundle index-VO8aMqI1.js. Isolated Chromium at 390x844 verified real
+catalog -> preview -> create -> dated history -> edit -> repeat (blank duration), no horizontal
+overflow or page errors. Screenshot /tmp/ff0107-walking-mobile.png inspected. Isolated server
+bash-1198 stopped after verification; production data untouched. Code 3749e36 merged.
+Backend restart still required; no APK needed. Next: FF-0113 photo controls and history viewer.
