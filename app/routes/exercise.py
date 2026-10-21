@@ -309,7 +309,15 @@ def estimate_calories():
     if not isinstance(data, dict) or not data:
         return jsonify({'error': 'No data provided'}), 400
     if 'activity_id' in data:
-        return _typed_request(data, preview=True)
+        existing = None
+        if 'log_id' in data:
+            log_id = data['log_id']
+            if isinstance(log_id, bool) or not str(log_id).isdigit():
+                return jsonify({'error': 'Invalid log_id'}), 400
+            existing = ExerciseLog.query.filter_by(id=int(log_id), user_id=current_user.id).first()
+            if existing is None:
+                return jsonify({'error': 'Exercise log not found'}), 404
+        return _typed_request(data, existing=existing, preview=True)
 
     exercise_description = data.get('exercise_description')
     duration_min = data.get('duration_min')

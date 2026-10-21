@@ -1,7 +1,24 @@
 import { api } from './client'
-import type { SavedExercise, ExerciseLog, ExerciseLogCreate, SavedExerciseCreate, ExerciseFilter } from '@/types'
+import type { SavedExercise, ExerciseLog, ExerciseLogCreate, SavedExerciseCreate, ExerciseFilter, ExerciseActivity, TreadmillSessionCreate, ExerciseEstimate } from '@/types'
+
+const normalizeLog = (log: any): ExerciseLog => ({ ...log, id: String(log.id), duration: log.duration_min })
 
 export const exerciseApi = {
+  getCatalog: () => api.get<ExerciseActivity[]>('/exercise/catalog').then(res => res.data),
+  getExerciseLog: (id: string) => api.get(`/exercise/log/${id}`).then(res => normalizeLog(res.data)),
+  estimateSession: (data: TreadmillSessionCreate, id?: string) =>
+    api.post<ExerciseEstimate>('/exercise/estimate', id ? { ...data, log_id: id } : data).then(res => res.data),
+  saveSession: (data: TreadmillSessionCreate, id?: string, photo?: File) => {
+    let body: TreadmillSessionCreate | FormData = data
+    if (photo) {
+      body = new FormData()
+      body.append('data', JSON.stringify(data))
+      body.append('photo', photo)
+    }
+    const config = photo ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined
+    return (id ? api.put(`/exercise/log/${id}`, body, config) : api.post('/exercise/log', body, config))
+      .then(res => normalizeLog(res.data))
+  },
   // Saved exercises
   getSavedExercises: () =>
     api.get<SavedExercise[]>('/exercise/saved').then(res => res.data.map(ex => ({ ...ex, id: String(ex.id) }))),

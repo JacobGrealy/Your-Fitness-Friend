@@ -64,6 +64,7 @@ def test_edit_requires_ownership(authenticated_client):
     assert authenticated_client.get(f'/api/exercise/log/{log.id}').status_code == 404
     assert authenticated_client.delete(f'/api/exercise/{log.id}').status_code == 404
     assert authenticated_client.get('/api/exercise/logs').json == []
+    assert authenticated_client.post('/api/exercise/estimate', json={**PAYLOAD, 'log_id': log.id}).status_code == 404
 
 
 def test_invalid_edit_is_atomic_and_snapshot_survives_missing_profile_weight(authenticated_client, test_user):
@@ -74,6 +75,9 @@ def test_invalid_edit_is_atomic_and_snapshot_survives_missing_profile_weight(aut
     result = authenticated_client.put(f'/api/exercise/log/{log_id}', json={**PAYLOAD, 'notes': 'Updated'})
     assert result.status_code == 200
     assert result.json['details'] == body['details']
+    preview = authenticated_client.post('/api/exercise/estimate', json={**PAYLOAD, 'log_id': log_id})
+    assert preview.status_code == 200
+    assert preview.json == body['details']
     assert authenticated_client.put(f'/api/exercise/log/{log_id}', json={**PAYLOAD, 'speed': 'NaN'}).status_code == 400
     saved = authenticated_client.get(f'/api/exercise/log/{log_id}').json
     assert saved['notes'] == 'Updated'

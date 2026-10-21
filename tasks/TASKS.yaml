@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-21T13:26
+  updated_at: 2026-10-21T13:32
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -4200,10 +4200,10 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: in-progress
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-21T12:58
+  updated_at: 2026-10-21T13:32
   completed_at: null
   waiting_on: null
   parent_id: null
@@ -4217,7 +4217,27 @@ intake:
 
     Include optional photo attachment during initial logging and editing, matching weigh-in camera/gallery
     behavior. Coordinate with exercise-photo backend/UI tickets FF-0112 and FF-0113; diary supports thumbnail/full-size
-    viewing.'
+    viewing.
+
+
+    FF-0112 merged as d089bbd (code 99e05db), backup 20261021-132637 verified and live migration c11200000001
+    at head. FF-0107 begun: added typed catalog/estimate/session payload types and API getCatalog/getExerciseLog/estimateSession/saveSession
+    (atomic multipart optional photo). tsc and existing API regressions pass. Remaining: actual picker/form/preview
+    with stale-response guards, recent/favorites scoped to account, remembered speed/incline but blank
+    new duration, date/filter diary and edit/repeat, component/integration/browser tests. Keep photo-specific
+    UI FF-0113 separate. Backend needs owner restart before production UI can use new endpoints; handle
+    unavailable catalog explicitly, never pretend empty. Current branch feat/FF-0107-walking-pad-ui.
+
+
+    Round 6 progress: built catalog-first LogExercise picker with account-scoped favorites/recent state
+    and explicit catalog retry errors; preserved old custom library form in LegacyLogExercise.tsx. Added
+    TreadmillSessionForm time/date/speed-or-pace/incline/manual active override/notes, debounced server
+    preview with stale-response cleanup, blank-new-duration defaults, edit/repeat loading and reliable
+    save errors. Multipart API explicitly sets content type (Axios client defaults to JSON). tsc, 7 legacy/API
+    and 4 new walking-form tests pass. Not merged/built/deployed yet. Remaining before closeout: history
+    filters/details/edit/repeat actions, new picker/API/stale-preview tests, historical edit preview must
+    use saved weight snapshot (currently preview/new estimate can differ from edit save), browser verification/full
+    gates. Photo UI remains FF-0113.'
   comments: []
 - id: FF-0108
   title: 'Strength backend: persisted per-set exercise sessions'
