@@ -25,6 +25,7 @@ test('arms-supported checkbox defaults off and is sent to preview and save', asy
   await waitFor(() => expect(api.estimateSession).toHaveBeenCalledWith(expect.objectContaining({ arms_supported: true }), undefined))
   fireEvent.click(screen.getByRole('button', { name: 'Log walking session' }))
   await waitFor(() => expect(api.saveSession).toHaveBeenCalledWith(expect.objectContaining({ arms_supported: true }), undefined))
+  await waitFor(() => expect(navigate).toHaveBeenCalledWith('/food/daily'))
 })
 
 test.each(['edit', 'repeat'])('loads supported checkbox for %s', async mode => {
