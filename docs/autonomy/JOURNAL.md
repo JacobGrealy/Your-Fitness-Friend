@@ -2090,4 +2090,17 @@ Full gates green: 346 backend, 442 frontend plus tsc/layout/uploads/smoke/toolin
 cases cover foreign-user access, decoded content, invalid initial logs, failed commits, replacement,
 shared references, missing files and malformed multipart. Live uploads stayed at 805 files before
 and after gates. No production test photos created. Backend restart remains owner-operated.
-Next: merge, verified backup and migration, then FF-0107 walking-pad UI.
+Merged as d089bbd (code 99e05db), backup 20261021-132637 verified and live migration
+c11200000001 applied. Next: FF-0107 walking-pad UI.
+
+## FF-0107 — Walking-pad UI — verification in progress
+
+Built catalog-first activity selection, account-scoped favorites/recent and remembered speed/incline,
+walking date/time/speed-or-pace/incline form, debounced stale-safe estimate preview, manual override,
+weight/method explanations, and edit/repeat flows. Preserved the legacy custom library form separately.
+Diary has inclusive date filters, normalized session details, edit/repeat links and failure-safe delete.
+An owned log_id in estimate requests makes historical edit preview use the same weight snapshot as save.
+Multipart client requests explicitly override Axios JSON defaults. No automatic food allowance changes.
+
+Full gates green: 346 backend, 453 frontend, tsc/layout/uploads/smoke/tooling. Next: production build
+and isolated mobile browser verification before marking ticket done; photo controls are FF-0113.

@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import LogExercise from '@/pages/Exercise/LogExercise'
+import LogExercise from '@/pages/Exercise/LegacyLogExercise'
 
 const navigate = jest.fn()
 const fetchSavedExercises = jest.fn()

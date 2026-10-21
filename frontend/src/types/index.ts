@@ -27,6 +27,9 @@ export type {
   ExerciseLogCreate,
   SavedExerciseCreate,
   ExerciseFilter,
+  ExerciseActivity,
+  TreadmillSessionCreate,
+  ExerciseEstimate,
 } from './exercise'
 
 export type {

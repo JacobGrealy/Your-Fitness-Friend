@@ -1,208 +1,67 @@
-import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useNavigate } from 'react-router-dom'
-import { useExerciseStore } from '@/store/exerciseStore'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { exerciseApi } from '@/api/exercise'
+import { useAuthStore } from '@/store/authStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
-import type { ExerciseLogCreate } from '@/types'
-import { logExerciseSchema } from '@/utils/schemas'
-import { INTENSITIES, MAX_EXERCISE_LOG_NOTES } from '@/utils/constants'
-
-type LogExerciseFormData = ExerciseLogCreate & { notes?: string }
+import type { ExerciseActivity } from '@/types'
+import LegacyLogExercise from './LegacyLogExercise'
+import TreadmillSessionForm from './TreadmillSessionForm'
+import { exerciseError, exerciseKey, readPreference, writePreference } from './exercisePreferences'
 
 export default function LogExercise() {
   const { setTitle } = usePageTitle()
-  const navigate = useNavigate()
-
+  const userId = useAuthStore(s => String(s.user?.id ?? ''))
+  const [params] = useSearchParams()
   useEffect(() => { setTitle('Log Exercise') }, [setTitle])
-  const { savedExercises, fetchSavedExercises, logExercise, error, isLoading } = useExerciseStore()
-  useEffect(() => { void fetchSavedExercises() }, [fetchSavedExercises])
+  if (params.get('mode') === 'custom') return <LegacyLogExercise />
+  return <ExercisePicker key={userId} userId={userId} />
+}
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LogExerciseFormData>({
-    resolver: zodResolver(logExerciseSchema),
-    defaultValues: {
-      exercise_id: '',
-      duration_minutes: undefined,
-      intensity: undefined,
-      sets: undefined,
-      reps: undefined,
-      weight_lbs: undefined,
-      notes: '',
-    },
+function ExercisePicker({ userId }: { userId: string }) {
+  const [params, setParams] = useSearchParams()
+  const [catalog, setCatalog] = useState<ExerciseActivity[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [attempt, setAttempt] = useState(0)
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    const stored = readPreference<unknown>(exerciseKey(userId, 'favorites'), [])
+    return Array.isArray(stored) ? stored.filter(x => typeof x === 'string') : []
   })
-
-  const onSubmit = async (data: LogExerciseFormData) => {
-    if (await logExercise(data)) navigate(-1)
-  }
-
-  const exerciseOptions = savedExercises.map(ex => ({
-    value: ex.id,
-    label: ex.name,
-  }))
-
-  const intensityOptions = INTENSITIES.map(i => ({
-    value: i,
-    label: i.charAt(0).toUpperCase() + i.slice(1),
-  }))
-
-  const inputClass = "w-full border border-mfp-border rounded-lg px-3 py-2 text-mfp-text bg-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-mfp-blue focus:border-transparent"
-
-  return (
-    // Bottom clearance comes from the shell (FF-0052); pt-14 clears this page's
-    // own fixed header.
-    <div className="bg-white pt-14 sm:pt-0">
-      {error && (
-          <div className="px-4 pt-4">
-            <div className="bg-mfp-error/10 border border-mfp-error/20 rounded-lg p-3">
-              <p role="alert" className="text-sm text-mfp-error">{error}</p>
-              <button type="button" onClick={() => void fetchSavedExercises()} disabled={isLoading}>Retry loading exercises</button>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit(onSubmit)} className="px-4 pt-4 space-y-4">
-          {/* Exercise */}
-          <div className="bg-white rounded-lg p-4 border border-mfp-border">
-            {isLoading && <p role="status">Loading exercises…</p>}
-            {!isLoading && !error && savedExercises.length === 0 && <p>No saved exercises yet. <Link to="/exercise/library" className="text-mfp-blue underline">Add an exercise in your library</Link>.</p>}
-            <label htmlFor="exercise-id" className="block text-sm font-medium text-mfp-text mb-1">
-              Exercise
-            </label>
-            <select id="exercise-id" disabled={isLoading || savedExercises.length === 0}
-              {...register('exercise_id')}
-              className={`${inputClass} ${errors.exercise_id ? 'border-mfp-error' : ''}`}
-            >
-              <option value="">Select an exercise</option>
-              {exerciseOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            {errors.exercise_id && (
-              <p className="mt-1 text-xs text-mfp-error">{errors.exercise_id.message}</p>
-            )}
-          </div>
-
-          {/* Duration */}
-          <div className="bg-white rounded-lg p-4 border border-mfp-border">
-            <label className="block text-sm font-medium text-mfp-text mb-1">
-              Duration (minutes)
-            </label>
-            <input
-              type="number"
-              min="1"
-              placeholder="e.g. 30"
-              {...register('duration_minutes')}
-              className={`${inputClass} ${errors.duration_minutes ? 'border-mfp-error' : ''}`}
-            />
-            {errors.duration_minutes && (
-              <p className="mt-1 text-xs text-mfp-error">{errors.duration_minutes.message}</p>
-            )}
-          </div>
-
-          {/* Intensity */}
-          <div className="bg-white rounded-lg p-4 border border-mfp-border">
-            <label className="block text-sm font-medium text-mfp-text mb-1">
-              Intensity
-            </label>
-            <select
-              {...register('intensity', { setValueAs: value => value === '' ? undefined : value })}
-              className={`${inputClass} ${errors.intensity ? 'border-mfp-error' : ''}`}
-            >
-              <option value="">Select intensity</option>
-              {intensityOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            {errors.intensity && (
-              <p className="mt-1 text-xs text-mfp-error">{errors.intensity.message}</p>
-            )}
-          </div>
-
-          {/* Sets, Reps, Weight */}
-          <div className="bg-white rounded-lg p-4 border border-mfp-border space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-mfp-text mb-1">
-                Sets (optional)
-              </label>
-              <input
-                type="number"
-                min="1"
-                placeholder="e.g. 3"
-                {...register('sets')}
-                className={`${inputClass} ${errors.sets ? 'border-mfp-error' : ''}`}
-              />
-              {errors.sets && (
-                <p className="mt-1 text-xs text-mfp-error">{errors.sets.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-mfp-text mb-1">
-                Reps (optional)
-              </label>
-              <input
-                type="number"
-                min="1"
-                placeholder="e.g. 12"
-                {...register('reps')}
-                className={`${inputClass} ${errors.reps ? 'border-mfp-error' : ''}`}
-              />
-              {errors.reps && (
-                <p className="mt-1 text-xs text-mfp-error">{errors.reps.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-mfp-text mb-1">
-                Weight (lbs, optional)
-              </label>
-              <input
-                type="number"
-                step="0.5"
-                placeholder="e.g. 132"
-                {...register('weight_lbs')}
-                className={`${inputClass} ${errors.weight_lbs ? 'border-mfp-error' : ''}`}
-              />
-              {errors.weight_lbs && (
-                <p className="mt-1 text-xs text-mfp-error">{errors.weight_lbs.message}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="bg-white rounded-lg p-4 border border-mfp-border">
-            <label className="block text-sm font-medium text-mfp-text mb-1">
-              Notes (optional)
-            </label>
-            <textarea
-              placeholder="How did the session go?"
-              maxLength={MAX_EXERCISE_LOG_NOTES}
-              rows={3}
-              {...register('notes')}
-              className={`${inputClass} ${errors.notes ? 'border-mfp-error' : ''}`}
-            />
-            {errors.notes && (
-              <p className="mt-1 text-xs text-mfp-error">{errors.notes.message}</p>
-            )}
-          </div>
-
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={isLoading || savedExercises.length === 0}
-            className="w-full bg-mfp-blue text-white font-medium py-3 rounded-lg hover:bg-mfp-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-          >
-            {isLoading ? 'Logging...' : 'Log Exercise'}
-          </button>
-        </form>
+  const recent = readPreference<string>(exerciseKey(userId, 'recent'), '')
+  useEffect(() => {
+    let alive = true
+    setLoading(true); setError('')
+    exerciseApi.getCatalog().then(items => { if (alive) setCatalog(items) })
+      .catch(e => { if (alive) setError(exerciseError(e)) })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, [attempt])
+  const activity = params.get('activity')
+  if (activity === 'treadmill_walking') return <TreadmillSessionForm key={`${userId}:${params.get('edit')}:${params.get('repeat')}`} userId={userId} />
+  const ordered = [...catalog].sort((a, b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id)) || Number(b.id === recent) - Number(a.id === recent))
+  return <div className="p-4 space-y-5">
+    <div className="border-l-4 border-mfp-blue pl-4 py-2">
+      <p className="text-xs uppercase tracking-widest text-mfp-textSecondary">Your movement journal</p>
+      <h1 className="text-2xl font-bold text-mfp-text">What moved you today?</h1>
+      <p className="text-sm text-mfp-textSecondary mt-1">Choose an activity. We’ll ask only for what matters.</p>
     </div>
-  )
+    {loading && <p role="status">Loading activities…</p>}
+    {error && <div role="alert" className="border border-mfp-error/30 rounded-lg p-4 space-y-2"><p>{error}</p><button className="text-mfp-blue underline" onClick={() => setAttempt(x => x + 1)}>Retry activities</button></div>}
+    {!loading && !error && !catalog.length && <p>No built-in activities available.</p>}
+    <div className="space-y-3">{ordered.map(item => <div key={item.id} className="flex items-center border border-mfp-border rounded-xl bg-white overflow-hidden">
+      <button className="text-left flex-1 p-5" onClick={() => setParams({ activity: item.id })}>
+        <span className="text-xs tracking-widest uppercase text-mfp-blue">{item.category}{item.id === recent ? ' · Recent' : ''}</span>
+        <span className="block text-lg font-bold mt-1">{item.name}</span>
+        <span className="block text-sm text-mfp-textSecondary mt-1">Time · Speed or pace · Incline</span>
+      </button>
+      <button type="button" aria-label={`Favorite ${item.name}`} aria-pressed={favorites.includes(item.id)} className="p-4 text-2xl text-mfp-blue" onClick={() => {
+        const next = favorites.includes(item.id) ? favorites.filter(x => x !== item.id) : [...favorites, item.id]
+        setFavorites(next); writePreference(exerciseKey(userId, 'favorites'), next)
+      }}>{favorites.includes(item.id) ? '★' : '☆'}</button>
+    </div>)}</div>
+    <div className="pt-3 border-t border-mfp-border text-sm space-y-2">
+      <Link className="block text-mfp-blue underline" to="/exercise/log?mode=custom">Log from my custom exercise library</Link>
+      <Link className="block text-mfp-blue underline" to="/exercise/library">Manage custom exercises</Link>
+    </div>
+  </div>
 }
