@@ -16,6 +16,7 @@ import Loading from '@/components/common/Loading'
 import Modal from '@/components/common/Modal'
 import DiaryDateSelector from '@/components/food/DiaryDateSelector'
 import { returnState } from '@/utils/returnTo'
+import DiaryExerciseSection from '@/components/food/DiaryExerciseSection'
 
 const MEAL_ICONS: Record<MealType, string> = {
   breakfast: '☀️',
@@ -175,6 +176,7 @@ export default function DailyFood() {
   const [deleteLogId, setDeleteLogId] = useState<string | null>(null)
   const [collapsedMeals, setCollapsedMeals] = useState<Set<MealType>>(new Set())
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [exerciseSummary, setExerciseSummary] = useState({ date: '', total: 0 })
   const [isNavigating, setIsNavigating] = useState(false)
   // `closedSummary` feeds the panel on load; `completion` drives the celebration and
   // is set only when the user closes the day, so revisiting a closed diary does not
@@ -340,7 +342,7 @@ export default function DailyFood() {
               consumed: dailyTotals.total_calories,
               goal: dailyTotals.calorie_goal,
               remaining: dailyTotals.calories_remaining,
-              burned_exercise: 0,
+              burned_exercise: exerciseSummary.date === format(currentDate, 'yyyy-MM-dd') ? exerciseSummary.total : 0,
             }}
           />
         )}
@@ -373,6 +375,7 @@ export default function DailyFood() {
             )
           })}
         </div>
+        <DiaryExerciseSection date={format(currentDate, 'yyyy-MM-dd')} onTotal={setExerciseSummary} />
       </div>
 
       {/* Once the day is closed the panel above owns it — Reopen lives there, so

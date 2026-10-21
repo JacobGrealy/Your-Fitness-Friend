@@ -2122,3 +2122,13 @@ Full gates green: 351 backend, 453 frontend, tsc/layout/uploads/smoke/tooling. R
 the exact requested session through preview/save, numeric ACSM reference and extrapolated speeds.
 Backend-only release requires owner restart if sudo remains unavailable; no web/APK build needed.
 The rest of the redesign remains paused at the owner's request.
+
+## FF-0115 — Exercise entries in daily diary — 2026-10-21
+
+Owner successfully logged walking session but DailyFood had no exercise rendering and hardcoded
+exercise calories to zero. Added dated DiaryExerciseSection after meals, with session details,
+active/legacy calorie labels, edit/log/history links and loading/error/retry states. Requests use
+inclusive selected-day bounds and discard responses after date/account changes. Its total feeds
+the summary bar without changing food remaining calories. Full gates green: 351 backend,
+456 frontend plus tsc/layout/uploads/smoke/tooling. Next: build and isolated browser verification,
+then publish web-only correction; no backend restart/APK required for this ticket.

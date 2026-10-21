@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import DailyFood from '@/pages/Food/DailyFood'
+jest.mock('@/components/food/DiaryExerciseSection', () => () => null)
 
 // FF-0092: the diary row rendered `P:{log.protein_g}g` raw, so the peanut butter entry showed
 // 0.7000000000000001. Every macro on this screen now formats to at most 2 decimals.
