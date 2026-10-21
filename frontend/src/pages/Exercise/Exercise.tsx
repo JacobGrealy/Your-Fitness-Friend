@@ -94,9 +94,9 @@ export default function Exercise() {
           <Button
             variant="outline"
             fullWidth
-            onClick={() => navigate('/exercise/history')}
+            onClick={() => navigate('/food/daily')}
           >
-            View History
+            View Diary
           </Button>
         </div>
       </div>

@@ -86,12 +86,12 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
       writePreference(exerciseKey(userId, 'treadmill'), { speed_mph: result.details?.speed_mph, incline_percent: result.details?.incline_percent })
       writePreference(exerciseKey(userId, 'recent'), 'treadmill_walking')
       void useExerciseStore.getState().fetchExerciseLogs()
-      navigate('/exercise/history')
+      navigate('/food/daily')
     } catch (e) { if (alive.current) setError(exerciseError(e)) }
     finally { if (alive.current) setSaving(false) }
   }
   if (loading) return <p role="status" className="p-4">Loading session…</p>
-  if (loadError) return <div className="p-4"><p role="alert">{loadError}</p><Link to="/exercise/history">Back to history</Link></div>
+  if (loadError) return <div className="p-4"><p role="alert">{loadError}</p><Link to="/food/daily">Back to diary</Link></div>
   return <form onSubmit={save} className="p-4 space-y-5">
     <Link to="/exercise/log" className="text-sm text-mfp-blue">← All activities</Link>
     <header className="border-l-4 border-mfp-blue pl-4">

@@ -2147,3 +2147,14 @@ historical data rewrite. Full gates green: 361 backend, 459 frontend, all ancill
 Production web build passed and HTTPS serves index-zDYp62Av.js. Isolated mobile Chromium
 verified exactly 75% checked preview, persisted save and checked edit restoration. Code f13a4a0.
 Verification server stopped; backend restart required. Broader redesign remains paused.
+
+## FF-0117 — Food-style exercise diary rows; remove Movement Journal
+
+Owner requested click-row-to-edit and X deletion matching food rows, without a separate edit link,
+then removed the standalone Movement Journal page. Exercise section now uses meal-style blue
+collapsible header, compact text/details, a full-row edit link with separate X button and confirmation
+modal, failure-safe deletion and immediate daily calorie-total update. Mutation/read guards discard
+stale results on date/account changes. Old exercise/history deep links redirect to /food/daily;
+removed obsolete page/export/tests, saves return to diary, and overview link points to diary.
+Photo UI ticket updated to target diary rows instead of removed journal. Food allowance unchanged.
+Full gates green: 361 backend, 459 frontend plus all ancillary gates. Next: build/browser verification.

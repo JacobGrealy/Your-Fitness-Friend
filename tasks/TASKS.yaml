@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-21T14:23
+  updated_at: 2026-10-21T14:32
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
+- FF-0117
 - FF-0113
 - FF-0108
 - FF-0109
@@ -4363,16 +4364,22 @@ intake:
   status: in-progress
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-21T13:39
+  updated_at: 2026-10-21T14:32
   completed_at: null
   waiting_on: null
   parent_id: null
-  notes: Owner requests optional exercise log photo like weight logging. Reuse existing weigh-in camera/gallery
+  notes: 'Owner requests optional exercise log photo like weight logging. Reuse existing weigh-in camera/gallery
     flow, include during initial logging, preview/remove before save, edit/replace/remove afterwards,
     thumbnail and full-size viewer in history. Ensure sheets outrank mobile footer and clear safe areas.
     Photo upload failures must not masquerade as fully successful saves or silently lose form data. Repeat
     starts without prior photo by default; old photos remain attached to original logs. Depends on exercise
     photo backend. Mobile/component/integration tests.
+
+
+    FF-0117 owner removed standalone Movement Journal page; exercise photo thumbnails/viewer now belong
+    in daily diary Exercise rows, not deleted ExerciseHistory component. Preserve click-row-to-edit and
+    separate X removal affordance. Save return destination is /food/daily; old /exercise/history redirects
+    there.'
   comments: []
 - id: FF-0114
   title: Use ACSM walking equation for slow inclined walking-pad sessions
@@ -4453,4 +4460,28 @@ intake:
     Full gates green: 361 backend/459 frontend. Production web build passed; isolated Chromium mobile
     verifies exactly 75% checked preview, persisted save and checked edit. Code f13a4a0. No schema or
     historical data changes. Backend restart required, no APK.'
+  comments: []
+- id: FF-0117
+  title: Match diary exercise rows to food row styling and interactions
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: in-progress
+  labels: []
+  created_at: 2026-10-21T14:28
+  updated_at: 2026-10-21T14:29
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: 'Owner requests removing View/edit session link; clicking exercise row opens edit, X removes
+    log like food. Match DailyFood MealSection food-row spacing/typography/delete affordance. Keep accessible
+    keyboard edit/delete controls and delete confirmation, handle failures, refresh exercise total after
+    deletion without changing food allowance. Scoped diary UI only; full gates and web release, no backend/APK.
+
+
+    Additional owner request: remove separate Movement Journal page. Use daily diary as sole exercise-log
+    destination, redirect old exercise/history URL to food/daily, remove obsolete page/export and entry
+    links, and return session saves to diary. Preserve old deep links via redirect; no loss of saved data.'
   comments: []

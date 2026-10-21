@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import DiaryExerciseSection from '@/components/food/DiaryExerciseSection'
 import { exerciseApi } from '@/api/exercise'
 
-jest.mock('@/api/exercise', () => ({ exerciseApi: { getExerciseLogs: jest.fn() } }))
+jest.mock('@/api/exercise', () => ({ exerciseApi: { getExerciseLogs: jest.fn(), deleteExerciseLog: jest.fn() } }))
 jest.mock('@/store/authStore', () => ({ useAuthStore: (selector: any) => selector({ user: { id: 7 } }) }))
 const api = exerciseApi as jest.Mocked<typeof exerciseApi>
 const onTotal = jest.fn()
@@ -16,10 +16,32 @@ test('loads selected day, displays walking details and updates exercise total', 
   render(view('2026-10-21'))
   expect(await screen.findByText('Walking Pad / Treadmill')).toBeInTheDocument()
   expect(screen.getByText(/87 min.*1.4 mph.*9% incline/)).toBeInTheDocument()
-  expect(screen.getByText('400.12 kcal')).toBeInTheDocument()
+  expect(screen.getByText(/400.12 cal · Active/)).toBeInTheDocument()
   expect(api.getExerciseLogs).toHaveBeenCalledWith({ start_date: '2026-10-21', end_date: '2026-10-21' })
   expect(onTotal).toHaveBeenLastCalledWith({ date: '2026-10-21', total: 400.12 })
-  expect(screen.getByRole('link', { name: 'View / edit session' })).toHaveAttribute('href', '/exercise/log?activity=treadmill_walking&edit=1')
+  expect(screen.getByRole('link', { name: 'Edit Walking Pad / Treadmill' })).toHaveAttribute('href', '/exercise/log?activity=treadmill_walking&edit=1')
+})
+
+test('X confirms deletion and refreshes daily calories without editing', async () => {
+  api.getExerciseLogs.mockResolvedValue([log])
+  api.deleteExerciseLog.mockResolvedValue({})
+  render(view('2026-10-21'))
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete Walking Pad / Treadmill' }))
+  expect(api.deleteExerciseLog).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }))
+  await waitFor(() => expect(screen.queryByText('Walking Pad / Treadmill')).not.toBeInTheDocument())
+  expect(api.deleteExerciseLog).toHaveBeenCalledWith('1')
+  expect(onTotal).toHaveBeenLastCalledWith({ date: '2026-10-21', total: 0 })
+})
+
+test('failed delete keeps the exercise and shows an actionable error', async () => {
+  api.getExerciseLogs.mockResolvedValue([log])
+  api.deleteExerciseLog.mockRejectedValue({ response: { data: { error: 'Offline' } } })
+  render(view('2026-10-21'))
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete Walking Pad / Treadmill' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Offline')
+  expect(screen.getByText('Walking Pad / Treadmill')).toBeInTheDocument()
 })
 
 test('date changes discard a previous day response', async () => {

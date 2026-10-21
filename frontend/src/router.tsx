@@ -4,7 +4,7 @@ import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
 import Dashboard from './pages/Dashboard'
 import { Weight, LogWeight, WeightHistory, EditWeight, WeightLogView } from './pages/Weight'
-import { Exercise, ExerciseLibrary, LogExercise, ExerciseHistory } from './pages/Exercise'
+import { Exercise, ExerciseLibrary, LogExercise } from './pages/Exercise'
 import { DailyFood, LogFood, CustomFoods, PhotoLog, FoodLogSelect, EditFoodLog, EditFoodDetails } from './pages/Food'
 import { Meals, UploadPhoto, PhotoGallery } from './pages/Meals'
 import Profile from './pages/Profile'
@@ -92,7 +92,7 @@ export const router = createBrowserRouter([
         path: 'exercise/history',
         element: (
           <AuthGuard>
-            <ExerciseHistory />
+            <Navigate to="/food/daily" replace />
           </AuthGuard>
         ),
       },
