@@ -1192,3 +1192,9 @@ Body weight is the latest own weigh-in on/before the logical exercise date, brea
 with visible profile fallback. Same-date edits retain that weight snapshot even if later weights
 or profile values change; moving a session to a different date selects the appropriate weight.
 New typed sessions never invoke AI. Preview and save share the same server calculator.
+
+FF-0116 adds the owner's optional arms-supported adjustment: multiply computed active/gross and
+any manual calorie override by 0.75 once. Retain unadjusted calculated values and the raw override,
+with arms_supported/support_multiplier in the immutable snapshot. This is a user-selected heuristic,
+not a coefficient in ACSM itself. Absent flags default false; new sessions default unchecked;
+edit/repeat restore the source session's flag. Existing saved sessions are not rewritten.

@@ -21,6 +21,7 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
   const [incline, setIncline] = useState(String(remembered?.incline_percent ?? 0))
   const [mode, setMode] = useState<'mph' | 'km/h' | 'min/mile' | 'min/km'>('mph')
   const [override, setOverride] = useState('')
+  const [armsSupported, setArmsSupported] = useState(false)
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(!!(editId || repeatId))
   const [loadError, setLoadError] = useState('')
@@ -39,6 +40,7 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
       if (!active) return
       if (log.activity_id !== 'treadmill_walking' || !log.details) throw new Error('Unsupported session')
       setSpeed(String(log.details.speed_mph)); setIncline(String(log.details.incline_percent))
+      setArmsSupported(log.details.arms_supported === true)
       if (editId) {
         setDate(log.date || log.logged_at.slice(0, 10)); setDuration(String(log.duration))
         setNotes(log.notes || ''); setOverride(log.details.calorie_override == null ? '' : String(log.details.calorie_override))
@@ -57,9 +59,9 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
     return {
       activity_id: 'treadmill_walking', date, duration_minutes: Number(duration), incline_percent: Number(incline),
       ...(mode === 'mph' || mode === 'km/h' ? { speed: Number(speed), speed_unit: mode } : { pace: Number(speed), pace_unit: mode }),
-      ...(override !== '' ? { calorie_override: Number(override) } : {}), notes,
+      ...(override !== '' ? { calorie_override: Number(override) } : {}), notes, arms_supported: armsSupported,
     }
-  }, [date, duration, speed, mode, incline, override, notes])
+  }, [date, duration, speed, mode, incline, override, notes, armsSupported])
 
   useEffect(() => {
     let active = true
@@ -116,6 +118,10 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
         <label className="text-sm font-medium">{mode.startsWith('min') ? 'Pace' : 'Speed'} ({mode})<input className={`${input} mt-1`} type="number" required min="0.01" step="any" value={speed} onChange={e => setSpeed(e.target.value)} /></label>
       </div>
       <label className="block text-sm font-medium">Incline (% grade)<input className={`${input} mt-1`} type="number" required min="0" max="20" step="any" value={incline} onChange={e => setIncline(e.target.value)} /><span className="block text-xs text-mfp-textSecondary mt-1">Use percent grade, not degrees. Flat walking is 0%.</span></label>
+      <label className="flex items-start gap-3 rounded-lg border border-mfp-border p-3 cursor-pointer">
+        <input type="checkbox" className="mt-1 h-5 w-5 accent-[#185ADB]" checked={armsSupported} onChange={e => setArmsSupported(e.target.checked)} />
+        <span><span className="block text-sm font-medium">Arms supported</span><span className="block text-xs text-mfp-textSecondary mt-1">Multiply calories by 0.75 (25% reduction), including any manual override.</span></span>
+      </label>
       <label className="block text-sm font-medium">Device / manual active calories (optional)<input className={`${input} mt-1`} type="number" min="0" max="20000" step="any" value={override} onChange={e => setOverride(e.target.value)} /><span className="block text-xs text-mfp-textSecondary mt-1">Overrides the estimate. Enter active calories, excluding resting energy.</span></label>
       <label className="block text-sm font-medium">Session notes<textarea className={`${input} mt-1`} rows={2} maxLength={500} value={notes} onChange={e => setNotes(e.target.value)} /></label>
     </fieldset>
@@ -126,6 +132,7 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
       {!payload && <p className="text-sm">Enter time, speed or pace, and incline to calculate.</p>}
       {preview && <>
         <p className="text-3xl font-bold tabular-nums">{display(preview.calories_burned)} <span className="text-base font-normal">active kcal{preview.calorie_override != null ? ' · manual' : ''}</span></p>
+        {preview.arms_supported && <p className="text-sm font-medium">Arms supported · calories × 0.75</p>}
         <p className="text-sm tabular-nums">{display(preview.distance_miles)} mi · {display(preview.distance_km)} km</p>
         <p className="text-xs">Using {display(preview.weight_lbs)} lb · {preview.weight_source === 'profile' ? 'profile weight fallback' : `weigh-in ${preview.weight_date}`}</p>
         <details className="text-xs"><summary className="cursor-pointer underline">Calculation details & limitations</summary>

@@ -58,6 +58,7 @@ export interface TreadmillSessionCreate {
   pace?: number
   pace_unit?: 'min/mile' | 'min/km'
   incline_percent: number
+  arms_supported?: boolean
   calorie_override?: number | null
   notes?: string
 }
@@ -73,6 +74,7 @@ export interface ExerciseEstimate {
   active_calories: number | null
   gross_calories: number | null
   calories_burned: number
+  arms_supported?: boolean
   calorie_override?: number | null
   calorie_basis: 'active'
   weight_lbs: number
