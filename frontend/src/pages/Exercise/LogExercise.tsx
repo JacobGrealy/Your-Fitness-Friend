@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useExerciseStore } from '@/store/exerciseStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { ExerciseLogCreate } from '@/types'
@@ -15,7 +15,8 @@ export default function LogExercise() {
   const navigate = useNavigate()
 
   useEffect(() => { setTitle('Log Exercise') }, [setTitle])
-  const { savedExercises, logExercise, error, isLoading } = useExerciseStore()
+  const { savedExercises, fetchSavedExercises, logExercise, error, isLoading } = useExerciseStore()
+  useEffect(() => { void fetchSavedExercises() }, [fetchSavedExercises])
 
   const {
     register,
@@ -35,8 +36,7 @@ export default function LogExercise() {
   })
 
   const onSubmit = async (data: LogExerciseFormData) => {
-    await logExercise(data)
-    navigate(-1)
+    if (await logExercise(data)) navigate(-1)
   }
 
   const exerciseOptions = savedExercises.map(ex => ({
@@ -58,7 +58,8 @@ export default function LogExercise() {
       {error && (
           <div className="px-4 pt-4">
             <div className="bg-mfp-error/10 border border-mfp-error/20 rounded-lg p-3">
-              <p className="text-sm text-mfp-error">{error}</p>
+              <p role="alert" className="text-sm text-mfp-error">{error}</p>
+              <button type="button" onClick={() => void fetchSavedExercises()} disabled={isLoading}>Retry loading exercises</button>
             </div>
           </div>
         )}
@@ -66,10 +67,12 @@ export default function LogExercise() {
         <form onSubmit={handleSubmit(onSubmit)} className="px-4 pt-4 space-y-4">
           {/* Exercise */}
           <div className="bg-white rounded-lg p-4 border border-mfp-border">
-            <label className="block text-sm font-medium text-mfp-text mb-1">
+            {isLoading && <p role="status">Loading exercises…</p>}
+            {!isLoading && !error && savedExercises.length === 0 && <p>No saved exercises yet. <Link to="/exercise/library" className="text-mfp-blue underline">Add an exercise in your library</Link>.</p>}
+            <label htmlFor="exercise-id" className="block text-sm font-medium text-mfp-text mb-1">
               Exercise
             </label>
-            <select
+            <select id="exercise-id" disabled={isLoading || savedExercises.length === 0}
               {...register('exercise_id')}
               className={`${inputClass} ${errors.exercise_id ? 'border-mfp-error' : ''}`}
             >
@@ -108,7 +111,7 @@ export default function LogExercise() {
               Intensity
             </label>
             <select
-              {...register('intensity')}
+              {...register('intensity', { setValueAs: value => value === '' ? undefined : value })}
               className={`${inputClass} ${errors.intensity ? 'border-mfp-error' : ''}`}
             >
               <option value="">Select intensity</option>
@@ -194,7 +197,7 @@ export default function LogExercise() {
           {/* Submit */}
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || savedExercises.length === 0}
             className="w-full bg-mfp-blue text-white font-medium py-3 rounded-lg hover:bg-mfp-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
           >
             {isLoading ? 'Logging...' : 'Log Exercise'}

@@ -4,7 +4,7 @@ import type { SavedExercise, ExerciseLog, ExerciseLogCreate, SavedExerciseCreate
 export const exerciseApi = {
   // Saved exercises
   getSavedExercises: () =>
-    api.get<SavedExercise[]>('/exercise/saved').then(res => res.data),
+    api.get<SavedExercise[]>('/exercise/saved').then(res => res.data.map(ex => ({ ...ex, id: String(ex.id) }))),
   saveExercise: (data: SavedExerciseCreate) =>
     api.post<SavedExercise>('/exercise/save', data).then(res => res.data),
   deleteSavedExercise: (id: string) =>
@@ -22,5 +22,5 @@ export const exerciseApi = {
   logExercise: (data: ExerciseLogCreate) =>
     api.post<ExerciseLog>('/exercise/log', data).then(res => res.data),
   deleteExerciseLog: (id: string) =>
-    api.delete(`/exercise/log/${id}`).then(res => res.data),
+    api.delete(`/exercise/${id}`).then(res => res.data),
 }

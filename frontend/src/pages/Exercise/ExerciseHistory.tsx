@@ -8,7 +8,7 @@ import Modal from '@/components/common/Modal'
 
 export default function ExerciseHistory() {
   const { setTitle, setHeaderRightContent } = usePageTitle()
-  const { exerciseLogs, isLoading, fetchExerciseLogs, deleteExerciseLog } = useExerciseStore()
+  const { exerciseLogs, isLoading, error, fetchExerciseLogs, deleteExerciseLog } = useExerciseStore()
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   useEffect(() => { setTitle('Exercise') }, [setTitle])
@@ -41,16 +41,14 @@ export default function ExerciseHistory() {
     new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime()
   )
 
-  const handleDelete = () => {
-    if (deleteId) {
-      deleteExerciseLog(deleteId)
-      setDeleteId(null)
-    }
+  const handleDelete = async () => {
+    if (deleteId && await deleteExerciseLog(deleteId)) setDeleteId(null)
   }
 
   return (
     <div>
       <div className="bg-white">
+        {error && <p role="alert">{error}</p>}
         {isLoading && exerciseLogs.length === 0 ? (
           <div className="flex justify-center py-12">
             <Loading text="Loading exercise history..." />

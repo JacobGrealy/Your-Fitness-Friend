@@ -22,7 +22,7 @@ const exerciseTypeOptions = EXERCISE_TYPES.map(t => ({
 }))
 
 export default function ExerciseLibrary() {
-  const { savedExercises, isLoading, fetchSavedExercises, saveExercise, deleteSavedExercise } = useExerciseStore()
+  const { savedExercises, isLoading, error, fetchSavedExercises, saveExercise, deleteSavedExercise } = useExerciseStore()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
@@ -47,7 +47,7 @@ export default function ExerciseLibrary() {
   })
 
   const onAddSubmit = async (data: SavedExerciseCreate) => {
-    await saveExercise(data)
+    if (!await saveExercise(data)) return
     reset({
       name: '',
       muscle_group: undefined,
@@ -58,11 +58,8 @@ export default function ExerciseLibrary() {
     setIsAddModalOpen(false)
   }
 
-  const handleDelete = () => {
-    if (deleteId) {
-      deleteSavedExercise(deleteId)
-      setDeleteId(null)
-    }
+  const handleDelete = async () => {
+    if (deleteId && await deleteSavedExercise(deleteId)) setDeleteId(null)
   }
 
   return (
@@ -74,6 +71,7 @@ export default function ExerciseLibrary() {
         </Button>
       </div>
 
+      {error && <p role="alert">{error}</p>}
       {isLoading && savedExercises.length === 0 ? (
         <div className="flex justify-center py-12">
           <Loading text="Loading exercises..." />

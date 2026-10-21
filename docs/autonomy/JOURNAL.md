@@ -2042,3 +2042,18 @@ missing password hash in the new foreign-user fixture; corrected before green ga
 Backend deployment awaits restart if passwordless sudo is still unavailable. Next: FF-0105
 fixes authenticated UI loading and swallowed save failures, then walking-pad backend FF-0106.
 Implementation remains inline at the owner's earlier request; no subagents used.
+
+## FF-0105 — Exercise UI foundation — 2026-10-21
+
+Removed import-time exercise fetching; Log Exercise fetches on opening after the protected route
+has authenticated. Loading, empty-library links and retryable errors are distinct. Writes return
+explicit success so failed logging keeps input and failed library saves/deletes stay open.
+Exercise state resets synchronously on auth identity changes and generation guards discard late
+responses (including account A/B/A transitions). Normalize saved IDs and use canonical delete URL.
+Optional intensity can now remain blank rather than silently blocking form submission.
+
+Verification: full gates green (310 backend, 442 frontend, tsc, layout, uploads, smoke, tooling),
+including twelve new API/store/page regression cases. Previous FF-0104 code commit: 87b0b03,
+merge: 16a6b3a. Backend restart attempt confirmed interactive sudo still required; awaiting owner
+restart for FF-0104. This UI slice is web-only and needs a refreshed app, not an APK.
+Next: FF-0106 walking-pad structured backend; FF-0112 photos precedes the walking-pad UI.
