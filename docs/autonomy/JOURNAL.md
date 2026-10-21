@@ -2026,3 +2026,19 @@ APK over the existing Tailscale HTTPS origin: 3,921,545 bytes and SHA256 match r
 No database/backend changes or service restart needed. Owner must install the update and reopen
 AweFit to migrate old alarms and sync today's completion. Cross-device changes still require
 foreground/resume; no background server polling. Owner's prior no-subagents request honored.
+
+## FF-0104 — Exercise API foundation — 2026-10-21
+
+Created the owner-approved exercise roadmap FF-0104 through FF-0113, including optional
+per-session photos matching weight logging. Implemented saved-exercise ID resolution with
+ownership checks, retained legacy description clients, persisted activity linkage and logical
+dates, inclusive validated history filtering, finite positive duration validation and a compatible
+log-delete URL. No schema or calorie-policy changes in this foundation slice.
+
+Verification: full gates green: 310 backend tests, 430 frontend tests, tsc, layout, uploads,
+smoke and tooling. Seventeen new exercise HTTP contract cases cover ownership, selected versus
+legacy clients, date filtering, deletion and invalid input. First focused test run exposed a
+missing password hash in the new foreign-user fixture; corrected before green gates.
+Backend deployment awaits restart if passwordless sudo is still unavailable. Next: FF-0105
+fixes authenticated UI loading and swallowed save failures, then walking-pad backend FF-0106.
+Implementation remains inline at the owner's earlier request; no subagents used.
