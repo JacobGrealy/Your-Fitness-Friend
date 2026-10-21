@@ -1,9 +1,18 @@
 meta:
-  updated_at: 2026-10-20T10:05
+  updated_at: 2026-10-21T13:01
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0105
+- FF-0106
+- FF-0112
+- FF-0107
+- FF-0113
+- FF-0108
+- FF-0109
+- FF-0110
+- FF-0111
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -4100,4 +4109,212 @@ intake:
     and verified3,921,545 bytes and SHA256 against metadata. No backend restart needed. Owner must install
     update/reopen app; physical on-device notification timing unverified (adb has no device). Cross-device
     completion only syncs on foreground/resume. Code commit a42ce42; all gates/native tests green.'
+  comments: []
+- id: FF-0104
+  title: 'Exercise API foundation: resolve activities, dates, filters and deletion'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-21T12:58
+  updated_at: 2026-10-21T13:01
+  completed_at: 2026-10-21T13:01
+  waiting_on: null
+  parent_id: null
+  notes: 'Repair the current exercise API contract before redesign. Accept exercise_id from the current
+    client; resolve only the authenticated users saved exercise, persist its association and name, preserve
+    legacy description inputs. Support validated logical logged date and inclusive date filters. Make
+    frontend delete route compatible. Reject malformed or non-finite durations and invalid dates without
+    writes. Tests must cover ownership, existing clients, filters, deletes and invalid inputs. No schema
+    changes or calorie-policy changes in this ticket.
+
+
+    Implemented API foundation; full gates green (310 backend, 430 frontend, tsc/layout/uploads/smoke/tooling).
+    No schema changes. See app/routes/exercise.py and tests/test_exercise_contract.py.'
+  comments: []
+- id: FF-0105
+  title: 'Exercise UI foundation: authenticated loading and reliable save errors'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-21T12:58
+  updated_at: 2026-10-21T12:58
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Fetch exercises when Log Exercise opens after authentication; remove module-import network fetch.
+    Clear account-scoped exercise state on transitions. Distinguish loading, empty and error states with
+    a library link/retry. Failed saves must keep the form and values visible; normalize IDs and fix deletion
+    URL. Add API/store/page regression tests. Depends on API foundation.
+  comments: []
+- id: FF-0106
+  title: 'Walking-pad backend: structured sessions and deterministic calorie estimates'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-21T12:58
+  updated_at: 2026-10-21T12:58
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: 'Add migrated structured exercise tracking formats and built-in activity catalog. First complete
+    format is treadmill walking: date, duration, speed/pace, percent incline and calculated distance.
+    Implement deterministic versioned server estimates, explicit slow-speed fallback and validation of
+    supported conditions, active versus gross calories, weight on/before session date with profile fallback,
+    and snapshot inputs/method/weight/calories. Preserve legacy logs without fabricated details. Support
+    preview, create, edit, delete and dated history. Back up before live migration. Add migration, ownership,
+    units, boundary and calculation tests; no AI as numerical authority.'
+  comments: []
+- id: FF-0107
+  title: 'Walking-pad UI: catalog picker, session form, calorie preview and diary'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-21T12:58
+  updated_at: 2026-10-21T12:58
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: 'Use built-in activities plus recent/favorites/custom without requiring library setup. Build
+    walking-pad time/speed-or-pace/incline form, logical date, calculated distance and clearly estimated
+    active calories. Remember speed/incline but not duration. Show weight/method assumptions, manual device
+    override with provenance, reliable save/edit/delete/repeat and dated activity summaries. Integrate
+    dashboard without increasing food allowance. Mobile/accessibility and integration tests. Depends on
+    walking-pad backend.
+
+
+    Include optional photo attachment during initial logging and editing, matching weigh-in camera/gallery
+    behavior. Coordinate with exercise-photo backend/UI tickets FF-0112 and FF-0113; diary supports thumbnail/full-size
+    viewing.'
+  comments: []
+- id: FF-0108
+  title: 'Strength backend: persisted per-set exercise sessions'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-21T12:58
+  updated_at: 2026-10-21T12:58
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: 'Build on typed activity sessions: persist ordered individual sets with reps and external load,
+    including bodyweight and optional session duration/effort. Preserve legacy logs. Versioned duration/effort
+    calorie estimates only, never calories-per-rep. Ownership, validation, edit/repeat and migration tests.
+    Backend-only slice.'
+  comments: []
+- id: FF-0109
+  title: 'Strength UI: individual sets and previous-session defaults'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-21T12:58
+  updated_at: 2026-10-21T12:58
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Activity-specific strength form with add/remove ordered sets, variable reps/load, bodyweight,
+    optional duration, previous-session defaults and meaningful diary details. Do not show treadmill fields.
+    Integration and mobile tests. Depends on strength backend.
+  comments: []
+- id: FF-0110
+  title: 'Broader activity backend: running, cycling and mobility estimation formats'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: open
+  labels: []
+  created_at: 2026-10-21T12:58
+  updated_at: 2026-10-21T12:58
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Extend typed catalog and validated deterministic estimates to outdoor walking/running, treadmill
+    running, cycling and mobility using documented Compendium MET sources or supported equations. Persist
+    provenance/weight/calorie snapshots. Do not infer cycling energy from arbitrary resistance numbers.
+    Add focused API/calculation tests.
+  comments: []
+- id: FF-0111
+  title: 'Broader activity UI: type-specific forms and history'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 3
+  status: open
+  labels: []
+  created_at: 2026-10-21T12:58
+  updated_at: 2026-10-21T12:58
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Expose running, cycling and mobility with relevant time/distance/pace/power or effort inputs
+    only, explicit estimate limitations and consistent edit/repeat/history behavior. Depends on broader
+    activity backend. Optional variable-speed segments remain a future enhancement, not a prerequisite.
+  comments: []
+- id: FF-0112
+  title: 'Exercise log photos: secure attachment storage and API'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-21T12:58
+  updated_at: 2026-10-21T12:58
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Owner requests an optional photo per exercise log, matching weigh-in photos. Inspect and reuse
+    existing weight photo upload validation, ownership, serialization and centralized app/utils/uploads.py
+    helpers. Support attaching, replacing, removing and viewing a photo, preserve shared-file references
+    on deletion, no orphan uploads on failed saves. Commit required migration; verified backup before
+    live schema changes. Isolated upload/API/ownership/cleanup tests. Photos belong to individual logs,
+    not activity catalog definitions.
+  comments: []
+- id: FF-0113
+  title: 'Exercise log photos: camera/gallery, preview and history viewer'
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-21T12:58
+  updated_at: 2026-10-21T12:58
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Owner requests optional exercise log photo like weight logging. Reuse existing weigh-in camera/gallery
+    flow, include during initial logging, preview/remove before save, edit/replace/remove afterwards,
+    thumbnail and full-size viewer in history. Ensure sheets outrank mobile footer and clear safe areas.
+    Photo upload failures must not masquerade as fully successful saves or silently lose form data. Repeat
+    starts without prior photo by default; old photos remain attached to original logs. Depends on exercise
+    photo backend. Mobile/component/integration tests.
   comments: []

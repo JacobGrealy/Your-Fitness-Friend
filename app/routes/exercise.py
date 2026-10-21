@@ -4,7 +4,18 @@ from app.models.exercise_log import ExerciseLog
 from app.models.saved_exercise import SavedExercise
 from app.utils.qwen_client import qwen_client
 from app import db
-from datetime import datetime
+from datetime import date, datetime, time
+import math
+
+
+def _day(value):
+    """Require a calendar date, not a timestamp or a permissive ISO shorthand."""
+    if not isinstance(value, str):
+        raise ValueError
+    parsed = date.fromisoformat(value)
+    if parsed.isoformat() != value:
+        raise ValueError
+    return parsed
 
 bp = Blueprint('exercise', __name__)
 
@@ -15,12 +26,34 @@ def log_exercise():
     """Log an exercise with AI-calorie estimation."""
     data = request.get_json()
     
-    if not data:
+    if not isinstance(data, dict) or not data:
         return jsonify({'error': 'No data provided'}), 400
-    
-    # Accept both old and new field names for compatibility
-    exercise_description = data.get('exercise_description') or data.get('exercise_name')
-    duration_min = data.get('duration_min') or data.get('duration_minutes')
+
+    saved = None
+    if 'exercise_id' in data:
+        exercise_id = data['exercise_id']
+        if isinstance(exercise_id, bool) or not str(exercise_id).isdigit():
+            return jsonify({'error': 'Invalid exercise_id'}), 400
+        saved = SavedExercise.query.filter_by(
+            id=int(exercise_id), user_id=current_user.id
+        ).first()
+        if saved is None:
+            return jsonify({'error': 'Saved exercise not found'}), 404
+
+    # A selected activity is authoritative; legacy description clients still work.
+    exercise_description = saved.name if saved else (
+        data.get('exercise_description') or data.get('exercise_name')
+    )
+    if not isinstance(exercise_description, str) or not exercise_description.strip():
+        return jsonify({'error': 'Exercise name required'}), 400
+    exercise_description = exercise_description.strip()
+    if len(exercise_description) > 100:
+        return jsonify({'error': 'Exercise name must be at most 100 characters'}), 400
+    try:
+        logged_at = datetime.combine(_day(data.get('date', date.today().isoformat())), time.min)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid date. Use YYYY-MM-DD.'}), 400
+    duration_min = data.get('duration_min', data.get('duration_minutes'))
     intensity = data.get('intensity')
     sets = data.get('sets')
     reps = data.get('reps')
@@ -31,8 +64,10 @@ def log_exercise():
         return jsonify({'error': 'exercise_description and duration_min required'}), 400
     
     try:
+        if isinstance(duration_min, bool):
+            raise ValueError
         duration_min = float(duration_min)
-        if duration_min <= 0:
+        if not math.isfinite(duration_min) or duration_min <= 0:
             raise ValueError
     except (TypeError, ValueError):
         return jsonify({'error': 'duration_min must be a positive number'}), 400
@@ -66,6 +101,8 @@ def log_exercise():
     # Create exercise log
     exercise_log = ExerciseLog(
         user_id=current_user.id,
+        saved_exercise_id=saved.id if saved else None,
+        logged_at=logged_at,
         exercise_name=exercise_description,
         duration=duration_min,
         calories_burned=calories_burned,
@@ -78,6 +115,8 @@ def log_exercise():
     
     return jsonify({
         'id': exercise_log.id,
+        'saved_exercise_id': exercise_log.saved_exercise_id,
+        'logged_at': exercise_log.logged_at.isoformat(),
         'exercise_name': exercise_log.exercise_name,
         'duration_min': exercise_log.duration,
         'calories_burned': exercise_log.calories_burned,
@@ -161,8 +200,10 @@ def estimate_calories():
         return jsonify({'error': 'exercise_description and duration_min required'}), 400
     
     try:
+        if isinstance(duration_min, bool):
+            raise ValueError
         duration_min = float(duration_min)
-        if duration_min <= 0:
+        if not math.isfinite(duration_min) or duration_min <= 0:
             raise ValueError
     except (TypeError, ValueError):
         return jsonify({'error': 'duration_min must be a positive number'}), 400
@@ -205,12 +246,25 @@ def estimate_calories():
 @login_required
 def get_exercise_logs():
     """Get user's exercise logs."""
-    logs = ExerciseLog.query.filter_by(
-        user_id=current_user.id
-    ).order_by(ExerciseLog.logged_at.desc()).limit(50).all()
+    query = ExerciseLog.query.filter_by(user_id=current_user.id)
+    try:
+        start = _day(request.args['start_date']) if 'start_date' in request.args else None
+        end = _day(request.args['end_date']) if 'end_date' in request.args else None
+        if start and end and start > end:
+            raise ValueError
+        if start:
+            query = query.filter(ExerciseLog.logged_at >= datetime.combine(start, time.min))
+        if end:
+            query = query.filter(ExerciseLog.logged_at <= datetime.combine(end, time.max))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid date range. Use YYYY-MM-DD.'}), 400
+    query = query.order_by(ExerciseLog.logged_at.desc(), ExerciseLog.id.desc())
+    # Explicit ranges must not silently truncate a diary/export to 50 entries.
+    logs = query.all() if start or end else query.limit(50).all()
     
     return jsonify([{
         'id': log.id,
+        'saved_exercise_id': log.saved_exercise_id,
         'exercise_name': log.exercise_name,
         'duration_min': log.duration,
         'calories_burned': log.calories_burned,
@@ -238,6 +292,7 @@ def delete_saved_exercise(saved_id):
     return jsonify({'message': 'Saved exercise deleted'}), 200
 
 
+@bp.route('/log/<int:log_id>', methods=['DELETE'])
 @bp.route('/<int:log_id>', methods=['DELETE'])
 @login_required
 def delete_exercise_log(log_id):
