@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-21T13:01
+  updated_at: 2026-10-21T13:08
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0105
 - FF-0106
 - FF-0112
 - FF-0107
@@ -4142,17 +4141,22 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-21T12:58
-  completed_at: null
+  updated_at: 2026-10-21T13:08
+  completed_at: 2026-10-21T13:08
   waiting_on: null
   parent_id: null
-  notes: Fetch exercises when Log Exercise opens after authentication; remove module-import network fetch.
+  notes: 'Fetch exercises when Log Exercise opens after authentication; remove module-import network fetch.
     Clear account-scoped exercise state on transitions. Distinguish loading, empty and error states with
     a library link/retry. Failed saves must keep the form and values visible; normalize IDs and fix deletion
     URL. Add API/store/page regression tests. Depends on API foundation.
+
+
+    Full gates green: 310 backend, 442 frontend plus tsc/layout/uploads/smoke/tooling. Auth-scoped store
+    generation guards, page-open fetch, explicit write results, ID/delete contract fixes and 12 regression
+    cases.'
   comments: []
 - id: FF-0106
   title: 'Walking-pad backend: structured sessions and deterministic calorie estimates'
