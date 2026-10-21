@@ -1179,11 +1179,11 @@ JVM tests, including DST, missing hours, midnight, deletion and next-week recurr
 
 Typed exercise logs use nullable activity/format columns and a normalized JSON snapshot rather
 than forcing treadmill fields onto every activity. Legacy rows remain null, with their original
-calories untouched. Treadmill walking uses ACSM only at 50–100 m/min and 0–20% grade; level
-walking outside that speed range uses 2024 Compendium treadmill MET bands (source:
-https://pacompendium.com/walking/). Gaps use the lower band explicitly. Inclined walking outside
-the equation speed range requires an explicit manual active-calorie override, not extrapolation.
-The UI must disclose this limitation and call all computed calories estimates.
+calories untouched. Updated by owner direction in FF-0114: treadmill walking uses the ACSM
+walking equation throughout the accepted 0.1–5.5 mph, 0–20% grade inputs. Values outside the
+usual 50–100 m/min equation range are explicitly labeled extrapolated and less certain, not
+blocked or replaced with level-only MET bands. Method acsm_walking_v2 records this policy;
+existing saved sessions are not silently recalculated. All computed calories remain estimates.
 
 Active calories subtract 1 MET of resting energy; gross session energy is retained separately.
 Only active calories populate the existing burned-exercise aggregate; food allowance stays
