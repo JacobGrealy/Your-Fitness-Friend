@@ -15,7 +15,7 @@ def estimate(**changes):
 
 def test_acsm_reference_and_active_vs_gross():
     result = estimate()
-    assert result['method'] == 'acsm_walking_v1'
+    assert result['method'] == 'acsm_walking_v2'
     assert result['gross_calories'] == pytest.approx(173.2008)
     assert result['active_calories'] == pytest.approx(120.7008)
     assert result['distance_miles'] == 1.5
@@ -30,13 +30,23 @@ def test_equivalent_units_and_pace():
         assert estimate(**inputs)['active_calories'] == pytest.approx(reference['active_calories'])
 
 
-def test_slow_walking_uses_documented_treadmill_met_not_extrapolation():
-    for speed, met in ((0.5, 2.1), (1, 2.3), (1.5, 2.8)):
-        result = estimate(speed=speed)
-        assert result['method'] == 'compendium_treadmill_2024_v1'
-        assert result['met'] == met
-    with pytest.raises(ValueError, match='Incline estimates require'):
-        estimate(speed=1, incline_percent=5)
+def test_requested_slow_incline_session_uses_acsm():
+    result = estimate(duration_minutes=87, speed=1.4, incline_percent=9)
+    # 1.4 mph = 37.55136 m/min; VO2 = 0.1*s + 1.8*s*0.09 + 3.5.
+    assert result['method'] == 'acsm_walking_v2'
+    assert result['gross_calories'] == pytest.approx(580.22284992)
+    assert result['active_calories'] == pytest.approx(427.97284992)
+    assert result['distance_miles'] == pytest.approx(2.03)
+    assert any('extrapolated' in warning for warning in result['warnings'])
+    assert not any('extrapolated' in warning for warning in estimate()['warnings'])
+
+
+@pytest.mark.parametrize('speed', [0.5, 1, 1.5, 4, 5.5])
+def test_all_accepted_walking_speeds_use_acsm_with_disclosure(speed):
+    result = estimate(speed=speed, incline_percent=5)
+    assert result['method'] == 'acsm_walking_v2'
+    assert result['active_calories'] > 0
+    assert any('extrapolated' in warning for warning in result['warnings'])
 
 
 @pytest.mark.parametrize('changes', [

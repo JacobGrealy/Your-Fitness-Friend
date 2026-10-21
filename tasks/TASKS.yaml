@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-21T13:39
+  updated_at: 2026-10-21T13:57
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -4360,10 +4360,10 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: in-progress
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-21T12:58
+  updated_at: 2026-10-21T13:39
   completed_at: null
   waiting_on: null
   parent_id: null
@@ -4373,4 +4373,31 @@ intake:
     Photo upload failures must not masquerade as fully successful saves or silently lose form data. Repeat
     starts without prior photo by default; old photos remain attached to original logs. Depends on exercise
     photo backend. Mobile/component/integration tests.
+  comments: []
+- id: FF-0114
+  title: Use ACSM walking equation for slow inclined walking-pad sessions
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-21T13:53
+  updated_at: 2026-10-21T13:57
+  completed_at: 2026-10-21T13:57
+  waiting_on: null
+  parent_id: null
+  notes: 'Owner explicitly requests ACSM walking formula for 87 minutes, 1.4 mph, 9% grade. Use ACSM equation
+    across supported walking-pad input speed range, rather than rejecting slow incline or substituting
+    level MET bands. Preserve finite input limits, active/gross distinction and weight snapshots. Clearly
+    warn when outside 50-100 m/min usual equation range and version method so prior logs unchanged. Regression
+    test exact requested case and preview/save. Verify full gates and deploy backend; no other exercise
+    redesign work authorized by this request.
+
+
+    Implemented ACSM walking v2 across accepted speeds with extrapolation disclosure. Exact 87 min / 1.4
+    mph / 9% grade regression, preview/save and manual override pass. Full gates green: 351 backend, 453
+    frontend plus all ancillary gates. Backend-only, no schema or web/APK changes. Remaining exercise
+    roadmap stays paused.'
   comments: []

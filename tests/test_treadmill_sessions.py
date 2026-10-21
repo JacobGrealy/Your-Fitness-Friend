@@ -32,14 +32,19 @@ def test_catalog_preview_log_edit_history_delete(authenticated_client, test_user
         assert client.delete(f"/api/exercise/{body['id']}").status_code == 200
 
 
-def test_unsupported_incline_requires_explicit_override(authenticated_client):
-    payload = {**PAYLOAD, 'speed': 1}
-    assert authenticated_client.post('/api/exercise/log', json=payload).status_code == 400
+def test_requested_slow_incline_preview_and_save(authenticated_client):
+    payload = {**PAYLOAD, 'speed': 1.4, 'duration_minutes': 87, 'incline_percent': 9}
+    preview = authenticated_client.post('/api/exercise/estimate', json=payload)
+    assert preview.status_code == 200
+    result = authenticated_client.post('/api/exercise/log', json=payload)
+    assert result.status_code == 201
+    assert result.json['details'] == preview.json
+    assert result.json['calories_burned'] > 0
+    assert result.json['details']['method'] == 'acsm_walking_v2'
     result = authenticated_client.post('/api/exercise/log', json={**payload, 'calorie_override': 70})
     assert result.status_code == 201
     assert result.json['calories_burned'] == 70
-    assert result.json['details']['active_calories'] is None
-    assert result.json['details']['method'] == 'manual_active_v1'
+    assert result.json['details']['active_calories'] > 0
 
 
 def test_unknown_activity_and_legacy_preservation(authenticated_client, test_user):

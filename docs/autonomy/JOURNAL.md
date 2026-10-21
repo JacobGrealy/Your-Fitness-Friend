@@ -2108,3 +2108,17 @@ catalog -> preview -> create -> dated history -> edit -> repeat (blank duration)
 overflow or page errors. Screenshot /tmp/ff0107-walking-mobile.png inspected. Isolated server
 bash-1198 stopped after verification; production data untouched. Code 3749e36 merged.
 Backend restart still required; no APK needed. Next: FF-0113 photo controls and history viewer.
+
+## FF-0114 — Owner-requested ACSM walking formula — 2026-10-21
+
+Owner paused the broader redesign to log a walking-pad session, then requested ACSM for
+87 minutes at 1.4 mph and 9% grade. Removed the slow-incline rejection and level-only MET
+fallback; all accepted walking inputs now use ACSM (method acsm_walking_v2). The existing
+limitations panel displays a warning outside 50–100 m/min; it no longer blocks preview/save.
+Active/gross distinction, unit conversion, optional overrides and stored weight snapshots remain.
+No previous logs or schema changed. Updated the decision in its existing home.
+
+Full gates green: 351 backend, 453 frontend, tsc/layout/uploads/smoke/tooling. Regression covers
+the exact requested session through preview/save, numeric ACSM reference and extrapolated speeds.
+Backend-only release requires owner restart if sudo remains unavailable; no web/APK build needed.
+The rest of the redesign remains paused at the owner's request.
