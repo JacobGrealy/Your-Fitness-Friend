@@ -2135,3 +2135,14 @@ index-oyhN6OCn.js. Isolated mobile Chromium verified the exact 87 min/1.4 mph/9%
 in daily diary, food allowance remains unchanged, and no horizontal overflow. Screenshot:
 /tmp/ff0115-diary-mobile.png. Isolated server stopped after check. Code c9f4e28 merged.
 Web-only correction; no backend restart/APK required. Remaining redesign remains paused.
+
+## FF-0116 — Arms-supported walking-pad adjustment — 2026-10-21
+
+Added optional arms-supported checkbox, default off for new sessions and restored for edits/repeats.
+Server validates a boolean and applies exactly 0.75 to active/gross estimates and manual overrides,
+retaining unadjusted values/raw override and multiplier provenance in JSON snapshots. Preview
+and save use identical policy; repeated edits do not compound the discount. The UI discloses
+25% reduction including manual override and shows the adjustment in preview. No migration or
+historical data rewrite. Full gates green: 361 backend, 459 frontend, all ancillary gates.
+Next: publish web build and verify mobile checked/unchecked flow; backend restart required.
+Broader redesign remains paused.

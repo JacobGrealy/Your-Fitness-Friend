@@ -16,6 +16,23 @@ const fill = () => {
 }
 beforeEach(() => { jest.clearAllMocks(); localStorage.clear(); api.estimateSession.mockResolvedValue(estimate) })
 
+test('arms-supported checkbox defaults off and is sent to preview and save', async () => {
+  api.saveSession.mockResolvedValue({ details: {} } as any)
+  show(); fill()
+  const checkbox = screen.getByRole('checkbox', { name: /Arms supported/ })
+  expect(checkbox).not.toBeChecked()
+  fireEvent.click(checkbox)
+  await waitFor(() => expect(api.estimateSession).toHaveBeenCalledWith(expect.objectContaining({ arms_supported: true }), undefined))
+  fireEvent.click(screen.getByRole('button', { name: 'Log walking session' }))
+  await waitFor(() => expect(api.saveSession).toHaveBeenCalledWith(expect.objectContaining({ arms_supported: true }), undefined))
+})
+
+test.each(['edit', 'repeat'])('loads supported checkbox for %s', async mode => {
+  api.getExerciseLog.mockResolvedValue({ activity_id: 'treadmill_walking', duration: 45, date: '2026-10-21', details: { speed_mph: 2, incline_percent: 5, arms_supported: true } } as any)
+  show(`&${mode}=7`)
+  await waitFor(() => expect(screen.getByRole('checkbox', { name: /Arms supported/ })).toBeChecked())
+})
+
 test('walking has relevant fields and deterministic preview', async () => {
   show(); fill()
   expect(screen.queryByText('Sets (optional)')).not.toBeInTheDocument()

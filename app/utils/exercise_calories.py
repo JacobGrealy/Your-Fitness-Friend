@@ -86,11 +86,20 @@ def treadmill_estimate(data, weight):
     gross = vo2 * weight['weight_kg'] / 1000 * 5 * duration
     active = max(0, (vo2 - 3.5) * weight['weight_kg'] / 1000 * 5 * duration)
     override = None if data.get('calorie_override') is None else number(data['calorie_override'], 'Active calorie override', 0, 20000)
+    supported = data.get('arms_supported', False)
+    if not isinstance(supported, bool):
+        raise ValueError('arms_supported must be a boolean')
+    multiplier = 0.75 if supported else 1.0
+    if supported:
+        warnings.append('Arms supported: calories multiplied by 0.75 (user-selected adjustment, not part of the ACSM equation).')
     return {
         'activity_id': 'treadmill_walking', 'tracking_format': 'treadmill',
         'duration_minutes': duration, 'speed_mph': mph, 'incline_percent': incline,
         'distance_miles': mph * duration / 60, 'distance_km': mph * duration / 60 * 1.609344,
         'calorie_override': override, 'met': met, 'method': method, 'source': source, 'warnings': warnings,
-        'active_calories': active, 'gross_calories': gross,
-        'calories_burned': active if override is None else override, 'calorie_basis': 'active', **weight,
+        'arms_supported': supported, 'support_multiplier': multiplier,
+        'unadjusted_active_calories': active, 'unadjusted_gross_calories': gross,
+        'active_calories': active * multiplier, 'gross_calories': gross * multiplier,
+        'calories_burned': (active if override is None else override) * multiplier,
+        'calorie_basis': 'active', **weight,
     }
