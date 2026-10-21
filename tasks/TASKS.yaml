@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-21T13:18
+  updated_at: 2026-10-21T13:26
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0112
 - FF-0107
 - FF-0113
 - FF-0108
@@ -4301,19 +4300,33 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-21T12:58
-  completed_at: null
+  updated_at: 2026-10-21T13:26
+  completed_at: 2026-10-21T13:26
   waiting_on: null
   parent_id: null
-  notes: Owner requests an optional photo per exercise log, matching weigh-in photos. Inspect and reuse
+  notes: 'Owner requests an optional photo per exercise log, matching weigh-in photos. Inspect and reuse
     existing weight photo upload validation, ownership, serialization and centralized app/utils/uploads.py
     helpers. Support attaching, replacing, removing and viewing a photo, preserve shared-file references
     on deletion, no orphan uploads on failed saves. Commit required migration; verified backup before
     live schema changes. Isolated upload/API/ownership/cleanup tests. Photos belong to individual logs,
     not activity catalog definitions.
+
+
+    Round 4: FF-0106 merged/pushed, backup verified, live migration c10600000001 applied; backend restart
+    still pending. FF-0112 implementation started: nullable photo migration c11200000001, validated decoded/re-encoded
+    images, atomic multipart typed session creation/edit, own-log photo attach/view/remove routes, shared-file
+    reference tracking and deletion cleanup. 13 focused photo/session/migration tests pass including commit-failure
+    orphan cleanup. Not merged/deployed yet. Next: security/foreign-owner/shared-file tests, serving missing-file
+    handling, full gates, backup/migration and closeout before FF-0107 UI.
+
+
+    Full gates green: 346 backend, 442 frontend and tsc/layout/uploads/smoke/tooling. Atomic multipart
+    create/edit, decoded/reencoded photo validation, own-log attach/view/remove, rollback orphan cleanup
+    and shared-reference preservation. Live upload count unchanged at 805. Migration c11200000001 committed;
+    owner backend restart still pending.'
   comments: []
 - id: FF-0113
   title: 'Exercise log photos: camera/gallery, preview and history viewer'

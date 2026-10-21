@@ -1,4 +1,8 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_file
+from werkzeug.exceptions import BadRequest
+import json
+from app.utils.exercise_photos import save_exercise_photo, discard_new_photo
+from app.utils.uploads import remove_if_unreferenced, stored_file_path
 from flask_login import login_required, current_user
 from app.models.exercise_log import ExerciseLog
 from app.models.saved_exercise import SavedExercise
@@ -28,7 +32,8 @@ def _serialize(log):
         'intensity': log.intensity, 'notes': log.notes,
         'logged_at': log.logged_at.isoformat(), 'date': log.logged_at.date().isoformat(),
         'activity_id': log.activity_id, 'tracking_format': log.tracking_format,
-        'details': log.details,
+        'details': log.details, 'photo_url': log.photo_url,
+        'photo_endpoint': f'/api/exercise/log/{log.id}/photo' if log.photo_url else None,
     }
 
 
@@ -61,6 +66,18 @@ def activity_catalog():
     return jsonify(CATALOG)
 
 
+def _session_payload():
+    if request.mimetype == 'multipart/form-data':
+        try:
+            data = json.loads(request.form.get('data', ''))
+        except (ValueError, TypeError):
+            raise BadRequest('Valid JSON data field required') from None
+        if not isinstance(data, dict) or not data.get('activity_id'):
+            raise BadRequest('Typed activity data required for multipart sessions')
+        return data
+    return request.get_json()
+
+
 def _typed_request(data, existing=None, preview=False):
     try:
         values = _typed_values(data, current_user, existing)
@@ -68,13 +85,28 @@ def _typed_request(data, existing=None, preview=False):
         return jsonify({'error': str(exc)}), 400
     if preview:
         return jsonify(values['details'])
+    new_photo = None
+    previous = existing.photo_url if existing else None
+    if 'photo' in request.files:
+        try:
+            new_photo = save_exercise_photo(request.files['photo'])
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
+        values['photo_url'] = new_photo
     if existing is None:
         existing = ExerciseLog(user_id=current_user.id, **values)
         db.session.add(existing)
     else:
         for key, value in values.items():
             setattr(existing, key, value)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        discard_new_photo(new_photo)
+        raise
+    if new_photo and previous:
+        remove_if_unreferenced(previous)
     return jsonify(_serialize(existing)), 200 if request.method == 'PUT' else 201
 
 
@@ -93,7 +125,7 @@ def update_typed_exercise(log_id):
     log = ExerciseLog.query.filter_by(id=log_id, user_id=current_user.id).first()
     if log is None:
         return jsonify({'error': 'Exercise log not found'}), 404
-    data = request.get_json()
+    data = _session_payload()
     if not isinstance(data, dict):
         return jsonify({'error': 'JSON object required'}), 400
     if log.activity_id is None:
@@ -104,8 +136,8 @@ def update_typed_exercise(log_id):
 @bp.route('/log', methods=['POST'])
 @login_required
 def log_exercise():
-    """Log an exercise with AI-calorie estimation."""
-    data = request.get_json()
+    """Log a typed session or accept the legacy exercise contract."""
+    data = _session_payload()
     
     if not isinstance(data, dict) or not data:
         return jsonify({'error': 'No data provided'}), 400
@@ -382,7 +414,43 @@ def delete_exercise_log(log_id):
     if not log:
         return jsonify({'error': 'Exercise log not found'}), 404
     
+    previous = log.photo_url
     db.session.delete(log)
     db.session.commit()
-    
+    if previous:
+        remove_if_unreferenced(previous)
     return jsonify({'message': 'Exercise log deleted'}), 200
+
+
+@bp.route('/log/<int:log_id>/photo', methods=['GET', 'POST', 'DELETE'])
+@login_required
+def exercise_photo(log_id):
+    log = ExerciseLog.query.filter_by(id=log_id, user_id=current_user.id).first()
+    if log is None:
+        return jsonify({'error': 'Exercise log not found'}), 404
+    if request.method == 'GET':
+        if not log.photo_url:
+            return jsonify({'error': 'No photo attached'}), 404
+        try:
+            response = send_file(stored_file_path(log.photo_url), conditional=True)
+            response.headers['Cache-Control'] = 'private, no-store'
+            return response
+        except (FileNotFoundError, ValueError):
+            return jsonify({'error': 'Photo file not found'}), 404
+    previous = log.photo_url
+    new_photo = None
+    if request.method == 'POST':
+        try:
+            new_photo = save_exercise_photo(request.files.get('photo'))
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
+    log.photo_url = new_photo
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        discard_new_photo(new_photo)
+        raise
+    if previous:
+        remove_if_unreferenced(previous)
+    return jsonify(_serialize(log))
