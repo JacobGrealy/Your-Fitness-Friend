@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-21T13:57
+  updated_at: 2026-10-21T14:01
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
+- FF-0115
 - FF-0113
 - FF-0108
 - FF-0109
@@ -4400,4 +4401,25 @@ intake:
     mph / 9% grade regression, preview/save and manual override pass. Full gates green: 351 backend, 453
     frontend plus all ancillary gates. Backend-only, no schema or web/APK changes. Remaining exercise
     roadmap stays paused.'
+  comments: []
+- id: FF-0115
+  title: Show dated exercise sessions in the daily diary
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: in-progress
+  labels: []
+  created_at: 2026-10-21T14:01
+  updated_at: 2026-10-21T14:01
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Owner logged walking-pad workout but diary omits exercise. Add exercise section in DailyFood
+    matching selected logical date, using authoritative exercise API range. Show session name/time/speed/incline/distance/active
+    calories with edit/history/log links; loading/error/retry states, stale-date/account guards. Do not
+    change food calorie allowance. Replace diary hardcoded zero only with correct aggregate if summary
+    supports exercise without eating back. Component integration tests plus full gates and production
+    web build.
   comments: []
