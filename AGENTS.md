@@ -126,6 +126,14 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
   smart ids (21001–21010) stay separate so migration cannot dismiss current smart reminders.
   Native reminder changes require publishing an APK, not just rebuilding the web bundle.
 
+## Exercise session photos
+- Exercise photos belong to individual logs, not catalog activities. New typed sessions use
+  one multipart save (`data` JSON plus optional `photo`) so a failed save leaves no staged
+  upload. Use `app/utils/exercise_photos.py` for decoded/re-encoded images and the central
+  reference-aware cleanup in `app/utils/uploads.py`; never delete a shared file directly.
+  Read images through the ownership-checked `/api/exercise/log/:id/photo` endpoint. Repeating
+  a session must not silently copy its photo. New file rollback must preserve the old image.
+
 ## Runtime topology
 - **Production** — `fitnessfriend.service`: gunicorn on `0.0.0.0:5001`, serving
   both the Flask API and the built SPA from `app/static`.

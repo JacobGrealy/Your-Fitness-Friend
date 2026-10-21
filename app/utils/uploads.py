@@ -55,6 +55,7 @@ _REFERENCE_COLUMNS = (
     ('meal_photos', 'photo_path'),
     ('users', 'profile_photo_path'),
     ('weight_logs', 'photo_url'),
+    ('exercise_logs', 'photo_url'),
 )
 
 

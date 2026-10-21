@@ -2071,5 +2071,23 @@ Full final gates green: 335 backend, 442 frontend, tsc/layout/uploads/smoke/tool
 cover arithmetic, units, slow walking, unsupported incline, ownership, atomic edits, overrides,
 weight snapshots and fresh migrations. Slow inclined walking outside 50–100 m/min explicitly
 requires a device/manual calorie value; level slow walking uses documented MET bands.
-Backend still awaits owner restart (interactive sudo unavailable). Live migration/deployment
-result to be recorded after merge. Next queue item: FF-0112 optional exercise photo API.
+Backend still awaits owner restart (interactive sudo unavailable). Merged/pushed as 85fccab
+(code 32512ae). Verified backup 20261021-131808 completed with integrity check; live upgrade
+applied c10600000001 and flask db current confirms head.
+Next queue item: FF-0112 optional exercise photo API.
+
+## FF-0112 — Exercise log photo API — 2026-10-21
+
+Added an optional log-owned photo column and migration c11200000001. Typed create/edit accept
+multipart `data` JSON plus `photo` in one operation: fields are validated before storing an image,
+images are decoded/size-checked and re-encoded as JPEG without EXIF metadata, and failed database
+commits remove only the new upload. Ownership-checked GET/POST/DELETE photo endpoints support
+existing (including legacy) logs. Replacement/removal/deleting logs use central cross-table
+reference counting, preserving shared files. Reads use private/no-store responses and missing
+files return 404. Repeated sessions must not carry photos implicitly (durable rule in AGENTS.md).
+
+Full gates green: 346 backend, 442 frontend plus tsc/layout/uploads/smoke/tooling. Eleven photo
+cases cover foreign-user access, decoded content, invalid initial logs, failed commits, replacement,
+shared references, missing files and malformed multipart. Live uploads stayed at 805 files before
+and after gates. No production test photos created. Backend restart remains owner-operated.
+Next: merge, verified backup and migration, then FF-0107 walking-pad UI.

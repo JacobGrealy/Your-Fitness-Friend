@@ -19,6 +19,7 @@ class ExerciseLog(db.Model):
     activity_id = db.Column(db.String(50))
     tracking_format = db.Column(db.String(30))
     details = db.Column(db.JSON)
+    photo_url = db.Column(db.String(256))
     logged_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
