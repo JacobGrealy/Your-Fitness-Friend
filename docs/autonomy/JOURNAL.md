@@ -2144,5 +2144,6 @@ retaining unadjusted values/raw override and multiplier provenance in JSON snaps
 and save use identical policy; repeated edits do not compound the discount. The UI discloses
 25% reduction including manual override and shows the adjustment in preview. No migration or
 historical data rewrite. Full gates green: 361 backend, 459 frontend, all ancillary gates.
-Next: publish web build and verify mobile checked/unchecked flow; backend restart required.
-Broader redesign remains paused.
+Production web build passed and HTTPS serves index-zDYp62Av.js. Isolated mobile Chromium
+verified exactly 75% checked preview, persisted save and checked edit restoration. Code f13a4a0.
+Verification server stopped; backend restart required. Broader redesign remains paused.
