@@ -2057,3 +2057,19 @@ including twelve new API/store/page regression cases. Previous FF-0104 code comm
 merge: 16a6b3a. Backend restart attempt confirmed interactive sudo still required; awaiting owner
 restart for FF-0104. This UI slice is web-only and needs a refreshed app, not an APK.
 Next: FF-0106 walking-pad structured backend; FF-0112 photos precedes the walking-pad UI.
+
+## FF-0106 — Typed walking-pad backend — 2026-10-21
+
+Added a built-in treadmill-walking catalog, normalized speed/pace units, percent incline,
+distance, deterministic ACSM/Compendium estimates, separate active/gross calories, manual
+active overrides and weight/method snapshots. Preview/create/get/edit/history/delete all use
+user-owned logs. Same-date edits retain original weight; changed dates select the latest own
+weigh-in on/before that date with profile fallback. Migration c10600000001 adds nullable
+activity/format/JSON fields; legacy records keep their values without fabricated inputs.
+
+Full final gates green: 335 backend, 442 frontend, tsc/layout/uploads/smoke/tooling. Tests
+cover arithmetic, units, slow walking, unsupported incline, ownership, atomic edits, overrides,
+weight snapshots and fresh migrations. Slow inclined walking outside 50–100 m/min explicitly
+requires a device/manual calorie value; level slow walking uses documented MET bands.
+Backend still awaits owner restart (interactive sudo unavailable). Live migration/deployment
+result to be recorded after merge. Next queue item: FF-0112 optional exercise photo API.

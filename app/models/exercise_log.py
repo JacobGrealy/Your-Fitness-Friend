@@ -15,6 +15,10 @@ class ExerciseLog(db.Model):
     calories_burned = db.Column(db.Float)
     intensity = db.Column(db.String(20))  # low, medium, high
     notes = db.Column(db.Text)
+    # Immutable normalized inputs/provenance for typed sessions; legacy rows stay null.
+    activity_id = db.Column(db.String(50))
+    tracking_format = db.Column(db.String(30))
+    details = db.Column(db.JSON)
     logged_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
