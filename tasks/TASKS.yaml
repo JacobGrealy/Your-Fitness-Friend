@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-21T14:18
+  updated_at: 2026-10-21T14:23
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0116
 - FF-0113
 - FF-0108
 - FF-0109
@@ -4435,18 +4434,23 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-21T14:18
-  updated_at: 2026-10-21T14:18
-  completed_at: null
+  updated_at: 2026-10-21T14:23
+  completed_at: 2026-10-21T14:23
   waiting_on: null
   parent_id: null
-  notes: Add arms supported checkbox to treadmill walking log/edit/repeat form and persisted calculation
+  notes: 'Add arms supported checkbox to treadmill walking log/edit/repeat form and persisted calculation
     snapshot. When checked multiply computed active and gross calories by 0.75, preserving unadjusted
     values/method provenance and preview/save parity. Clearly disclose adjustment. Preserve existing logs
     and default false for absent field; reject non-boolean values. Manual override should also receive
     requested multiplier, transparently distinguish input override and adjusted effective result. Add
     backend/UI tests for checked/unchecked exact ratio, save/edit/repeat and regression. Full gates then
     publish web; backend restart required.
+
+
+    Full gates green: 361 backend/459 frontend. Production web build passed; isolated Chromium mobile
+    verifies exactly 75% checked preview, persisted save and checked edit. Code f13a4a0. No schema or
+    historical data changes. Backend restart required, no APK.'
   comments: []
