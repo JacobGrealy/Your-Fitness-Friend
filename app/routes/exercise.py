@@ -20,6 +20,87 @@ def _day(value):
 bp = Blueprint('exercise', __name__)
 
 
+def _serialize(log):
+    return {
+        'id': log.id, 'exercise_name': log.exercise_name,
+        'saved_exercise_id': log.saved_exercise_id,
+        'duration_min': log.duration, 'calories_burned': log.calories_burned,
+        'intensity': log.intensity, 'notes': log.notes,
+        'logged_at': log.logged_at.isoformat(), 'date': log.logged_at.date().isoformat(),
+        'activity_id': log.activity_id, 'tracking_format': log.tracking_format,
+        'details': log.details,
+    }
+
+
+def _typed_values(data, user, existing=None):
+    from app.utils.exercise_calories import session_day, weight_snapshot, treadmill_estimate
+    if data.get('activity_id') != 'treadmill_walking':
+        raise ValueError('Unknown activity_id')
+    day = session_day(data.get('date'))
+    notes = data.get('notes')
+    if notes is not None and (not isinstance(notes, str) or len(notes) > 500):
+        raise ValueError('Notes must be at most 500 characters')
+    # Editing historical inputs preserves the original body-weight snapshot unless
+    # the session moves to another date. Later weigh-ins never rewrite old logs.
+    if existing and existing.details and existing.logged_at.date() == day:
+        weight = {key: existing.details[key] for key in (
+            'weight_lbs', 'weight_kg', 'weight_source', 'weight_date')}
+    else:
+        weight = weight_snapshot(user, day)
+    details = treadmill_estimate(data, weight)
+    return dict(activity_id='treadmill_walking', tracking_format='treadmill',
+                exercise_name='Walking Pad / Treadmill', duration=details['duration_minutes'],
+                calories_burned=details['calories_burned'], details=details,
+                logged_at=datetime.combine(day, time.min), notes=notes)
+
+
+@bp.route('/catalog', methods=['GET'])
+@login_required
+def activity_catalog():
+    from app.utils.exercise_calories import CATALOG
+    return jsonify(CATALOG)
+
+
+def _typed_request(data, existing=None, preview=False):
+    try:
+        values = _typed_values(data, current_user, existing)
+    except (ValueError, TypeError) as exc:
+        return jsonify({'error': str(exc)}), 400
+    if preview:
+        return jsonify(values['details'])
+    if existing is None:
+        existing = ExerciseLog(user_id=current_user.id, **values)
+        db.session.add(existing)
+    else:
+        for key, value in values.items():
+            setattr(existing, key, value)
+    db.session.commit()
+    return jsonify(_serialize(existing)), 200 if request.method == 'PUT' else 201
+
+
+@bp.route('/log/<int:log_id>', methods=['GET'])
+@login_required
+def get_exercise_log(log_id):
+    log = ExerciseLog.query.filter_by(id=log_id, user_id=current_user.id).first()
+    if log is None:
+        return jsonify({'error': 'Exercise log not found'}), 404
+    return jsonify(_serialize(log))
+
+
+@bp.route('/log/<int:log_id>', methods=['PUT'])
+@login_required
+def update_typed_exercise(log_id):
+    log = ExerciseLog.query.filter_by(id=log_id, user_id=current_user.id).first()
+    if log is None:
+        return jsonify({'error': 'Exercise log not found'}), 404
+    data = request.get_json()
+    if not isinstance(data, dict):
+        return jsonify({'error': 'JSON object required'}), 400
+    if log.activity_id is None:
+        return jsonify({'error': 'Legacy logs cannot be converted without original inputs'}), 400
+    return _typed_request(data, existing=log)
+
+
 @bp.route('/log', methods=['POST'])
 @login_required
 def log_exercise():
@@ -28,6 +109,9 @@ def log_exercise():
     
     if not isinstance(data, dict) or not data:
         return jsonify({'error': 'No data provided'}), 400
+
+    if 'activity_id' in data:
+        return _typed_request(data)
 
     saved = None
     if 'exercise_id' in data:
@@ -190,9 +274,11 @@ def estimate_calories():
     """Estimate calories for an exercise without logging it."""
     data = request.get_json()
     
-    if not data:
+    if not isinstance(data, dict) or not data:
         return jsonify({'error': 'No data provided'}), 400
-    
+    if 'activity_id' in data:
+        return _typed_request(data, preview=True)
+
     exercise_description = data.get('exercise_description')
     duration_min = data.get('duration_min')
     
@@ -262,16 +348,7 @@ def get_exercise_logs():
     # Explicit ranges must not silently truncate a diary/export to 50 entries.
     logs = query.all() if start or end else query.limit(50).all()
     
-    return jsonify([{
-        'id': log.id,
-        'saved_exercise_id': log.saved_exercise_id,
-        'exercise_name': log.exercise_name,
-        'duration_min': log.duration,
-        'calories_burned': log.calories_burned,
-        'intensity': log.intensity,
-        'notes': log.notes,
-        'logged_at': log.logged_at.isoformat()
-    } for log in logs]), 200
+    return jsonify([_serialize(log) for log in logs]), 200
 
 
 @bp.route('/saved/<int:saved_id>', methods=['DELETE'])

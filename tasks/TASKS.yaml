@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-21T13:08
+  updated_at: 2026-10-21T13:18
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0106
 - FF-0112
 - FF-0107
 - FF-0113
@@ -4165,11 +4164,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-21T12:58
-  completed_at: null
+  updated_at: 2026-10-21T13:18
+  completed_at: 2026-10-21T13:18
   waiting_on: null
   parent_id: null
   notes: 'Add migrated structured exercise tracking formats and built-in activity catalog. First complete
@@ -4178,7 +4177,22 @@ intake:
     supported conditions, active versus gross calories, weight on/before session date with profile fallback,
     and snapshot inputs/method/weight/calories. Preserve legacy logs without fabricated details. Support
     preview, create, edit, delete and dated history. Back up before live migration. Add migration, ownership,
-    units, boundary and calculation tests; no AI as numerical authority.'
+    units, boundary and calculation tests; no AI as numerical authority.
+
+
+    Round 3 progress: structured JSON snapshots and nullable activity/tracking columns with migration
+    c10600000001; built-in treadmill catalog, deterministic ACSM/Compendium calculator, speed/pace unit
+    conversion, explicit unsupported incline override, historical weight snapshot, preview/create/edit/history
+    integration. Full gates passed (333 backend/442 frontend); final snapshot-selection ordering change
+    rechecked with 27 focused API/calculation/migration cases. Not merged or deployed yet. Next: final
+    review/ownership-boundary tests, full gates on final diff, backup and live migration, closeout. Current
+    branch feat/FF-0106-walking-pad-backend. No live data/schema changes performed this round.
+
+
+    Final gates green: 335 backend, 442 frontend plus tsc/layout/uploads/smoke/tooling. Completed deterministic
+    typed treadmill API and nullable migration with ownership/atomic edit/weight snapshot/unit/override
+    tests. Manual calorie override required outside supported incline equation speeds. Backend restart
+    still owner-operated.'
   comments: []
 - id: FF-0107
   title: 'Walking-pad UI: catalog picker, session form, calorie preview and diary'

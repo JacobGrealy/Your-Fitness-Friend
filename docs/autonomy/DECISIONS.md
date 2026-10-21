@@ -1174,3 +1174,21 @@ Legacy and smart notification ids deliberately differ: repeatedly cancelling leg
 not dismiss a smart notification already delivered. Cross-device writes are observed only on
 foreground refresh/resume; no server push/FCM was introduced. Native timing policy has seven
 JVM tests, including DST, missing hours, midnight, deletion and next-week recurrence.
+
+## 2026-10-21 — FF-0106 deterministic exercise energy and immutable inputs
+
+Typed exercise logs use nullable activity/format columns and a normalized JSON snapshot rather
+than forcing treadmill fields onto every activity. Legacy rows remain null, with their original
+calories untouched. Treadmill walking uses ACSM only at 50–100 m/min and 0–20% grade; level
+walking outside that speed range uses 2024 Compendium treadmill MET bands (source:
+https://pacompendium.com/walking/). Gaps use the lower band explicitly. Inclined walking outside
+the equation speed range requires an explicit manual active-calorie override, not extrapolation.
+The UI must disclose this limitation and call all computed calories estimates.
+
+Active calories subtract 1 MET of resting energy; gross session energy is retained separately.
+Only active calories populate the existing burned-exercise aggregate; food allowance stays
+unchanged. Manual overrides preserve available automatic results and are stored separately.
+Body weight is the latest own weigh-in on/before the logical exercise date, breaking ties by id,
+with visible profile fallback. Same-date edits retain that weight snapshot even if later weights
+or profile values change; moving a session to a different date selects the appropriate weight.
+New typed sessions never invoke AI. Preview and save share the same server calculator.
