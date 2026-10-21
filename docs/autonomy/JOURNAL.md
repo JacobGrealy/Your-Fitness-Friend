@@ -2130,5 +2130,8 @@ exercise calories to zero. Added dated DiaryExerciseSection after meals, with se
 active/legacy calorie labels, edit/log/history links and loading/error/retry states. Requests use
 inclusive selected-day bounds and discard responses after date/account changes. Its total feeds
 the summary bar without changing food remaining calories. Full gates green: 351 backend,
-456 frontend plus tsc/layout/uploads/smoke/tooling. Next: build and isolated browser verification,
-then publish web-only correction; no backend restart/APK required for this ticket.
+456 frontend plus tsc/layout/uploads/smoke/tooling. Production build succeeded and HTTPS serves
+index-oyhN6OCn.js. Isolated mobile Chromium verified the exact 87 min/1.4 mph/9% session appears
+in daily diary, food allowance remains unchanged, and no horizontal overflow. Screenshot:
+/tmp/ff0115-diary-mobile.png. Isolated server stopped after check. Code c9f4e28 merged.
+Web-only correction; no backend restart/APK required. Remaining redesign remains paused.
