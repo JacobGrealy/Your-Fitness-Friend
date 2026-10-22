@@ -2225,6 +2225,8 @@ multipart save; validated remove_photo intent atomically removes stored photo wi
 Diary thumbnails open viewer separately from full-row edit and X deletion. Repeat never inherits photo.
 Save/upload errors retain form/photo draft; URLs are revoked. Backend cleanup remains reference-aware.
 Full gates green: 387 backend, 479 frontend, all ancillary gates. Includes form upload failure/retention,
-repeat isolation, gallery choices, viewer close and atomic removal validation. Next build/browser photo
-upload/edit/remove verification, then strength backend. No migration; final owner restart includes API
-remove_photo extension. Other exercise roadmap and copying remain pending.
+repeat isolation, gallery choices, viewer close and atomic removal validation. Build passed; isolated
+mobile Chromium verified gallery draft preview, atomic initial upload, diary thumbnail/full-size viewer,
+replacement and atomic removal. Camera chooser branching unit-tested; physical camera not tested.
+Code d406e31. Verification server stopped. No migration; final owner restart includes remove_photo.
+Next strength backend FF-0108; remaining exercise roadmap and copying still pending.

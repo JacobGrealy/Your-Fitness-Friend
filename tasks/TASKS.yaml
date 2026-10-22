@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-22T09:42
+  updated_at: 2026-10-22T09:47
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0113
 - FF-0108
 - FF-0109
 - FF-0110
@@ -4372,11 +4371,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-22T09:42
-  completed_at: null
+  updated_at: 2026-10-22T09:47
+  completed_at: 2026-10-22T09:47
   waiting_on: null
   parent_id: null
   notes: 'Owner requests optional exercise log photo like weight logging. Reuse existing weigh-in camera/gallery
@@ -4400,7 +4399,13 @@ intake:
     boolean so session edits/photo removal are atomic. Focused tests + full gates green: 387 backend/475
     frontend. Not merged/deployed yet; current branch feat/FF-0113-exercise-photo-controls. Next add wiring/repeat/diary
     viewer tests, browser upload/replacement/removal verification after build, closeout then FF-0108 strength
-    backend. No live photos/data touched; no running jobs.'
+    backend. No live photos/data touched; no running jobs.
+
+
+    Full gates green 387 backend/479 frontend; production build passed. Isolated mobile Chromium verified
+    gallery draft preview, atomic initial upload, diary thumbnail/full-size viewer, stored replacement
+    and atomic removal. Camera/gallery branching reused existing chooser and unit tested; physical camera
+    not tested. Code d406e31. No migration; backend remove_photo extension included in final owner restart.'
   comments: []
 - id: FF-0114
   title: Use ACSM walking equation for slow inclined walking-pad sessions
