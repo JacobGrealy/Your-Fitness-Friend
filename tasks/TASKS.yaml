@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-22T15:41
+  updated_at: 2026-10-22T15:49
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0110
 - FF-0111
 - FF-0122
 intake:
@@ -4322,17 +4321,22 @@ intake:
   - awecraft
   assignee: opencode
   priority: 3
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-21T12:58
-  completed_at: null
+  updated_at: 2026-10-22T15:49
+  completed_at: 2026-10-22T15:49
   waiting_on: null
   parent_id: null
-  notes: Extend typed catalog and validated deterministic estimates to outdoor walking/running, treadmill
+  notes: 'Extend typed catalog and validated deterministic estimates to outdoor walking/running, treadmill
     running, cycling and mobility using documented Compendium MET sources or supported equations. Persist
     provenance/weight/calorie snapshots. Do not infer cycling energy from arbitrary resistance numbers.
     Add focused API/calculation tests.
+
+
+    Seven typed activity formats, unit-normalized distance/speed/pace, sourced MET bands and ACSM running,
+    historical snapshots, measured stationary watts/effort, yoga/stretching, shared CRUD/photo. No schema
+    changes. Full gates green 423 backend/485 frontend. Backend restart deferred to final handoff.'
   comments: []
 - id: FF-0111
   title: 'Broader activity UI: type-specific forms and history'
@@ -4344,13 +4348,25 @@ intake:
   status: open
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-21T12:58
+  updated_at: 2026-10-22T15:47
   completed_at: null
   waiting_on: null
   parent_id: null
-  notes: Expose running, cycling and mobility with relevant time/distance/pace/power or effort inputs
+  notes: 'Expose running, cycling and mobility with relevant time/distance/pace/power or effort inputs
     only, explicit estimate limitations and consistent edit/repeat/history behavior. Depends on broader
     activity backend. Optional variable-speed segments remain a future enhancement, not a prerequisite.
+
+
+    FF-0110 API contract for UI: new ids outdoor_walking/outdoor_running/treadmill_running/cycling/stationary_cycling/stretching/yoga.
+    Required date+duration_minutes; walking/running require exactly one distance(+distance_unit mi|km),
+    speed(+speed_unit mph|km/h), or pace(+pace_unit min/mile|min/km). Treadmill running adds incline_percent
+    0..20. Outdoor cycling distance optional (without uses general cycling estimate). Stationary cycling
+    optional measured power_watts 25..500 or effort light/moderate/vigorous; optional distance recorded
+    but not energy driver, no machine resistance/speed inference. Yoga yoga_style general/hatha/vinyasa/power;
+    stretching duration only. All support notes, active override, existing atomic photo draft save/edit/removal.
+    Estimate details include nullable speed/distance/incline/power/yoga fields, warnings, method/source/weight
+    snapshots. UI must not call numeric formatters on null fields; general diary summary branch by format.
+    No schemas changed; source values verified against live Compendium tables. Final owner restart only.'
   comments: []
 - id: FF-0112
   title: 'Exercise log photos: secure attachment storage and API'
