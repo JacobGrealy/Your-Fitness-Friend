@@ -37,7 +37,7 @@ export interface ExerciseLog {
   date?: string
   activity_id?: string | null
   tracking_format?: string | null
-  details?: ExerciseEstimate | StrengthEstimate | null
+  details?: ExerciseEstimate | StrengthEstimate | ActivityEstimate | null
   photo_url?: string | null
   photo_endpoint?: string | null
 }
@@ -79,6 +79,47 @@ export interface ExerciseEstimate {
   calorie_basis: 'active'
   weight_lbs: number
   weight_kg: number
+  weight_source: 'weigh_in' | 'profile'
+  weight_date: string | null
+  method: string
+  source: string
+  warnings: string[]
+}
+
+export type ActivityId = 'outdoor_walking' | 'outdoor_running' | 'treadmill_running' | 'cycling' | 'stationary_cycling' | 'stretching' | 'yoga'
+export interface ActivitySessionCreate {
+  activity_id: ActivityId
+  date: string
+  duration_minutes: number
+  distance?: number
+  distance_unit?: 'mi' | 'km'
+  speed?: number
+  speed_unit?: 'mph' | 'km/h'
+  pace?: number
+  pace_unit?: 'min/mile' | 'min/km'
+  incline_percent?: number
+  power_watts?: number
+  effort?: 'light' | 'moderate' | 'vigorous'
+  yoga_style?: 'general' | 'hatha' | 'vinyasa' | 'power'
+  calorie_override?: number | null
+  notes?: string
+}
+export interface ActivityEstimate {
+  activity_id: ActivityId
+  tracking_format: string
+  duration_minutes: number
+  speed_mph: number | null
+  distance_miles: number | null
+  distance_km: number | null
+  incline_percent: number | null
+  power_watts: number | null
+  effort: 'light' | 'moderate' | 'vigorous'
+  yoga_style: string | null
+  active_calories: number
+  gross_calories: number
+  calories_burned: number
+  calorie_override: number | null
+  weight_lbs: number
   weight_source: 'weigh_in' | 'profile'
   weight_date: string | null
   method: string

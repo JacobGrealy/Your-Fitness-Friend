@@ -43,7 +43,7 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
       if (!active) return
       if (log.activity_id !== 'treadmill_walking' || !log.details || !('speed_mph' in log.details)) throw new Error('Unsupported session')
       setSpeed(String(log.details.speed_mph)); setIncline(String(log.details.incline_percent))
-      setArmsSupported(log.details.arms_supported === true)
+      setArmsSupported('arms_supported' in log.details && log.details.arms_supported === true)
       if (editId) {
         setInitialPhoto(log.photo_endpoint || null)
         setDate(log.date || log.logged_at.slice(0, 10)); setDuration(String(log.duration))

@@ -35,6 +35,9 @@ export type {
   StrengthExercise,
   StrengthSessionCreate,
   StrengthEstimate,
+  ActivityId,
+  ActivitySessionCreate,
+  ActivityEstimate,
 } from './exercise'
 
 export type {
