@@ -7,6 +7,8 @@ import type { ExerciseActivity } from '@/types'
 import LegacyLogExercise from './LegacyLogExercise'
 import TreadmillSessionForm from './TreadmillSessionForm'
 import StrengthSessionForm from './StrengthSessionForm'
+import ActivitySessionForm from './ActivitySessionForm'
+import { activityOptions, isActivityId } from './activityOptions'
 import { exerciseError, exerciseKey, readPreference, writePreference } from './exercisePreferences'
 
 export default function LogExercise() {
@@ -40,6 +42,7 @@ function ExercisePicker({ userId }: { userId: string }) {
   const activity = params.get('activity')
   if (activity === 'treadmill_walking') return <TreadmillSessionForm key={`${userId}:${params.get('edit')}:${params.get('repeat')}`} userId={userId} />
   if (activity === 'strength_training') return <StrengthSessionForm key={`${userId}:${params.get('edit')}:${params.get('repeat')}`} />
+  if (isActivityId(activity)) return <ActivitySessionForm key={`${userId}:${activity}:${params.get('edit')}:${params.get('repeat')}`} activityId={activity} userId={userId} />
   const ordered = [...catalog].sort((a, b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id)) || Number(b.id === recent) - Number(a.id === recent))
   return <div className="p-4 space-y-5">
     <div className="border-l-4 border-mfp-blue pl-4 py-2">
@@ -54,7 +57,7 @@ function ExercisePicker({ userId }: { userId: string }) {
       <button className="text-left flex-1 p-5" onClick={() => setParams({ activity: item.id })}>
         <span className="text-xs tracking-widest uppercase text-mfp-blue">{item.category}{item.id === recent ? ' · Recent' : ''}</span>
         <span className="block text-lg font-bold mt-1">{item.name}</span>
-        <span className="block text-sm text-mfp-textSecondary mt-1">{item.tracking_format === 'strength' ? 'Exercises · Sets · Reps · Load' : 'Time · Speed or pace · Incline'}</span>
+        <span className="block text-sm text-mfp-textSecondary mt-1">{item.tracking_format === 'strength' ? 'Exercises · Sets · Reps · Load' : isActivityId(item.id) ? activityOptions[item.id].description : 'Time · Speed or pace · Incline'}</span>
       </button>
       <button type="button" aria-label={`Favorite ${item.name}`} aria-pressed={favorites.includes(item.id)} className="p-4 text-2xl text-mfp-blue" onClick={() => {
         const next = favorites.includes(item.id) ? favorites.filter(x => x !== item.id) : [...favorites, item.id]

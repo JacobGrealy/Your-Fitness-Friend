@@ -2273,3 +2273,14 @@ No schema change or production records modified. Compendium running/walking/bicy
 tables fetched and activity codes verified. Full gates green: 423 backend, 485 frontend plus all
 ancillary gates. Includes typed CRUD for seven activities, units, grade, watts, invalid inputs and
 snapshot regression. Next FF-0111 activity forms and null-safe diary summaries; final restart only.
+
+## FF-0111 — Activity-specific cardio and mobility forms — code verified
+
+Added seven activity-specific form variants with date/time, normalized distance/speed/pace choices,
+treadmill-running incline, optional measured stationary-bike power or disclosed effort, and yoga
+style. Stretching has no irrelevant distance/lifting fields. Manual override, session photo, save
+failure retention, edit/repeat (without duration/photo), historical preview identity and limitations
+reuse the existing typed infrastructure. Picker descriptions now match activities; diary summaries
+are null-safe for mobility/bike metrics. Unit switches clear values to avoid silent reinterpretation.
+Full gates green: 423 backend, 494 frontend plus ancillary gates. Next merge/build and isolated
+mobile verification across all seven activity types, then FF-0122 copying. Final owner restart only.
