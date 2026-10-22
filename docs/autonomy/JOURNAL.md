@@ -2193,3 +2193,13 @@ Authentication required rather than 404, confirming deployed protected routes. R
 activated; no APK update needed. Authenticated CRUD/defaults/mobile behavior was verified on the
 isolated server, not by adding production health records. Scoped goal complete; paused exercise
 queue is not resumed.
+
+## FF-0120 — Custom Foods moves to More — 2026-10-22
+
+Owner resumed remaining exercise roadmap, requested food-menu cleanup and then copying exercise/
+medication/bowel entries after that roadmap. Confirmed multi-exercise strength workouts, pounds
+(dumbbells per hand/barbell includes bar), starter library/custom entries and one final owner restart.
+Goal now covers FF-0120/0121, FF-0113/0108/0109/0110/0111, then FF-0122, inline without subagents.
+Moved Custom Foods out of quick logging menu into a real More/Settings link, preserving /food/custom.
+Full gates green: 383 backend, 470 frontend plus all ancillary gates. Next: merge/build, then FF-0121
+single Log Food gateway. Broader release handoff should leave only one backend restart command.

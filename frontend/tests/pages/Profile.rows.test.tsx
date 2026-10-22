@@ -109,6 +109,11 @@ describe('More page rows (FF-0011)', () => {
       </MemoryRouter>
     )
 
+  it('links Custom Foods from More', () => {
+    renderPage()
+    expect(screen.getByRole('link', { name: 'Custom Foods' })).toHaveAttribute('href', '/food/custom')
+  })
+
   it('Help opens a Help & About sheet', async () => {
     renderPage()
 
