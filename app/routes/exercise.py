@@ -39,7 +39,9 @@ def _serialize(log):
 
 def _typed_values(data, user, existing=None):
     from app.utils.exercise_calories import session_day, weight_snapshot, treadmill_estimate
-    if data.get('activity_id') not in ('treadmill_walking', 'strength_training'):
+    from app.utils.activity_sessions import ACTIVITIES, activity_estimate
+    activity_id = data.get('activity_id')
+    if not isinstance(activity_id, str) or activity_id not in ('treadmill_walking', 'strength_training', *ACTIVITIES):
         raise ValueError('Unknown activity_id')
     day = session_day(data.get('date'))
     notes = data.get('notes')
@@ -47,6 +49,12 @@ def _typed_values(data, user, existing=None):
         raise ValueError('Notes must be at most 500 characters')
     if existing and existing.activity_id != data['activity_id']:
         raise ValueError('A session activity cannot be changed when editing')
+    if activity_id in ACTIVITIES:
+        details = activity_estimate(data, user, day, existing)
+        return dict(activity_id=activity_id, tracking_format=details['tracking_format'],
+                    exercise_name=ACTIVITIES[activity_id]['name'], duration=details['duration_minutes'],
+                    calories_burned=details['calories_burned'], details=details,
+                    logged_at=datetime.combine(day, time.min), notes=notes)
     if data['activity_id'] == 'strength_training':
         from app.utils.strength_sessions import strength_estimate
         details = strength_estimate(data, user, day, existing)
@@ -72,7 +80,8 @@ def _typed_values(data, user, existing=None):
 @login_required
 def activity_catalog():
     from app.utils.exercise_calories import CATALOG
-    return jsonify(CATALOG)
+    from app.utils.activity_sessions import ACTIVITIES
+    return jsonify(CATALOG + [{'id': key, **value} for key, value in ACTIVITIES.items()])
 
 
 @bp.route('/strength-library', methods=['GET'])
@@ -86,7 +95,8 @@ def strength_library():
 @login_required
 def latest_session():
     activity_id = request.args.get('activity_id')
-    if activity_id not in ('treadmill_walking', 'strength_training'):
+    from app.utils.activity_sessions import ACTIVITIES
+    if activity_id not in ('treadmill_walking', 'strength_training', *ACTIVITIES):
         return jsonify({'error': 'Unknown activity_id'}), 400
     log = ExerciseLog.query.filter_by(user_id=current_user.id, activity_id=activity_id).order_by(ExerciseLog.id.desc()).first()
     return jsonify(_serialize(log) if log else None)

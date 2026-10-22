@@ -2259,3 +2259,17 @@ Isolated mobile Chromium verified whole workout with variable Bench Press sets a
 Push-up, diary details, editing and repeat blank-duration defaults, no overflow. First browser probe
 used an exact nested-label match that did not match; corrected probe, checks passed. Server stopped.
 No migration; backend activation included in final owner restart. Next FF-0110 broader activities.
+
+## FF-0110 — Broader activity backend — 2026-10-22
+
+Added outdoor walking/running, treadmill running, cycling, stationary bike, stretching and yoga
+catalog formats using existing typed session CRUD/preview/photo infrastructure. Normalized distance,
+speed and pace units; outdoor speed-band MET assumptions are explicit. Treadmill running uses ACSM
+running equation with lower-speed extrapolation warning; existing walking ACSM and arms-supported
+policy untouched. Stationary bike uses measured-watts bands or disclosed effort estimates, never
+machine resistance/speed guesses. Yoga styles and stretching use sourced Compendium METs.
+All save method/source/warnings, active/gross and historical own weight snapshots with overrides.
+No schema change or production records modified. Compendium running/walking/bicycling/conditioning
+tables fetched and activity codes verified. Full gates green: 423 backend, 485 frontend plus all
+ancillary gates. Includes typed CRUD for seven activities, units, grade, watts, invalid inputs and
+snapshot regression. Next FF-0111 activity forms and null-safe diary summaries; final restart only.
