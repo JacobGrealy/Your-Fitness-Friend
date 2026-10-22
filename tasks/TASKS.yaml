@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-22T08:37
+  updated_at: 2026-10-22T09:09
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -4525,7 +4525,7 @@ intake:
   status: done
   labels: []
   created_at: 2026-10-22T08:22
-  updated_at: 2026-10-22T08:37
+  updated_at: 2026-10-22T09:09
   completed_at: 2026-10-22T08:37
   waiting_on: null
   parent_id: null
@@ -4550,5 +4550,11 @@ intake:
     Full gates green 383 backend/469 frontend; production build passed. Isolated Chromium mobile verified
     both + menu options, exact 1.5/4/9/25 strengths, lowest and last-dose defaults, medication/bowel creation
     in diary, edit and X-confirmed delete, no mobile overflow. Code a4c2af0. Migration c11800000001 already
-    backed up/applied. Backend activation still requires restart; no APK changes.'
+    backed up/applied. Backend activation still requires restart; no APK changes.
+
+
+    Owner confirmed restart. Verified existing HTTPS /api/health/options and dated /api/health/logs now
+    return JSON 401 Authentication required instead of 404, confirming deployed authenticated routes.
+    Web bundle already verified. Release activated; authenticated CRUD/defaults/mobile UI verified on
+    isolated server without touching production records.'
   comments: []
