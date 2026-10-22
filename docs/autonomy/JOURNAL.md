@@ -2282,5 +2282,7 @@ style. Stretching has no irrelevant distance/lifting fields. Manual override, se
 failure retention, edit/repeat (without duration/photo), historical preview identity and limitations
 reuse the existing typed infrastructure. Picker descriptions now match activities; diary summaries
 are null-safe for mobility/bike metrics. Unit switches clear values to avoid silent reinterpretation.
-Full gates green: 423 backend, 494 frontend plus ancillary gates. Next merge/build and isolated
-mobile verification across all seven activity types, then FF-0122 copying. Final owner restart only.
+Full gates green: 423 backend, 494 frontend plus ancillary gates. Build passed; code f441a19.
+Isolated mobile Chromium verified all seven activities preview/save into diary, yoga edit/repeat
+blank-duration defaults, and no overflow. Verification server stopped. No schema migration;
+final owner restart activates activity APIs. Next FF-0122 diary copying.
