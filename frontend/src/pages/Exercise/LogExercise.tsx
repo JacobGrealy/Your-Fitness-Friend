@@ -6,6 +6,7 @@ import { usePageTitle } from '@/components/layout/PageTitleContext'
 import type { ExerciseActivity } from '@/types'
 import LegacyLogExercise from './LegacyLogExercise'
 import TreadmillSessionForm from './TreadmillSessionForm'
+import StrengthSessionForm from './StrengthSessionForm'
 import { exerciseError, exerciseKey, readPreference, writePreference } from './exercisePreferences'
 
 export default function LogExercise() {
@@ -38,10 +39,11 @@ function ExercisePicker({ userId }: { userId: string }) {
   }, [attempt])
   const activity = params.get('activity')
   if (activity === 'treadmill_walking') return <TreadmillSessionForm key={`${userId}:${params.get('edit')}:${params.get('repeat')}`} userId={userId} />
+  if (activity === 'strength_training') return <StrengthSessionForm key={`${userId}:${params.get('edit')}:${params.get('repeat')}`} />
   const ordered = [...catalog].sort((a, b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id)) || Number(b.id === recent) - Number(a.id === recent))
   return <div className="p-4 space-y-5">
     <div className="border-l-4 border-mfp-blue pl-4 py-2">
-      <p className="text-xs uppercase tracking-widest text-mfp-textSecondary">Your movement journal</p>
+      <p className="text-xs uppercase tracking-widest text-mfp-textSecondary">Your exercise diary</p>
       <h1 className="text-2xl font-bold text-mfp-text">What moved you today?</h1>
       <p className="text-sm text-mfp-textSecondary mt-1">Choose an activity. We’ll ask only for what matters.</p>
     </div>
@@ -52,7 +54,7 @@ function ExercisePicker({ userId }: { userId: string }) {
       <button className="text-left flex-1 p-5" onClick={() => setParams({ activity: item.id })}>
         <span className="text-xs tracking-widest uppercase text-mfp-blue">{item.category}{item.id === recent ? ' · Recent' : ''}</span>
         <span className="block text-lg font-bold mt-1">{item.name}</span>
-        <span className="block text-sm text-mfp-textSecondary mt-1">Time · Speed or pace · Incline</span>
+        <span className="block text-sm text-mfp-textSecondary mt-1">{item.tracking_format === 'strength' ? 'Exercises · Sets · Reps · Load' : 'Time · Speed or pace · Incline'}</span>
       </button>
       <button type="button" aria-label={`Favorite ${item.name}`} aria-pressed={favorites.includes(item.id)} className="p-4 text-2xl text-mfp-blue" onClick={() => {
         const next = favorites.includes(item.id) ? favorites.filter(x => x !== item.id) : [...favorites, item.id]

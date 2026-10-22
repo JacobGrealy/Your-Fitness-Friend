@@ -30,6 +30,11 @@ export type {
   ExerciseActivity,
   TreadmillSessionCreate,
   ExerciseEstimate,
+  StrengthEquipment,
+  StrengthLibraryItem,
+  StrengthExercise,
+  StrengthSessionCreate,
+  StrengthEstimate,
 } from './exercise'
 
 export type {

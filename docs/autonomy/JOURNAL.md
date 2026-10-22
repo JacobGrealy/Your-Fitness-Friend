@@ -2244,3 +2244,15 @@ and historical weight snapshot. Without duration calorie estimate remains null; 
 allowed. No per-rep/load energy invention or AI. Full gates green: 401 backend, 479 frontend plus
 all ancillary gates. Treadmill ACSM/arms support regressions green. Next FF-0109 strength forms and
 diary summaries; final owner restart activates backend. Sources verified from Compendium table.
+
+## FF-0109 — Multi-exercise strength UI — code verified
+
+Strength picker opens a full workout form with ordered exercises and add/remove/variable sets,
+rep/load inputs, bodyweight support, custom exercise/equipment, per-hand dumbbell/including-bar
+labels and optional whole-session duration/effort energy preview. Previous workout button copies
+only exercises/effort, not date/duration/override/photo; edit restores stored inputs and repeat starts
+new today without photo. Includes photo draft controls, atomic saves, failure retention and own
+log load guards. Shared typed API accepts strength sessions; diary summaries render actual reps/
+loads and link to edit without treadmill-only fields or a standalone journal. No food allowance change.
+Full gates green: 401 backend/485 frontend plus all ancillary gates. Next merge/build and isolated
+mobile multi-exercise create/edit/repeat verification, then FF-0110 broader activity backend.
