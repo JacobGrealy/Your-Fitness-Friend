@@ -2286,3 +2286,17 @@ Full gates green: 423 backend, 494 frontend plus ancillary gates. Build passed; 
 Isolated mobile Chromium verified all seven activities preview/save into diary, yoga edit/repeat
 blank-duration defaults, and no overflow. Verification server stopped. No schema migration;
 final owner restart activates activity APIs. Next FF-0122 diary copying.
+
+## FF-0122 — Transactional diary-copy backend — code verified
+
+Added explicit owner/date/selected-id/confirmation scoped exercise and health copy endpoints.
+Persistent per-user UUID/fingerprint/results protect network retries and reject changed-payload reuse.
+Selected entries clone atomically, originals stay unchanged, health local times/doses/notes persist,
+and exercise photos never inherit. Typed exercise source inputs are recalculated using destination
+weight; raw manual override/arms support stay raw (no double discount). Legacy estimate retention
+is disclosed; deleted strength-library references become name/equipment snapshots. Added migration
+c12200000001 for retry metadata; no diary records rewritten by migration. Full gates green: 449
+backend/494 frontend plus ancillary gates. Tests cover all nine typed exercise activities, dose/time,
+idempotency, invalid input, ownership/date/kind filters, all-or-none and commit failure rollback.
+UI split into FF-0123 for independently verified copy sheets. Next merge, backup/migrate, UI; final
+owner restart activates all backend changes. Standing copy/retry policy added to AGENTS.md.

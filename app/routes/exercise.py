@@ -84,6 +84,17 @@ def activity_catalog():
     return jsonify(CATALOG + [{'id': key, **value} for key, value in ACTIVITIES.items()])
 
 
+@bp.route('/copy', methods=['POST'])
+@login_required
+def copy_exercise_entries():
+    from app.utils.diary_copy import CopyError, copy_entries
+    try:
+        result = copy_entries(current_user, 'exercise', request.get_json())
+    except CopyError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    return jsonify(result), 200 if result['replayed'] else 201
+
+
 @bp.route('/strength-library', methods=['GET'])
 @login_required
 def strength_library():
