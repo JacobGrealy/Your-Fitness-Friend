@@ -2211,6 +2211,8 @@ Replaced separate Log Food/Log Food Photo actions with one Log Food entry openin
 Chooser offers Quick Add, Barcode Scan, Photo and Search, reusing existing screens and preserving
 meal/date query and return origin. Barcode destination automatically opens the existing scan/manual
 lookup modal. Existing /food/log (search/recent), photo and select deep links remain intact.
-Full gates green: 383 backend, 472 frontend plus all ancillary gates. Next: merge/build and combined
-mobile browser verification of chooser paths plus Custom Foods under More, then close FF-0121.
-Remaining exercise work and FF-0122 copying still pending.
+Full gates green: 383 backend, 472 frontend plus all ancillary gates. Build passed; code ace466c.
+Isolated mobile Chromium verified single Log Food and all four destinations (barcode auto-opens),
+plus More -> Custom Foods. First probe used an obsolete Quick Add submit label; corrected to the
+existing Submit aria-label, then all checks passed. Verification server stopped. No backend/APK change.
+Remaining exercise work and FF-0122 copying still pending; next FF-0113 exercise photos.
