@@ -22,6 +22,16 @@ test('loads selected day, displays walking details and updates exercise total', 
   expect(screen.getByRole('link', { name: 'Edit Walking Pad / Treadmill' })).toHaveAttribute('href', '/exercise/log?activity=treadmill_walking&edit=1')
 })
 
+test('diary thumbnail opens a full-size viewer separately from editing', async () => {
+  api.getExerciseLogs.mockResolvedValue([{ ...log, photo_endpoint: '/api/exercise/log/1/photo' }])
+  render(view('2026-10-21'))
+  fireEvent.click(await screen.findByRole('button', { name: 'View photo for Walking Pad / Treadmill' }))
+  expect(screen.getByRole('dialog', { name: 'Exercise photo' })).toBeInTheDocument()
+  expect(screen.getByAltText('Exercise session')).toHaveAttribute('src', '/api/exercise/log/1/photo')
+  fireEvent.click(screen.getByRole('button', { name: 'Close photo' }))
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+})
+
 test('X confirms deletion and refreshes daily calories without editing', async () => {
   api.getExerciseLogs.mockResolvedValue([log])
   api.deleteExerciseLog.mockResolvedValue({})

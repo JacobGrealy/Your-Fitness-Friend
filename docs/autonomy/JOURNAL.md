@@ -2216,3 +2216,15 @@ Isolated mobile Chromium verified single Log Food and all four destinations (bar
 plus More -> Custom Foods. First probe used an obsolete Quick Add submit label; corrected to the
 existing Submit aria-label, then all checks passed. Verification server stopped. No backend/APK change.
 Remaining exercise work and FF-0122 copying still pending; next FF-0113 exercise photos.
+
+## FF-0113 — Exercise photo controls — code verified
+
+Added reusable ExercisePhotoField for camera/gallery draft selection, local preview, full-size viewing,
+replace/remove and validation, reused by treadmill form. Initial upload and edit replacement are one
+multipart save; validated remove_photo intent atomically removes stored photo with fields on save.
+Diary thumbnails open viewer separately from full-row edit and X deletion. Repeat never inherits photo.
+Save/upload errors retain form/photo draft; URLs are revoked. Backend cleanup remains reference-aware.
+Full gates green: 387 backend, 479 frontend, all ancillary gates. Includes form upload failure/retention,
+repeat isolation, gallery choices, viewer close and atomic removal validation. Next build/browser photo
+upload/edit/remove verification, then strength backend. No migration; final owner restart includes API
+remove_photo extension. Other exercise roadmap and copying remain pending.
