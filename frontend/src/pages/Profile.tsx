@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { authApi } from '@/api/auth'
@@ -560,6 +561,11 @@ function Profile() {
           <span className="text-white text-base font-medium">Settings</span>
         </div>
         <div>
+          <Link to="/food/custom" className="w-full flex items-center justify-between px-4 py-4 text-[#212121] hover:bg-[#fafafa]">
+            <span className="text-base">Custom Foods</span>
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+          </Link>
+          <div className="h-px bg-[#e0e0e0] mx-4" />
           {/* Account row — opens the same edit sheet as the pencil in the
               Profile Info header. It used to be a dead tap target. */}
           <button

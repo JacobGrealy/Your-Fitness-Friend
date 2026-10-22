@@ -1,14 +1,16 @@
 meta:
-  updated_at: 2026-10-22T09:09
+  updated_at: 2026-10-22T09:25
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
+- FF-0121
 - FF-0113
 - FF-0108
 - FF-0109
 - FF-0110
 - FF-0111
+- FF-0122
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -4254,14 +4256,20 @@ intake:
   status: open
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-21T12:58
+  updated_at: 2026-10-22T09:20
   completed_at: null
   waiting_on: null
   parent_id: null
   notes: 'Build on typed activity sessions: persist ordered individual sets with reps and external load,
     including bodyweight and optional session duration/effort. Preserve legacy logs. Versioned duration/effort
     calorie estimates only, never calories-per-rep. Ownership, validation, edit/repeat and migration tests.
-    Backend-only slice.'
+    Backend-only slice.
+
+
+    Owner confirms multiple exercises per strength workout, lbs, dumbbells per hand and barbell including
+    bar; common starter library plus custom exercises; no variable-speed segments. Work inline without
+    subagents. Finish and verify all queued work, then leave one backend restart command; do not wait
+    for privileged activation.'
   comments: []
 - id: FF-0109
   title: 'Strength UI: individual sets and previous-session defaults'
@@ -4273,13 +4281,18 @@ intake:
   status: open
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-21T12:58
+  updated_at: 2026-10-22T09:20
   completed_at: null
   waiting_on: null
   parent_id: null
-  notes: Activity-specific strength form with add/remove ordered sets, variable reps/load, bodyweight,
+  notes: 'Activity-specific strength form with add/remove ordered sets, variable reps/load, bodyweight,
     optional duration, previous-session defaults and meaningful diary details. Do not show treadmill fields.
     Integration and mobile tests. Depends on strength backend.
+
+
+    Owner confirms multiple exercises per workout, lbs with dumbbells per hand and barbell including bar.
+    Starter common exercise library and custom entries. No separate journal; use diary. Work inline, finish
+    and leave one backend restart command.'
   comments: []
 - id: FF-0110
   title: 'Broader activity backend: running, cycling and mobility estimation formats'
@@ -4557,4 +4570,74 @@ intake:
     return JSON 401 Authentication required instead of 404, confirming deployed authenticated routes.
     Web bundle already verified. Release activated; authenticated CRUD/defaults/mobile UI verified on
     isolated server without touching production records.'
+  comments: []
+- id: FF-0120
+  title: Move Custom Foods from quick logging menu to More
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-22T09:14
+  updated_at: 2026-10-22T09:25
+  completed_at: 2026-10-22T09:25
+  waiting_on: null
+  parent_id: null
+  notes: 'Owner requests remove Custom Foods from + quick menu and add accessible link under More/profile.
+    Preserve custom food management route and functionality. Update menu ordering and More link tests;
+    full gates and production web release. Separate from pending exercise clarification questions.
+
+
+    Moved Custom Foods from + menu to More/Settings link; existing route/functionality unchanged. Full
+    gates green: 383 backend/470 frontend; regression tests assert menu and href.'
+  comments: []
+- id: FF-0121
+  title: Unify quick-menu food logging behind a Log Food options screen
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-22T09:16
+  updated_at: 2026-10-22T09:16
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Owner requests exactly one Log Food quick-menu action, removing separate Log Food Photo. Log
+    Food opens a chooser screen with Quick Add, Barcode Scan, Photo, and Search options. Reuse existing
+    logging flows, preserve selected meal/date and return context where available. Photo and search remain
+    fully accessible via chooser; old deep links remain working. Coordinate FF-0120 removal of Custom
+    Foods from + menu (moves to More). Accessible mobile layout and menu/chooser/navigation regression
+    tests; full gates and production web build. Do not remove functionality or duplicate food logging
+    implementations.
+  comments: []
+- id: FF-0122
+  title: Copy exercise medication and bowel entries between diary dates
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-22T09:21
+  updated_at: 2026-10-22T09:21
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Owner requests this task AFTER current food-menu and remaining exercise implementation finishes.
+    Provide diary copy affordance like meals for Exercise, Medication, and Bowel Movements, with explicit
+    source/destination date and selection/count confirmation. Preserve originals; enforce ownership and
+    destination timestamps, validate data and avoid accidental duplicate submissions. Exercise copy must
+    use completed typed multi-exercise/activity schema and photo policy (do not implicitly copy session
+    photos); explicitly retain source inputs, recalculate estimated calories with destination weight policy
+    and disclose, preserve dose of medication being copied rather than replacing with current default.
+    Medication/bowel copying must be deliberate historical record entry, never imply an actual dose/bowel
+    movement happened automatically. Scope API/UI slices at start if necessary; backend/UI/date/ownership/photo/default
+    tests, full gates and mobile verification. Do not start before FF-0120/0121/0113/0108/0109/0110/0111
+    finish.
   comments: []

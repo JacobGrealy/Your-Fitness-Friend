@@ -81,18 +81,6 @@ export default function FABModal({ isOpen, onClose }: FABModalProps) {
       path: '/health/log/bowel',
       icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" /></svg>,
     },
-    {
-      // FF-0016: /food/custom was only linked from /food, which the Diary tab
-      // never opens — so the custom foods screen and its add/edit actions were
-      // unreachable from anywhere in the app.
-      label: 'Custom Foods',
-      path: '/food/custom',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h10" />
-        </svg>
-      ),
-    },
   ]
 
   if (!isOpen) return null
