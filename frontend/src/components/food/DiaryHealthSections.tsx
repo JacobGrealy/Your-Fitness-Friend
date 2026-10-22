@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { healthApi, healthError, type HealthEntry, type HealthKind } from '@/api/health'
 import { useAuthStore } from '@/store/authStore'
 import Modal from '@/components/common/Modal'
+import CopyDiarySheet from './CopyDiarySheet'
+import type { CopyResult } from '@/api/diaryCopy'
 
 export default function DiaryHealthSections({ date }: { date: string }) {
   const userId = useAuthStore(s => s.user?.id)
@@ -17,6 +19,8 @@ function HealthSections({ date }: { date: string }) {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleteError, setDeleteError] = useState('')
   const [collapsed, setCollapsed] = useState<HealthKind[]>([])
+  const [copyKind, setCopyKind] = useState<HealthKind | null>(null)
+  const [copyResult, setCopyResult] = useState<CopyResult | null>(null)
   const alive = useRef(true)
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
   useEffect(() => {
@@ -34,9 +38,9 @@ function HealthSections({ date }: { date: string }) {
       const entries = logs.filter(log => log.kind === kind)
       const closed = collapsed.includes(kind)
       return <section key={kind} aria-label={`Diary ${title}`} className="bg-white rounded-lg">
-        <button type="button" className="flex items-center justify-between w-full px-4 py-3 bg-[#185ADB] rounded-t-lg text-left text-white" aria-expanded={!closed} onClick={() => setCollapsed(items => closed ? items.filter(x => x !== kind) : [...items, kind])}>
+        <div className="flex items-center bg-[#185ADB] rounded-t-lg"><button type="button" className="flex items-center justify-between w-full px-4 py-3 bg-[#185ADB] rounded-t-lg text-left text-white" aria-expanded={!closed} onClick={() => setCollapsed(items => closed ? items.filter(x => x !== kind) : [...items, kind])}>
           <span className="font-bold">{title}</span><span className="text-sm">{entries.length} {entries.length === 1 ? 'entry' : 'entries'} <span aria-hidden="true">{closed ? '›' : '⌄'}</span></span>
-        </button>
+        </button><button type="button" aria-label={`Copy ${title}`} className="text-white text-xs border border-white/40 rounded px-2 py-1 mr-4 disabled:opacity-40" disabled={loading || !!error || !entries.length} onClick={() => setCopyKind(kind)}>Copy</button></div>
         {!closed && <div className="divide-y divide-[#e0e0e0]">
           {loading && <p role="status" className="px-4 py-3 text-sm text-[#757575]">Loading {title.toLowerCase()}…</p>}
           {!loading && !error && !entries.length && <p className="px-4 py-3 text-sm text-[#757575]">No {kind === 'medication' ? 'medication' : 'bowel movements'} logged for this day.</p>}
@@ -52,6 +56,8 @@ function HealthSections({ date }: { date: string }) {
         </div>}
       </section>
     })}
+    {copyResult && <p role="status" className="p-3 bg-white text-sm">Copied {copyResult.created_count} entries to {copyResult.destination_date}. <Link className="text-mfp-blue underline" to={`/food/daily?date=${copyResult.destination_date}`}>View copied day</Link></p>}
+    {copyKind && <CopyDiarySheet key={copyKind} kind={copyKind} sourceDate={date} entries={logs.filter(log => log.kind === copyKind).map(log => ({ id: log.id, label: `${log.kind === 'medication' ? `Wegovy pill · ${log.dose_mg} mg` : 'Bowel movement'} · ${log.logged_at.slice(11, 16)}`, detail: log.notes || undefined }))} onClose={() => setCopyKind(null)} onCopied={value => { setCopyResult(value); setCopyKind(null) }} />}
     <Modal isOpen={deleteId != null} onClose={() => { if (!deleting) setDeleteId(null) }} title="Delete Health Log" submitLabel="Delete" submitDisabled={deleting} submitLoading={deleting} onSubmit={async () => {
       if (deleteId == null || deleting) return
       setDeleting(true); setDeleteError('')

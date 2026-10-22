@@ -6,6 +6,8 @@ import type { ExerciseLog } from '@/types'
 import Modal from '@/components/common/Modal'
 import { ExercisePhotoViewer } from '@/components/exercise/ExercisePhotoField'
 import { exerciseSummary } from '@/utils/exerciseSummary'
+import CopyDiarySheet from './CopyDiarySheet'
+import type { CopyResult } from '@/api/diaryCopy'
 
 const number = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 2 })
 const totalOf = (logs: ExerciseLog[]) => Math.round(logs.reduce((sum, log) => sum + (log.calories_burned ?? 0), 0) * 100) / 100
@@ -19,6 +21,8 @@ export default function DiaryExerciseSection({ date, onTotal }: {
   const [error, setError] = useState('')
   const [attempt, setAttempt] = useState(0)
   const [collapsed, setCollapsed] = useState(false)
+  const [copyOpen, setCopyOpen] = useState(false)
+  const [copyResult, setCopyResult] = useState<CopyResult | null>(null)
   const [photoViewer, setPhotoViewer] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -26,7 +30,7 @@ export default function DiaryExerciseSection({ date, onTotal }: {
   const generation = useRef(0)
   useEffect(() => {
     const token = ++generation.current
-    setLoading(true); setError(''); setResult(null); onTotal({ date, total: 0 })
+    setLoading(true); setError(''); setResult(null); setCopyOpen(false); setCopyResult(null); onTotal({ date, total: 0 })
     setDeleteId(null); setDeleteError(''); setDeleting(false); setPhotoViewer(null)
     exerciseApi.getExerciseLogs({ start_date: date, end_date: date }).then(logs => {
       if (token !== generation.current) return
@@ -52,10 +56,12 @@ export default function DiaryExerciseSection({ date, onTotal }: {
     } finally { if (token === generation.current) setDeleting(false) }
   }
   return <section aria-label="Diary exercise" className="bg-white rounded-lg">
-    <button type="button" onClick={() => setCollapsed(x => !x)} aria-expanded={!collapsed} aria-label="Exercise section" className="flex items-center justify-between w-full px-4 py-3 cursor-pointer bg-[#185ADB] rounded-t-lg text-left">
+    <div className="flex items-center bg-[#185ADB] rounded-t-lg"><button type="button" onClick={() => setCollapsed(x => !x)} aria-expanded={!collapsed} aria-label="Exercise section" className="flex items-center justify-between w-full px-4 py-3 cursor-pointer bg-[#185ADB] rounded-t-lg text-left">
       <span className="font-bold text-white">Exercise</span>
       <span className="flex items-center gap-2 text-white text-sm">{number(totalOf(logs))} cal<svg className={`w-4 h-4 transition-transform ${collapsed ? '' : 'rotate-90'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></span>
-    </button>
+    </button><button type="button" aria-label="Copy Exercise" disabled={loading || !!error || !logs.length} onClick={() => setCopyOpen(true)} className="text-white text-xs border border-white/40 rounded px-2 py-1 mr-4 disabled:opacity-40">Copy</button></div>
+    {copyResult && <p role="status" className="p-3 text-sm">Copied {copyResult.created_count} entries to {copyResult.destination_date}. <Link className="text-mfp-blue underline" to={`/food/daily?date=${copyResult.destination_date}`}>View copied day</Link>{copyResult.warnings.map(w => <span className="block text-xs" key={w}>{w}</span>)}</p>}
+    {copyOpen && <CopyDiarySheet key={`${userId}:${date}`} kind="exercise" sourceDate={date} entries={logs.map(log => ({ id: Number(log.id), label: log.exercise_name, detail: exerciseSummary(log) }))} onClose={() => setCopyOpen(false)} onCopied={value => { setCopyResult(value); setCopyOpen(false) }} />}
     {!collapsed && <div className="divide-y divide-[#e0e0e0]">
       {loading && <p role="status" className="px-4 py-3 text-sm text-[#757575]">Loading exercise…</p>}
       {error && <div className="px-4 py-3 text-sm"><p role="alert">{error}</p><button className="text-mfp-blue underline mt-2" onClick={() => setAttempt(x => x + 1)}>Retry exercise</button></div>}
