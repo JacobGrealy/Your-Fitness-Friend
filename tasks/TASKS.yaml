@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-21T14:34
+  updated_at: 2026-10-22T08:27
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
+- FF-0119
 - FF-0113
 - FF-0108
 - FF-0109
@@ -4488,4 +4489,51 @@ intake:
     Full gates green: 361 backend/459 frontend. Web build passed. Isolated mobile Chromium verified old
     journal redirect, full-row edit, save returns diary, X confirmation deletes without editing and updates
     rows, no horizontal overflow. Code 833f644. Web-only release; no restart/APK required.'
+  comments: []
+- id: FF-0118
+  title: Medication and bowel movement logging backend
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: done
+  labels: []
+  created_at: 2026-10-22T08:21
+  updated_at: 2026-10-22T08:27
+  completed_at: 2026-10-22T08:27
+  waiting_on: null
+  parent_id: null
+  notes: 'Owner takes Wegovy pill, dose options explicitly supplied: 1.5, 4, 9, 25 mg. Build authenticated
+    owner-scoped medication and bowel movement CRUD with logical local date/time and optional notes. Medication
+    records Wegovy oral dose from exact selectable options, latest logged selection default else lowest
+    1.5 mg. No dose recommendations/titration. Bowel logs date/time and optional notes only. Validate
+    timestamp/date, finite allowed dose, ownership and note limits. Migration with fresh upgrade tests;
+    backup before live migration. Dated diary reads and edit/delete. Keep other exercise redesign paused.
+
+
+    Full gates green: 383 backend/459 frontend plus all ancillary gates. Owner-scoped local-time medication/bowel
+    CRUD, exact supplied dose options/default, validated dates/notes/dose/kind, foreign-owner 404, migration
+    c11800000001. No recommendations or auto-escalation. Backend restart required after backed-up migration.'
+  comments: []
+- id: FF-0119
+  title: Medication and bowel log forms plus menu and diary entries
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-22T08:22
+  updated_at: 2026-10-22T08:22
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Depends FF-0118. Add + menu options Medication (Wegovy pill) and Bowel movement; forms default
+    local now and optional notes. Dose select 1.5/4/9/25 mg, default latest logged dose or 1.5 mg when
+    no history; do not invent treatment schedule. Daily diary sections owner/date scoped, click entry
+    edit, X delete confirmation, errors preserve input, stale guards. Accessible mobile consistent with
+    food/exercise style. No reminders requested. Unit/integration/browser tests, full gates, production
+    web release. No unrelated exercise roadmap work.
   comments: []

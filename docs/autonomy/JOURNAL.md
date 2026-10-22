@@ -2161,3 +2161,15 @@ Full gates green: 361 backend, 459 frontend plus all ancillary gates. Production
 HTTPS serves index-C_555Di3.js. Isolated mobile Chromium verified old journal redirects to diary,
 row click opens edit, save returns diary, X confirms removal without editing, and layout fits.
 Verification server stopped. Code 833f644. Web-only: no restart/APK required.
+
+## FF-0118 — Medication and bowel movement log backend — 2026-10-22
+
+Owner supplied oral Wegovy strengths 1.5/4/9/25 mg and approved date/time + optional notes for
+both pill and bowel logs. Added owner-scoped health_logs model, migration c11800000001 and
+/api/health options + dated CRUD. Medication default is the most recently logged own selection
+(by insertion id), else 1.5 mg, with no dose escalation/recommendation. Wall-clock timestamps
+remain local minutes rather than shifting across UTC day boundaries. Notes limited to 1000 chars;
+strict allowed numeric doses, immutable kind, bowel-dose exclusion, foreign-owner 404 and auth.
+Full gates green: 383 backend, 459 frontend plus all ancillary gates, including fresh migrations.
+Next: merge, verified backup/live migration, then FF-0119 forms, + menu and daily diary.
+The existing exercise redesign remains paused; current goal narrowed to these two health tickets.
