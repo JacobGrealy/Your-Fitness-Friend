@@ -34,6 +34,28 @@ test.each(['edit', 'repeat'])('loads supported checkbox for %s', async mode => {
   await waitFor(() => expect(screen.getByRole('checkbox', { name: /Arms supported/ })).toBeChecked())
 })
 
+test('initial photo is included in the atomic save and retained after failure', async () => {
+  URL.createObjectURL = jest.fn(() => 'blob:photo')
+  URL.revokeObjectURL = jest.fn()
+  api.saveSession.mockRejectedValue({ response: { data: { error: 'Photo rejected' } } })
+  show(); fill()
+  const file = new File(['photo'], 'workout.jpg', { type: 'image/jpeg' })
+  fireEvent.change(screen.getByTestId('photo-input-gallery'), { target: { files: [file] } })
+  fireEvent.click(screen.getByRole('button', { name: 'Log walking session' }))
+  await waitFor(() => expect(api.saveSession).toHaveBeenCalledWith(expect.anything(), undefined, file, false))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Photo rejected')
+  expect(screen.getByAltText('Selected exercise photo')).toHaveAttribute('src', 'blob:photo')
+  expect(navigate).not.toHaveBeenCalled()
+})
+
+test.each(['edit', 'repeat'])('stored photo is shown only for edit, not repeat: %s', async mode => {
+  api.getExerciseLog.mockResolvedValue({ activity_id: 'treadmill_walking', duration: 30, date: '2026-10-21', photo_endpoint: '/api/exercise/log/7/photo', details: { speed_mph: 2, incline_percent: 0 } } as any)
+  show(`&${mode}=7`)
+  await screen.findByLabelText('Speed (mph)')
+  if (mode === 'edit') expect(screen.getByAltText('Selected exercise photo')).toHaveAttribute('src', '/api/exercise/log/7/photo')
+  else expect(screen.queryByAltText('Selected exercise photo')).not.toBeInTheDocument()
+})
+
 test('walking has relevant fields and deterministic preview', async () => {
   show(); fill()
   expect(screen.queryByText('Sets (optional)')).not.toBeInTheDocument()

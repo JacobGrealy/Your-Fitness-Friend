@@ -85,8 +85,15 @@ def _typed_request(data, existing=None, preview=False):
         return jsonify({'error': str(exc)}), 400
     if preview:
         return jsonify(values['details'])
+    remove_photo = data.get('remove_photo', False)
+    if not isinstance(remove_photo, bool):
+        return jsonify({'error': 'remove_photo must be a boolean'}), 400
+    if remove_photo and 'photo' in request.files:
+        return jsonify({'error': 'Cannot replace and remove photo together'}), 400
     new_photo = None
     previous = existing.photo_url if existing else None
+    if remove_photo:
+        values['photo_url'] = None
     if 'photo' in request.files:
         try:
             new_photo = save_exercise_photo(request.files['photo'])
@@ -105,7 +112,7 @@ def _typed_request(data, existing=None, preview=False):
         db.session.rollback()
         discard_new_photo(new_photo)
         raise
-    if new_photo and previous:
+    if (new_photo or remove_photo) and previous:
         remove_if_unreferenced(previous)
     return jsonify(_serialize(existing)), 200 if request.method == 'PUT' else 201
 

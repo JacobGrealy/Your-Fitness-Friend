@@ -8,11 +8,12 @@ export const exerciseApi = {
   getExerciseLog: (id: string) => api.get(`/exercise/log/${id}`).then(res => normalizeLog(res.data)),
   estimateSession: (data: TreadmillSessionCreate, id?: string) =>
     api.post<ExerciseEstimate>('/exercise/estimate', id ? { ...data, log_id: id } : data).then(res => res.data),
-  saveSession: (data: TreadmillSessionCreate, id?: string, photo?: File) => {
-    let body: TreadmillSessionCreate | FormData = data
+  saveSession: (data: TreadmillSessionCreate, id?: string, photo?: File, removePhoto = false) => {
+    const payload = removePhoto ? { ...data, remove_photo: true } : data
+    let body: TreadmillSessionCreate | FormData = payload
     if (photo) {
       body = new FormData()
-      body.append('data', JSON.stringify(data))
+      body.append('data', JSON.stringify(payload))
       body.append('photo', photo)
     }
     const config = photo ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined

@@ -52,6 +52,25 @@ def test_bad_photo_or_bad_session_leaves_no_files(authenticated_client, app):
     assert not list(Path(app.config['UPLOAD_FOLDER']).rglob('*.jpg'))
 
 
+def test_photo_removal_is_atomic_with_session_edit(authenticated_client, app):
+    body = create(authenticated_client).json
+    path = Path(app.config['UPLOAD_FOLDER']) / body['photo_url']
+    endpoint = f"/api/exercise/log/{body['id']}"
+    invalid = authenticated_client.put(endpoint, json={**DATA, 'duration_minutes': -1, 'remove_photo': True})
+    assert invalid.status_code == 400
+    assert path.exists()
+    result = authenticated_client.put(endpoint, json={**DATA, 'duration_minutes': 40, 'remove_photo': True})
+    assert result.status_code == 200
+    assert result.json['photo_url'] is None
+    assert result.json['duration_min'] == 40
+    assert not path.exists()
+
+
+@pytest.mark.parametrize('value', ['true', 1, None])
+def test_remove_flag_must_be_boolean(authenticated_client, value):
+    assert authenticated_client.post('/api/exercise/log', json={**DATA, 'remove_photo': value}).status_code == 400
+
+
 def test_commit_failure_removes_new_file(authenticated_client, app):
     with patch.object(db.session, 'commit', side_effect=RuntimeError('database failure')):
         with pytest.raises(RuntimeError):

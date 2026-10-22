@@ -5,6 +5,7 @@ import { useExerciseStore } from '@/store/exerciseStore'
 import type { ExerciseEstimate, TreadmillSessionCreate } from '@/types'
 import { todayLocal } from '@/utils/localDate'
 import { exerciseError, exerciseKey, readPreference, writePreference } from './exercisePreferences'
+import ExercisePhotoField, { emptyExercisePhoto, type ExercisePhotoDraft } from '@/components/exercise/ExercisePhotoField'
 
 const input = 'w-full rounded-lg border border-mfp-border bg-white px-3 py-3 text-mfp-text focus:ring-2 focus:ring-mfp-blue'
 const display = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 2 })
@@ -23,6 +24,8 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
   const [override, setOverride] = useState('')
   const [armsSupported, setArmsSupported] = useState(false)
   const [notes, setNotes] = useState('')
+  const [photo, setPhoto] = useState<ExercisePhotoDraft>(emptyExercisePhoto)
+  const [initialPhoto, setInitialPhoto] = useState<string | null>(null)
   const [loading, setLoading] = useState(!!(editId || repeatId))
   const [loadError, setLoadError] = useState('')
   const [error, setError] = useState('')
@@ -42,6 +45,7 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
       setSpeed(String(log.details.speed_mph)); setIncline(String(log.details.incline_percent))
       setArmsSupported(log.details.arms_supported === true)
       if (editId) {
+        setInitialPhoto(log.photo_endpoint || null)
         setDate(log.date || log.logged_at.slice(0, 10)); setDuration(String(log.duration))
         setNotes(log.notes || ''); setOverride(log.details.calorie_override == null ? '' : String(log.details.calorie_override))
       }
@@ -81,7 +85,9 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
     if (!payload || saving) return
     setSaving(true); setError('')
     try {
-      const result = await exerciseApi.saveSession(payload, editId)
+      const result = photo.file || photo.remove
+        ? await exerciseApi.saveSession(payload, editId, photo.file || undefined, photo.remove)
+        : await exerciseApi.saveSession(payload, editId)
       if (!alive.current) return
       writePreference(exerciseKey(userId, 'treadmill'), { speed_mph: result.details?.speed_mph, incline_percent: result.details?.incline_percent })
       writePreference(exerciseKey(userId, 'recent'), 'treadmill_walking')
@@ -124,6 +130,7 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
       </label>
       <label className="block text-sm font-medium">Device / manual active calories (optional)<input className={`${input} mt-1`} type="number" min="0" max="20000" step="any" value={override} onChange={e => setOverride(e.target.value)} /><span className="block text-xs text-mfp-textSecondary mt-1">Overrides the estimate. Enter active calories, excluding resting energy.</span></label>
       <label className="block text-sm font-medium">Session notes<textarea className={`${input} mt-1`} rows={2} maxLength={500} value={notes} onChange={e => setNotes(e.target.value)} /></label>
+      <ExercisePhotoField value={photo} onChange={setPhoto} initialUrl={initialPhoto} />
     </fieldset>
     <section aria-label="Calorie preview" className="bg-[#eef4ff] border border-[#cbdcf7] rounded-xl p-5 space-y-2">
       <p className="text-xs uppercase tracking-widest text-mfp-blue">Estimated activity energy</p>
