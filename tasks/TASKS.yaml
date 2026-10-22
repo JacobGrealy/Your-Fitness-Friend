@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-22T15:27
+  updated_at: 2026-10-22T15:41
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0109
 - FF-0110
 - FF-0111
 - FF-0122
@@ -4293,11 +4292,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-22T15:27
-  completed_at: null
+  updated_at: 2026-10-22T15:41
+  completed_at: 2026-10-22T15:41
   waiting_on: null
   parent_id: null
   notes: 'Activity-specific strength form with add/remove ordered sets, variable reps/load, bodyweight,
@@ -4307,7 +4306,14 @@ intake:
 
     Owner confirms multiple exercises per workout, lbs with dumbbells per hand and barbell including bar.
     Starter common exercise library and custom entries. No separate journal; use diary. Work inline, finish
-    and leave one backend restart command.'
+    and leave one backend restart command.
+
+
+    Full final gates green 401 backend/485 frontend. Build passed. Isolated mobile Chromium verified whole
+    workout with Bench Press variable sets + bodyweight Push-up, diary reps/load details, editing and
+    repeat blank-duration defaults, no overflow. First browser probe exact label did not match nested
+    select label; corrected probe, checks passed. Code b2499cb. Backend activation part of final restart;
+    no migration.'
   comments: []
 - id: FF-0110
   title: 'Broader activity backend: running, cycling and mobility estimation formats'
