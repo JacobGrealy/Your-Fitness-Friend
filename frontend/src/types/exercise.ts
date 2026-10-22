@@ -37,7 +37,7 @@ export interface ExerciseLog {
   date?: string
   activity_id?: string | null
   tracking_format?: string | null
-  details?: ExerciseEstimate | null
+  details?: ExerciseEstimate | StrengthEstimate | null
   photo_url?: string | null
   photo_endpoint?: string | null
 }
@@ -83,6 +83,41 @@ export interface ExerciseEstimate {
   weight_date: string | null
   method: string
   source: string
+  warnings: string[]
+}
+
+export type StrengthEquipment = 'barbell' | 'dumbbell' | 'machine' | 'bodyweight' | 'other'
+export interface StrengthLibraryItem { id: string; name: string; equipment: StrengthEquipment }
+export interface StrengthExercise {
+  exercise_id: string | null
+  name: string
+  equipment: StrengthEquipment
+  load_convention?: string
+  sets: { reps: number; weight_lbs: number | null }[]
+}
+export interface StrengthSessionCreate {
+  activity_id: 'strength_training'
+  date: string
+  exercises: StrengthExercise[]
+  duration_minutes?: number | null
+  effort: 'moderate' | 'vigorous'
+  calorie_override?: number | null
+  notes?: string
+}
+export interface StrengthEstimate {
+  activity_id: 'strength_training'
+  tracking_format: 'strength'
+  exercises: StrengthExercise[]
+  duration_minutes: number | null
+  effort: 'moderate' | 'vigorous'
+  active_calories: number | null
+  gross_calories: number | null
+  calories_burned: number | null
+  calorie_override: number | null
+  weight_lbs: number | null
+  weight_source: 'weigh_in' | 'profile' | null
+  weight_date: string | null
+  method: string
   warnings: string[]
 }
 

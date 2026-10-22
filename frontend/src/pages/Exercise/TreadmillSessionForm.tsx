@@ -41,7 +41,7 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
     let active = true
     exerciseApi.getExerciseLog((editId || repeatId)!).then(log => {
       if (!active) return
-      if (log.activity_id !== 'treadmill_walking' || !log.details) throw new Error('Unsupported session')
+      if (log.activity_id !== 'treadmill_walking' || !log.details || !('speed_mph' in log.details)) throw new Error('Unsupported session')
       setSpeed(String(log.details.speed_mph)); setIncline(String(log.details.incline_percent))
       setArmsSupported(log.details.arms_supported === true)
       if (editId) {
@@ -89,7 +89,7 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
         ? await exerciseApi.saveSession(payload, editId, photo.file || undefined, photo.remove)
         : await exerciseApi.saveSession(payload, editId)
       if (!alive.current) return
-      writePreference(exerciseKey(userId, 'treadmill'), { speed_mph: result.details?.speed_mph, incline_percent: result.details?.incline_percent })
+      if (result.details && 'speed_mph' in result.details) writePreference(exerciseKey(userId, 'treadmill'), { speed_mph: result.details.speed_mph, incline_percent: result.details.incline_percent })
       writePreference(exerciseKey(userId, 'recent'), 'treadmill_walking')
       void useExerciseStore.getState().fetchExerciseLogs()
       navigate('/food/daily')

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore'
 import type { ExerciseLog } from '@/types'
 import Modal from '@/components/common/Modal'
 import { ExercisePhotoViewer } from '@/components/exercise/ExercisePhotoField'
+import { exerciseSummary } from '@/utils/exerciseSummary'
 
 const number = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 2 })
 const totalOf = (logs: ExerciseLog[]) => Math.round(logs.reduce((sum, log) => sum + (log.calories_burned ?? 0), 0) * 100) / 100
@@ -62,13 +63,13 @@ export default function DiaryExerciseSection({ date, onTotal }: {
       {logs.map(log => {
         const content = <>
           <span className="font-medium text-sm text-[#212121]">{log.exercise_name}</span>
-          <span className="block text-xs text-[#757575] mt-0.5">{log.duration != null && `${number(log.duration)} min`}{log.details && <> · {number(log.details.speed_mph)} mph · {number(log.details.incline_percent)}% incline · {number(log.details.distance_miles)} mi</>}</span>
-          <span className="block text-xs text-[#757575] mt-0.5">{log.calories_burned == null ? 'Calories not estimated' : `${number(log.calories_burned)} cal`} · {log.details ? 'Active · estimated' : 'Legacy estimate'}{log.details?.arms_supported && ' · Arms supported'}</span>
+          <span className="block text-xs text-[#757575] mt-0.5">{exerciseSummary(log)}</span>
+          <span className="block text-xs text-[#757575] mt-0.5">{log.calories_burned == null ? 'Calories not estimated' : `${number(log.calories_burned)} cal · ${log.details ? 'Active · estimated' : 'Legacy estimate'}`}{log.details && 'arms_supported' in log.details && log.details.arms_supported && ' · Arms supported'}</span>
         </>
         return <div key={log.id} className="flex items-center justify-between hover:bg-[#fafafa] transition-colors">
           {log.photo_endpoint && <button type="button" aria-label={`View photo for ${log.exercise_name}`} className="ml-4 shrink-0" onClick={() => setPhotoViewer(log.photo_endpoint!)}><img src={log.photo_endpoint} alt="" className="w-10 h-10 rounded object-cover" /></button>}
-          {log.activity_id === 'treadmill_walking'
-            ? <Link className="flex-1 min-w-0 px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#185ADB]" aria-label={`Edit ${log.exercise_name}`} to={`/exercise/log?activity=treadmill_walking&edit=${log.id}`}>{content}</Link>
+          {log.activity_id && log.details
+            ? <Link className="flex-1 min-w-0 px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#185ADB]" aria-label={`Edit ${log.exercise_name}`} to={`/exercise/log?activity=${encodeURIComponent(log.activity_id)}&edit=${log.id}`}>{content}</Link>
             : <div className="flex-1 min-w-0 px-4 py-3">{content}</div>}
           <button type="button" className="text-[#757575] hover:text-red-600 transition-colors shrink-0 p-1 mr-4" aria-label={`Delete ${log.exercise_name}`} onClick={() => { setDeleteId(log.id); setDeleteError('') }}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
