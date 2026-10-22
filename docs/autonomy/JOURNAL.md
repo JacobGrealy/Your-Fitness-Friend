@@ -2183,5 +2183,10 @@ selection and exact options, local date/time defaults, optional notes, and failu
 sections with time/dose/notes, click-row edit and confirmation X removal. Date/account-keyed
 components discard stale requests; backdated saves return to their selected diary date via query.
 No reminders, dose advice, calorie changes or unrelated exercise work. Full gates green:
-383 backend, 469 frontend plus all ancillary gates. Next: merge/build and isolated mobile browser
-verification of + menu, dose defaults, medication/bowel saves, edits and deletion, then release.
+383 backend, 469 frontend plus all ancillary gates. Code a4c2af0 merged; production build passed
+and HTTPS serves index-DSW2_JtZ.js. Isolated Chromium 390x740 verified both + options, exact
+strengths, lowest/last default, pill/bowel save in diary, editing and X deletion with no overflow.
+Screenshot /tmp/ff0119-diary-mobile.png. Verification server stopped; test data stayed isolated.
+Activation attempt confirmed sudo still requires interactive authentication: owner must run
+sudo systemctl restart fitnessfriend. No APK update needed. Goal awaits live endpoint verification
+after restart; paused exercise queue is not resumed.
