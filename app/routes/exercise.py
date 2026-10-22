@@ -39,12 +39,21 @@ def _serialize(log):
 
 def _typed_values(data, user, existing=None):
     from app.utils.exercise_calories import session_day, weight_snapshot, treadmill_estimate
-    if data.get('activity_id') != 'treadmill_walking':
+    if data.get('activity_id') not in ('treadmill_walking', 'strength_training'):
         raise ValueError('Unknown activity_id')
     day = session_day(data.get('date'))
     notes = data.get('notes')
     if notes is not None and (not isinstance(notes, str) or len(notes) > 500):
         raise ValueError('Notes must be at most 500 characters')
+    if existing and existing.activity_id != data['activity_id']:
+        raise ValueError('A session activity cannot be changed when editing')
+    if data['activity_id'] == 'strength_training':
+        from app.utils.strength_sessions import strength_estimate
+        details = strength_estimate(data, user, day, existing)
+        return dict(activity_id='strength_training', tracking_format='strength',
+                    exercise_name='Strength Workout', duration=details['duration_minutes'],
+                    calories_burned=details['calories_burned'], details=details,
+                    logged_at=datetime.combine(day, time.min), notes=notes)
     # Editing historical inputs preserves the original body-weight snapshot unless
     # the session moves to another date. Later weigh-ins never rewrite old logs.
     if existing and existing.details and existing.logged_at.date() == day:
@@ -64,6 +73,23 @@ def _typed_values(data, user, existing=None):
 def activity_catalog():
     from app.utils.exercise_calories import CATALOG
     return jsonify(CATALOG)
+
+
+@bp.route('/strength-library', methods=['GET'])
+@login_required
+def strength_library():
+    from app.utils.strength_sessions import library
+    return jsonify(library(current_user.id))
+
+
+@bp.route('/latest', methods=['GET'])
+@login_required
+def latest_session():
+    activity_id = request.args.get('activity_id')
+    if activity_id not in ('treadmill_walking', 'strength_training'):
+        return jsonify({'error': 'Unknown activity_id'}), 400
+    log = ExerciseLog.query.filter_by(user_id=current_user.id, activity_id=activity_id).order_by(ExerciseLog.id.desc()).first()
+    return jsonify(_serialize(log) if log else None)
 
 
 def _session_payload():

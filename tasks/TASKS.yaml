@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-22T09:47
+  updated_at: 2026-10-22T15:27
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0108
 - FF-0109
 - FF-0110
 - FF-0111
@@ -4251,11 +4250,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-21T12:58
-  updated_at: 2026-10-22T09:20
-  completed_at: null
+  updated_at: 2026-10-22T15:27
+  completed_at: 2026-10-22T15:27
   waiting_on: null
   parent_id: null
   notes: 'Build on typed activity sessions: persist ordered individual sets with reps and external load,
@@ -4267,7 +4266,25 @@ intake:
     Owner confirms multiple exercises per strength workout, lbs, dumbbells per hand and barbell including
     bar; common starter library plus custom exercises; no variable-speed segments. Work inline without
     subagents. Finish and verify all queued work, then leave one backend restart command; do not wait
-    for privileged activation.'
+    for privileged activation.
+
+
+    Implementation brief: reuse ExerciseLog.details JSON for a whole strength workout with ordered exercises[]
+    and ordered sets[] (no schema change required unless review reveals otherwise). Built-in strength
+    library + owner custom SavedExercise refs; allow explicit custom name snapshot. Validate finite integer
+    reps and nonnegative external lbs; bodyweight set has no load; dumbbell load per hand, barbell includes
+    bar. Duration/effort optional; without duration calories remain null, not zero or per-rep invented.
+    Use Compendium 02054 moderate 3.5 MET and 02050 vigorous 6.0 MET (authoritative https://pacompendium.com/conditioning-exercise/
+    read 2026-10-22). Latest own weight on/before date and snapshot same-date edits when estimating. Existing
+    /estimate,/log,/log/:id,/logs/photo atomic paths should dispatch by activity_id and preserve treadmill
+    ACSM/arms support. Add /strength-library and /latest?activity_id=strength_training for previous-session
+    defaults. Final restart only; no subagents.
+
+
+    Implemented multi-exercise/ordered per-set JSON sessions, 15 built-in + own/custom exercise library,
+    optional duration/effort MET estimates, historical snapshots, latest-session defaults and existing
+    typed CRUD/photo integration. No migration needed. Full gates green 401 backend/479 frontend. Backend
+    activation deferred to final owner restart.'
   comments: []
 - id: FF-0109
   title: 'Strength UI: individual sets and previous-session defaults'
