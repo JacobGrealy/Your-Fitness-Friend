@@ -10,6 +10,7 @@ import { Meals, UploadPhoto, PhotoGallery } from './pages/Meals'
 import Profile from './pages/Profile'
 import AuthGuard from './components/layout/AuthGuard'
 import LogHealth from './pages/Health/LogHealth'
+import FoodLogOptions from './pages/Food/FoodLogOptions'
 
 export const router = createBrowserRouter([
   {
@@ -118,6 +119,10 @@ export const router = createBrowserRouter([
             <DailyFood />
           </AuthGuard>
         ),
+      },
+      {
+        path: 'food/log/options',
+        element: <AuthGuard><FoodLogOptions /></AuthGuard>,
       },
       {
         path: 'food/log',

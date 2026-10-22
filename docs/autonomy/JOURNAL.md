@@ -2203,3 +2203,14 @@ Goal now covers FF-0120/0121, FF-0113/0108/0109/0110/0111, then FF-0122, inline 
 Moved Custom Foods out of quick logging menu into a real More/Settings link, preserving /food/custom.
 Full gates green: 383 backend, 470 frontend plus all ancillary gates. Next: merge/build, then FF-0121
 single Log Food gateway. Broader release handoff should leave only one backend restart command.
+Published after merge: code 31ae2b1, release 93c1d0a; production build passed.
+
+## FF-0121 — Single Log Food quick-menu gateway — implementation verified
+
+Replaced separate Log Food/Log Food Photo actions with one Log Food entry opening /food/log/options.
+Chooser offers Quick Add, Barcode Scan, Photo and Search, reusing existing screens and preserving
+meal/date query and return origin. Barcode destination automatically opens the existing scan/manual
+lookup modal. Existing /food/log (search/recent), photo and select deep links remain intact.
+Full gates green: 383 backend, 472 frontend plus all ancillary gates. Next: merge/build and combined
+mobile browser verification of chooser paths plus Custom Foods under More, then close FF-0121.
+Remaining exercise work and FF-0122 copying still pending.

@@ -26,7 +26,7 @@ export default function LogFood() {
   const [quickAdded, setQuickAdded] = useState<string | null>(null)
   const { foods, recentFoods, isLoading, error, fetchFoods, fetchRecentFoods, clearError, logFood } = useFoodStore()
 
-  const [barcodeOpen, setBarcodeOpen] = useState(false)
+  const [barcodeOpen, setBarcodeOpen] = useState(searchParams.get('method') === 'barcode')
   const [searchTerm, setSearchTerm] = useState('')
   const [externalSearch, setExternalSearch] = useState<{ query: string; id: number } | null>(null)
   const submitSearch = () => {
