@@ -24,6 +24,8 @@ describe('Add menu ordering (FF-0015)', () => {
       'Log Food',
       'Log Weight',
       'Log Exercise',
+      'Log Medication',
+      'Log Bowel Movement',
       // FF-0016: management affordance stays last; logging actions lead.
       'Custom Foods',
     ])

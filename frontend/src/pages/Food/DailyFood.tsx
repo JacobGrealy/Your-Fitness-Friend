@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { diaryApi, type DiaryCompletionSummary, type DiaryStreaks, type DiaryWeek } from '@/api/diary'
 import CompleteDiaryModal from '@/components/food/CompleteDiaryModal'
@@ -17,6 +17,15 @@ import Modal from '@/components/common/Modal'
 import DiaryDateSelector from '@/components/food/DiaryDateSelector'
 import { returnState } from '@/utils/returnTo'
 import DiaryExerciseSection from '@/components/food/DiaryExerciseSection'
+import DiaryHealthSections from '@/components/food/DiaryHealthSections'
+
+function queryDiaryDate(value: string | null): Date {
+  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const parsed = new Date(`${value}T12:00:00`)
+    if (!Number.isNaN(parsed.getTime()) && format(parsed, 'yyyy-MM-dd') === value) return parsed
+  }
+  return new Date()
+}
 
 const MEAL_ICONS: Record<MealType, string> = {
   breakfast: '☀️',
@@ -175,7 +184,10 @@ export default function DailyFood() {
   const { foodLogs, dailyTotals, isLoading, fetchFoodLogs, fetchDailyTotals, deleteFoodLog, copyMeal, error } = useFoodStore()
   const [deleteLogId, setDeleteLogId] = useState<string | null>(null)
   const [collapsedMeals, setCollapsedMeals] = useState<Set<MealType>>(new Set())
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [searchParams] = useSearchParams()
+  const requestedDate = searchParams.get('date')
+  const [currentDate, setCurrentDate] = useState(() => queryDiaryDate(requestedDate))
+  useEffect(() => { if (requestedDate) setCurrentDate(queryDiaryDate(requestedDate)) }, [requestedDate])
   const [exerciseSummary, setExerciseSummary] = useState({ date: '', total: 0 })
   const [isNavigating, setIsNavigating] = useState(false)
   // `closedSummary` feeds the panel on load; `completion` drives the celebration and
@@ -376,6 +388,7 @@ export default function DailyFood() {
           })}
         </div>
         <DiaryExerciseSection date={format(currentDate, 'yyyy-MM-dd')} onTotal={setExerciseSummary} />
+        <DiaryHealthSections date={format(currentDate, 'yyyy-MM-dd')} />
       </div>
 
       {/* Once the day is closed the panel above owns it — Reopen lives there, so
