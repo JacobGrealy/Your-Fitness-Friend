@@ -1,10 +1,11 @@
 meta:
-  updated_at: 2026-10-22T16:01
+  updated_at: 2026-10-22T16:02
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0122
+- FF-0123
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -4694,14 +4695,14 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: in-progress
   labels: []
   created_at: 2026-10-22T09:21
-  updated_at: 2026-10-22T09:21
+  updated_at: 2026-10-22T16:02
   completed_at: null
   waiting_on: null
   parent_id: null
-  notes: Owner requests this task AFTER current food-menu and remaining exercise implementation finishes.
+  notes: 'Owner requests this task AFTER current food-menu and remaining exercise implementation finishes.
     Provide diary copy affordance like meals for Exercise, Medication, and Bowel Movements, with explicit
     source/destination date and selection/count confirmation. Preserve originals; enforce ownership and
     destination timestamps, validate data and avoid accidental duplicate submissions. Exercise copy must
@@ -4712,4 +4713,35 @@ intake:
     movement happened automatically. Scope API/UI slices at start if necessary; backend/UI/date/ownership/photo/default
     tests, full gates and mobile verification. Do not start before FF-0120/0121/0113/0108/0109/0110/0111
     finish.
+
+
+    Split scope: FF-0122 is backend/API/migration/test slice; new FF-0123 handles copy sheets and browser
+    UI. Plan persistent idempotency operation keyed by user+request_id, explicit source/destination dates
+    + selected ids + confirmed flag, transactional all-or-none copies, source ownership/date checks. Preserve
+    health local clock and dose with explicit actual-event confirmation; typed exercise reconstructs canonical
+    inputs and recalculates with destination weight, preserves manual overrides, never copies photos;
+    legacy records retain recorded estimates with disclosure.'
+  comments: []
+- id: FF-0123
+  title: Diary copy sheets for exercise medication and bowel sections
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-22T16:02
+  updated_at: 2026-10-22T16:02
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Frontend slice split from FF-0122. Food-style Copy affordance on Exercise, Medication, Bowel
+    Movements diary headers. Copy sheet selects source-day entries and destination date, shows counts/time/dose/calorie/photo
+    policy; explicit confirmation that copied health entries actually occurred on target date. Preserve
+    originals, no photos inherited, no automatic health logs. Backend typed exercise recalculates destination-date
+    weight/method with manual overrides preserved; legacy unavailable inputs disclosed. Use stable per-submission
+    request_id for retry idempotency, disable duplicate taps, handle errors without losing selection,
+    date/account stale guards. Full gates plus isolated mobile browser flows. Follow backend FF-0122 contract;
+    no standalone journal.
   comments: []

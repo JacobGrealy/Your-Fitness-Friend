@@ -134,6 +134,15 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
   Read images through the ownership-checked `/api/exercise/log/:id/photo` endpoint. Repeating
   a session must not silently copy its photo. New file rollback must preserve the old image.
 
+## Diary copying
+- Exercise/medication/bowel copies require explicit source and destination dates, selected own
+  log ids and confirmation. Health copies record actual events, not a schedule or automatic intake.
+  Use `app/utils/diary_copy.py`: copy all selected entries transactionally and persist the user-scoped
+  request id/fingerprint with results. Retry the same operation with the same request id; never
+  regenerate it after a network error. Typed exercise estimates use destination-date weight, raw
+  manual overrides remain raw, legacy estimates are preserved with disclosure, and photos are not
+  inherited. Keep source entries unchanged and preserve health local clock times/doses.
+
 ## Runtime topology
 - **Production** — `fitnessfriend.service`: gunicorn on `0.0.0.0:5001`, serving
   both the Flask API and the built SPA from `app/static`.

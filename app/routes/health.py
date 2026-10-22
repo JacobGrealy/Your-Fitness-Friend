@@ -81,6 +81,21 @@ def logs():
     return jsonify([serialize(log) for log in entries])
 
 
+@bp.route('/copy', methods=['POST'])
+@login_required
+def copy_health_entries():
+    from app.utils.diary_copy import CopyError, copy_entries
+    data = request.get_json()
+    kind = data.get('kind') if isinstance(data, dict) else None
+    if kind not in ('medication', 'bowel'):
+        return jsonify({'error': 'Choose medication or bowel entries'}), 400
+    try:
+        result = copy_entries(current_user, kind, data)
+    except CopyError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    return jsonify(result), 200 if result['replayed'] else 201
+
+
 @bp.route('/logs/<int:log_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
 def entry(log_id):
