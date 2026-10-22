@@ -2254,5 +2254,8 @@ only exercises/effort, not date/duration/override/photo; edit restores stored in
 new today without photo. Includes photo draft controls, atomic saves, failure retention and own
 log load guards. Shared typed API accepts strength sessions; diary summaries render actual reps/
 loads and link to edit without treadmill-only fields or a standalone journal. No food allowance change.
-Full gates green: 401 backend/485 frontend plus all ancillary gates. Next merge/build and isolated
-mobile multi-exercise create/edit/repeat verification, then FF-0110 broader activity backend.
+Full gates green: 401 backend/485 frontend plus all ancillary gates. Build passed; code b2499cb.
+Isolated mobile Chromium verified whole workout with variable Bench Press sets and bodyweight
+Push-up, diary details, editing and repeat blank-duration defaults, no overflow. First browser probe
+used an exact nested-label match that did not match; corrected probe, checks passed. Server stopped.
+No migration; backend activation included in final owner restart. Next FF-0110 broader activities.
