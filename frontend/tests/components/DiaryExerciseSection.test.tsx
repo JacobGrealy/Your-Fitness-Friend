@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import DiaryExerciseSection from '@/components/food/DiaryExerciseSection'
 import { exerciseApi } from '@/api/exercise'
 
+jest.mock('@/api/diaryCopy', () => ({ copyDiary: jest.fn() }))
 jest.mock('@/api/exercise', () => ({ exerciseApi: { getExerciseLogs: jest.fn(), deleteExerciseLog: jest.fn() } }))
 jest.mock('@/store/authStore', () => ({ useAuthStore: (selector: any) => selector({ user: { id: 7 } }) }))
 const api = exerciseApi as jest.Mocked<typeof exerciseApi>

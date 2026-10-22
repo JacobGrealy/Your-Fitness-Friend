@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import DiaryHealthSections from '@/components/food/DiaryHealthSections'
 import { healthApi } from '@/api/health'
+jest.mock('@/api/diaryCopy', () => ({ copyDiary: jest.fn() }))
 jest.mock('@/store/authStore', () => ({ useAuthStore: (s: any) => s({ user: { id: 7 } }) }))
 jest.mock('@/api/health', () => ({ healthError: () => 'Request failed', healthApi: { list: jest.fn(), remove: jest.fn() } }))
 const api = healthApi as jest.Mocked<typeof healthApi>
