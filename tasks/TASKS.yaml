@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-22T09:26
+  updated_at: 2026-10-22T09:35
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0121
 - FF-0113
 - FF-0108
 - FF-0109
@@ -4600,20 +4599,35 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-22T09:16
-  updated_at: 2026-10-22T09:26
-  completed_at: null
+  updated_at: 2026-10-22T09:35
+  completed_at: 2026-10-22T09:35
   waiting_on: null
   parent_id: null
-  notes: Owner requests exactly one Log Food quick-menu action, removing separate Log Food Photo. Log
+  notes: 'Owner requests exactly one Log Food quick-menu action, removing separate Log Food Photo. Log
     Food opens a chooser screen with Quick Add, Barcode Scan, Photo, and Search options. Reuse existing
     logging flows, preserve selected meal/date and return context where available. Photo and search remain
     fully accessible via chooser; old deep links remain working. Coordinate FF-0120 removal of Custom
     Foods from + menu (moves to More). Accessible mobile layout and menu/chooser/navigation regression
     tests; full gates and production web build. Do not remove functionality or duplicate food logging
     implementations.
+
+
+    Round 1: FF-0120 complete/published (93c1d0a). FF-0121 code ace466c merged locally after green full
+    gates 383 backend/472 frontend; production build passed, generated app/static/index.html remains uncommitted
+    for release closeout. Next perform isolated Chromium navigation (+ single Log Food -> all four chooser
+    destinations, barcode auto-opens, More Custom Foods link), then mark done, commit artifacts/journal
+    and push. Continue FF-0113 photos, FF-0108/0109 multi-exercise strength, FF-0110/0111 other activities,
+    THEN FF-0122 copy. Work inline no subagents and leave one final backend restart command. No running
+    jobs.
+
+
+    Full gates green 383 backend/472 frontend; build passed. Isolated mobile Chromium verified single
+    Log Food menu, Quick Add/Barcode/Photo/Search destinations (barcode modal auto-opens), and Custom
+    Foods under More. First browser probe used an obsolete Quick Add submit label; corrected probe to
+    existing Submit control and all checks passed. Code ace466c. No backend/APK changes.'
   comments: []
 - id: FF-0122
   title: Copy exercise medication and bowel entries between diary dates
