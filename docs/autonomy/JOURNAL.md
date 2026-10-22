@@ -2298,5 +2298,7 @@ is disclosed; deleted strength-library references become name/equipment snapshot
 c12200000001 for retry metadata; no diary records rewritten by migration. Full gates green: 449
 backend/494 frontend plus ancillary gates. Tests cover all nine typed exercise activities, dose/time,
 idempotency, invalid input, ownership/date/kind filters, all-or-none and commit failure rollback.
-UI split into FF-0123 for independently verified copy sheets. Next merge, backup/migrate, UI; final
-owner restart activates all backend changes. Standing copy/retry policy added to AGENTS.md.
+UI split into FF-0123 for independently verified copy sheets. Code 06705f1 merged/pushed. Verified
+backup 20261022-161331 preceded live upgrade c11800000001 -> c12200000001; current head confirmed.
+New retry metadata table only; no existing diary records modified. Next FF-0123 copy sheets/mobile
+flows; owner restart activates all backend changes. Standing copy/retry policy added to AGENTS.md.

@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-22T16:02
+  updated_at: 2026-10-22T16:13
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0122
 - FF-0123
 intake:
 - id: FF-0001
@@ -4695,11 +4694,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-22T09:21
-  updated_at: 2026-10-22T16:02
-  completed_at: null
+  updated_at: 2026-10-22T16:13
+  completed_at: 2026-10-22T16:13
   waiting_on: null
   parent_id: null
   notes: 'Owner requests this task AFTER current food-menu and remaining exercise implementation finishes.
@@ -4720,7 +4719,13 @@ intake:
     + selected ids + confirmed flag, transactional all-or-none copies, source ownership/date checks. Preserve
     health local clock and dose with explicit actual-event confirmation; typed exercise reconstructs canonical
     inputs and recalculates with destination weight, preserves manual overrides, never copies photos;
-    legacy records retain recorded estimates with disclosure.'
+    legacy records retain recorded estimates with disclosure.
+
+
+    Code 06705f1 merged/pushed. Full gates green 449 backend/494 frontend. Verified backup 20261022-161331
+    before live upgrade c11800000001 -> c12200000001, current head confirmed. New table is retry metadata
+    only; no existing diary records modified. Awaiting final owner restart as agreed. Copy sheets and
+    mobile flows remain FF-0123.'
   comments: []
 - id: FF-0123
   title: Diary copy sheets for exercise medication and bowel sections
@@ -4732,11 +4737,11 @@ intake:
   status: open
   labels: []
   created_at: 2026-10-22T16:02
-  updated_at: 2026-10-22T16:02
+  updated_at: 2026-10-22T16:13
   completed_at: null
   waiting_on: null
   parent_id: null
-  notes: Frontend slice split from FF-0122. Food-style Copy affordance on Exercise, Medication, Bowel
+  notes: 'Frontend slice split from FF-0122. Food-style Copy affordance on Exercise, Medication, Bowel
     Movements diary headers. Copy sheet selects source-day entries and destination date, shows counts/time/dose/calorie/photo
     policy; explicit confirmation that copied health entries actually occurred on target date. Preserve
     originals, no photos inherited, no automatic health logs. Backend typed exercise recalculates destination-date
@@ -4744,4 +4749,15 @@ intake:
     request_id for retry idempotency, disable duplicate taps, handle errors without losing selection,
     date/account stale guards. Full gates plus isolated mobile browser flows. Follow backend FF-0122 contract;
     no standalone journal.
+
+
+    API contract: POST /exercise/copy or /health/copy (health adds kind medication|bowel), JSON source_date/destination_date
+    YYYY-MM-DD different, log_ids positive integer[] selected (1..500), confirmed:true, request_id canonical
+    crypto.randomUUID(). 201 new / 200 replay; retain same request_id after network failure for identical
+    selection/dates; changed payload same id ->409. Response created_count/created_ids/kind/source_date/destination_date/photos_copied:false/recalculated_exercises/legacy_estimates_preserved/warnings/replayed.
+    Copy sheet explicitly selects destination date (no default future actual health events), checkboxes
+    for source entries, confirmation of actual health dose/time events. Stable request ref + synchronous
+    busy ref; disable close/duplicate taps in flight. Leave source unchanged; on success show count/date
+    and link to destination. Current schema live c12200000001; backend awaiting final owner restart. Implement
+    inline per owner (no subagents).'
   comments: []
