@@ -2230,3 +2230,17 @@ mobile Chromium verified gallery draft preview, atomic initial upload, diary thu
 replacement and atomic removal. Camera chooser branching unit-tested; physical camera not tested.
 Code d406e31. Verification server stopped. No migration; final owner restart includes remove_photo.
 Next strength backend FF-0108; remaining exercise roadmap and copying still pending.
+
+## FF-0108 — Multi-exercise strength backend — 2026-10-22
+
+Added structured whole-workout strength sessions in existing ExerciseLog.details JSON: ordered
+exercises and sets, rep/load validation, bodyweight/no external load, dumbbell per-hand and barbell
+including-bar conventions. Built-in 15-exercise library plus owner saved/custom exercise snapshots.
+New /strength-library and /latest?activity_id= support entry UI/previous session defaults. Existing
+typed preview/create/edit/photo/dated reads/delete dispatch by activity and preserve legacy logs.
+Session activity cannot change on edit. No schema migration required; no production records changed.
+Optional duration/effort uses 2024 Compendium 02054 (3.5 MET) or 02050 (6.0 MET), with active/gross
+and historical weight snapshot. Without duration calorie estimate remains null; explicit override
+allowed. No per-rep/load energy invention or AI. Full gates green: 401 backend, 479 frontend plus
+all ancillary gates. Treadmill ACSM/arms support regressions green. Next FF-0109 strength forms and
+diary summaries; final owner restart activates backend. Sources verified from Compendium table.

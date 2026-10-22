@@ -13,6 +13,9 @@ from app.models.weight_log import WeightLog
 CATALOG = [{
     'id': 'treadmill_walking', 'name': 'Walking Pad / Treadmill',
     'category': 'cardio', 'tracking_format': 'treadmill',
+}, {
+    'id': 'strength_training', 'name': 'Strength Workout',
+    'category': 'strength', 'tracking_format': 'strength',
 }]
 
 
