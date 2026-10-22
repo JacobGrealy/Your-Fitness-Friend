@@ -2302,3 +2302,18 @@ UI split into FF-0123 for independently verified copy sheets. Code 06705f1 merge
 backup 20261022-161331 preceded live upgrade c11800000001 -> c12200000001; current head confirmed.
 New retry metadata table only; no existing diary records modified. Next FF-0123 copy sheets/mobile
 flows; owner restart activates all backend changes. Standing copy/retry policy added to AGENTS.md.
+
+## FF-0123 — Copy sheets and final exercise roadmap release
+
+Added food-style Copy buttons on Exercise, Medication and Bowel Movements headers, with explicit
+entry selection, destination date and actual-event confirmation. Copy sheets preserve selection on
+failure and UUID on retries; busy guard prevents duplicate taps. Policy disclosures cover no photos,
+destination-weight estimates, preserved raw overrides, legacy estimates and health dose/local times.
+Date/account changes unmount sheets; success links to copied day without changing source records.
+Code 83be6fe. Full gates green: 449 backend, 497 frontend plus all ancillary gates. Build passed.
+Isolated mobile Chromium verified all three copy sheets, destination diary, source retention, dose
+9 mg and local times, no photos inherited and no overflow. All earlier seven activity/strength/photo
+mobile flows verified in their tickets. Backup/migration already verified at c12200000001.
+No APK required. Backend activation intentionally awaits one owner command:
+`sudo systemctl restart fitnessfriend`. Refresh afterward. All requested implementation complete;
+production backend functionality is not claimed activated before that restart.
