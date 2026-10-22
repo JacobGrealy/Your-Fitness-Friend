@@ -2171,5 +2171,17 @@ both pill and bowel logs. Added owner-scoped health_logs model, migration c11800
 remain local minutes rather than shifting across UTC day boundaries. Notes limited to 1000 chars;
 strict allowed numeric doses, immutable kind, bowel-dose exclusion, foreign-owner 404 and auth.
 Full gates green: 383 backend, 459 frontend plus all ancillary gates, including fresh migrations.
-Next: merge, verified backup/live migration, then FF-0119 forms, + menu and daily diary.
+Merged as d801dde (code 2d27c41); verified backup 20261022-082742 then live migration
+c11800000001 applied and confirmed at head. Backend restart remains needed.
 The existing exercise redesign remains paused; current goal narrowed to these two health tickets.
+
+## FF-0119 — Medication/bowel menu, forms and diary — verification in progress
+
+Added typed health API, authenticated medication/bowel create/edit forms, backend dose default
+selection and exact options, local date/time defaults, optional notes, and failure-safe saves.
++ menu adds both options and scrolls safely on shorter screens. Daily diary shows two food-style
+sections with time/dose/notes, click-row edit and confirmation X removal. Date/account-keyed
+components discard stale requests; backdated saves return to their selected diary date via query.
+No reminders, dose advice, calorie changes or unrelated exercise work. Full gates green:
+383 backend, 469 frontend plus all ancillary gates. Next: merge/build and isolated mobile browser
+verification of + menu, dose defaults, medication/bowel saves, edits and deletion, then release.

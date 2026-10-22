@@ -1,5 +1,5 @@
 meta:
-  updated_at: 2026-10-22T08:27
+  updated_at: 2026-10-22T08:28
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
@@ -4523,17 +4523,27 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: in-progress
   labels: []
   created_at: 2026-10-22T08:22
-  updated_at: 2026-10-22T08:22
+  updated_at: 2026-10-22T08:28
   completed_at: null
   waiting_on: null
   parent_id: null
-  notes: Depends FF-0118. Add + menu options Medication (Wegovy pill) and Bowel movement; forms default
+  notes: 'Depends FF-0118. Add + menu options Medication (Wegovy pill) and Bowel movement; forms default
     local now and optional notes. Dose select 1.5/4/9/25 mg, default latest logged dose or 1.5 mg when
     no history; do not invent treatment schedule. Daily diary sections owner/date scoped, click entry
     edit, X delete confirmation, errors preserve input, stale guards. Accessible mobile consistent with
     food/exercise style. No reminders requested. Unit/integration/browser tests, full gates, production
     web release. No unrelated exercise roadmap work.
+
+
+    FF-0118 backend merged d801dde (code 2d27c41), full gates green 383 backend/459 frontend. Verified
+    backup 20261022-082742 then live migration c11800000001 applied at head. UI ticket now in progress
+    on feat/FF-0119-health-log-ui. Backend routes: GET /health/options -> medication,dose_options_mg,default_dose_mg;
+    GET/POST /health/logs (GET date=YYYY-MM-DD); GET/PUT/DELETE /health/logs/:id. Payload kind=medication|bowel,
+    local logged_at YYYY-MM-DDTHH:MM, notes optional <=1000, medication dose_mg numeric 1.5/4/9/25; bowel
+    no dose. Register health model migration no recommendation. Next add typed API/forms/routes, FAB options,
+    diary sections, tests/browser/build. Backend restart remains needed. Do not continue paused exercise
+    work.'
   comments: []

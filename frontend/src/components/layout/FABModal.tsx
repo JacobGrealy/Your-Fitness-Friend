@@ -72,6 +72,16 @@ export default function FABModal({ isOpen, onClose }: FABModalProps) {
       ),
     },
     {
+      label: 'Log Medication',
+      path: '/health/log/medication',
+      icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16l8-8M6 18a5 5 0 010-7l5-5a5 5 0 017 7l-5 5a5 5 0 01-7 0z" /></svg>,
+    },
+    {
+      label: 'Log Bowel Movement',
+      path: '/health/log/bowel',
+      icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" /></svg>,
+    },
+    {
       // FF-0016: /food/custom was only linked from /food, which the Diary tab
       // never opens — so the custom foods screen and its add/edit actions were
       // unreachable from anywhere in the app.
@@ -93,7 +103,7 @@ export default function FABModal({ isOpen, onClose }: FABModalProps) {
         className="fixed inset-0 z-50 bg-black/40 sm:bg-black/30"
         onClick={onClose}
       />
-      <div className="fixed z-50 bottom-20 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 bg-white rounded-2xl shadow-xl p-4 w-72 sm:w-80" role="dialog" aria-modal="true">
+      <div className="fixed z-50 bottom-20 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 bg-white rounded-2xl shadow-xl p-4 w-72 sm:w-80 max-h-[calc(100dvh-7rem)] overflow-y-auto pb-[calc(1rem+env(safe-area-inset-bottom))]" role="dialog" aria-modal="true">
         <div className="flex flex-col gap-2">
           {options.map((option) => (
             <button

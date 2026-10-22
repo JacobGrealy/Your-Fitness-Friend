@@ -9,6 +9,7 @@ import { DailyFood, LogFood, CustomFoods, PhotoLog, FoodLogSelect, EditFoodLog, 
 import { Meals, UploadPhoto, PhotoGallery } from './pages/Meals'
 import Profile from './pages/Profile'
 import AuthGuard from './components/layout/AuthGuard'
+import LogHealth from './pages/Health/LogHealth'
 
 export const router = createBrowserRouter([
   {
@@ -63,6 +64,14 @@ export const router = createBrowserRouter([
             <EditWeight />
           </AuthGuard>
         ),
+      },
+      {
+        path: 'health/log/:kind',
+        element: <AuthGuard><LogHealth /></AuthGuard>,
+      },
+      {
+        path: 'health/log/:kind/:id',
+        element: <AuthGuard><LogHealth /></AuthGuard>,
       },
       {
         path: 'exercise',
