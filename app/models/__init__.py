@@ -6,6 +6,7 @@ from app.models.food import Food
 from app.models.food_log import FoodLog
 from app.models.meal_photo import MealPhoto
 from app.models.diary_completion import DiaryCompletion
+from app.models.health_log import HealthLog
 
 __all__ = [
     'User',
@@ -15,5 +16,6 @@ __all__ = [
     'Food',
     'FoodLog',
     'MealPhoto',
-    'DiaryCompletion'
+    'DiaryCompletion',
+    'HealthLog',
 ]
