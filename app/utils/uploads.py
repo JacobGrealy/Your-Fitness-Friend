@@ -105,6 +105,30 @@ def references_to(stored, exclude=None):
     return total
 
 
+def is_private_derivative(stored):
+    """Generated cache files are never exposed through raw upload routes."""
+    try:
+        relative = os.path.relpath(stored_file_path(stored), uploads_root())
+        return relative.split(os.sep)[0] == 'thumbnails'
+    except ValueError:
+        return True
+
+
+def has_photo_access(stored, user_id):
+    """Authorize derivative access through own records or a public food image."""
+    from sqlalchemy import text
+    from app import db
+    for table, column in _referenceable_columns():
+        owner = 'id' if table == 'users' else 'user_id'
+        clause = f'{owner} = :user_id'
+        if table == 'foods':
+            clause = f'({clause} OR user_id IS NULL)'
+        found = db.session.execute(text(f'SELECT 1 FROM {table} WHERE {column} = :stored AND {clause} LIMIT 1'), {'stored': stored, 'user_id': user_id}).first()
+        if found:
+            return True
+    return False
+
+
 def remove_if_unreferenced(stored, exclude=None):
     """Delete a stored file only when no other row points at it.
 
@@ -118,6 +142,8 @@ def remove_if_unreferenced(stored, exclude=None):
         return False
     try:
         os.remove(stored_file_path(stored))
+        from app.utils.photo_thumbnails import remove_thumbnail
+        remove_thumbnail(stored)
         return True
     except (OSError, ValueError):
         return False

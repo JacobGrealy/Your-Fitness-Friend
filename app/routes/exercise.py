@@ -494,7 +494,8 @@ def exercise_photo(log_id):
         if not log.photo_url:
             return jsonify({'error': 'No photo attached'}), 404
         try:
-            response = send_file(stored_file_path(log.photo_url), conditional=True)
+            from app.utils.photo_thumbnails import image_file
+            response = send_file(image_file(log.photo_url, thumbnail=request.args.get('thumbnail') == '1'), conditional=True)
             response.headers['Cache-Control'] = 'private, no-store'
             return response
         except (FileNotFoundError, ValueError):

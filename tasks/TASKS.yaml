@@ -1,10 +1,10 @@
 meta:
-  updated_at: 2026-10-23T09:32
+  updated_at: 2026-10-23T09:42
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0125
+- FF-0128
 - FF-0127
 intake:
 - id: FF-0001
@@ -4805,14 +4805,14 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-23T09:19
-  updated_at: 2026-10-23T09:19
-  completed_at: null
+  updated_at: 2026-10-23T09:42
+  completed_at: 2026-10-23T09:41
   waiting_on: null
   parent_id: null
-  notes: User requests smaller generated thumbnails for uploaded photos so diary/list thumbnails load
+  notes: 'User requests smaller generated thumbnails for uploaded photos so diary/list thumbnails load
     faster, while retaining full-size/original stored images for non-thumbnail use. Audit food/meal/exercise/weight
     photo paths and ownership serving/cleanup. Preserve existing full-size uploads; never overwrite or
     downsample them to generate thumbnails. Add ownership-safe thumbnail endpoints/URLs, reference-aware
@@ -4820,6 +4820,13 @@ intake:
     image dimensions, access control, atomic upload failure, replacement/removal/shared references. Use
     isolated upload fixtures, no destructive live-photo modifications. Complete current FF-0124 date fix
     first; work inline, no subagents.
+
+
+    Backend original-preserving lazy 320px JPEG thumbnail cache via thumbnail=1 for existing food/weight/profile/exercise
+    URLs; derivative access authorized and direct cache routes blocked; atomic generation/fallback; last-reference
+    cleanup. Full gates green 462 backend/499 frontend. Tests prove smaller images, full original byte
+    identity, owner/auth rules, cache reuse, shared cleanup, failure no temporary leak. No migration or
+    live upload changes. FF-0128 frontend next; final restart pending.'
   comments: []
 - id: FF-0126
   title: Honor selected food diary date in photo AI logging backend
@@ -4870,4 +4877,25 @@ intake:
     defaults. No automatic entries, no medical intake targets. Split backend/frontend if needed, full
     gates, isolated mobile verification, serial merges/publish, restart handoff if required. Finish date
     bug and thumbnails first. Work inline without subagents.
+  comments: []
+- id: FF-0128
+  title: Use generated thumbnail URLs in photo list and diary previews
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-23T09:34
+  updated_at: 2026-10-23T09:34
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Frontend slice of original-preserving photo thumbnails. Backend thumbnail URLs use existing authorized
+    photo URLs plus thumbnail=1; do not add flag to full-screen viewers, form/edit full-image previews,
+    AI submissions, copies or exports. Audit food diary/recent/custom lists, meal thumbnails, weight timeline,
+    exercise diary thumbnail and avatar as applicable. Keep click targets full-size, lazy-load thumbnails,
+    preserve full-size URL fallback if derivative fails. Full gates + isolated mobile screenshot/network
+    checks. Follow FF-0125 API; no subagents. Finish before hydration FF-0127.
   comments: []
