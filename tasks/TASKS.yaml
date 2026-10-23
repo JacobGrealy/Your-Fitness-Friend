@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-23T10:14
+  updated_at: 2026-10-23T10:18
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0130
 - FF-0131
 intake:
 - id: FF-0001
@@ -4946,11 +4945,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-23T09:59
-  updated_at: 2026-10-23T10:06
-  completed_at: null
+  updated_at: 2026-10-23T10:18
+  completed_at: 2026-10-23T10:18
   waiting_on: null
   parent_id: null
   notes: 'Frontend slice of Hydration user request. Positive fluid ounces and optional notes, local date/time,
@@ -4968,7 +4967,13 @@ intake:
     backed up; backend not restarted. Need UI last-default fetch + edit-existing guard, quick menu, dated
     diary total/edit/X, scoped auth/date async guards. Initial display24 while options loading must not
     allow save stale cross-account. End mobile actual CRUD/default/backdate test. New API import mocks
-    needed for DailyFood Jest tests.'
+    needed for DailyFood Jest tests.
+
+
+    Code 8bcea29, full gates green 483 backend/507 frontend; build passed. Isolated mobile browser proved
+    initial24 oz, backdated save, edit12 oz, remembered last amount12, daily total24 after second bottle,
+    confirmed deletion total12 and no overflow. Schema live c12700000001 backed up at20261023-100538;
+    final backend restart pending. FF-0131 photo review date edge case final.'
   comments: []
 - id: FF-0131
   title: Keep selected photo-log date through review acceptance and diary return
