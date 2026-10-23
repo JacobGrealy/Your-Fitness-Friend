@@ -7,7 +7,7 @@ describe('Quick logging menu', () => {
   it('offers one Log Food option and no management or separate photo option', () => {
     render(<MemoryRouter><FABModal isOpen onClose={jest.fn()} /></MemoryRouter>)
     expect(screen.getAllByTestId('fab-option').map(el => el.textContent?.trim())).toEqual([
-      'Log Food', 'Log Weight', 'Log Exercise', 'Log Medication', 'Log Bowel Movement',
+      'Log Food', 'Log Weight', 'Log Exercise', 'Log Hydration', 'Log Medication', 'Log Bowel Movement',
     ])
     expect(screen.queryByText('Custom Foods')).not.toBeInTheDocument()
     expect(screen.queryByText('Log Food Photo')).not.toBeInTheDocument()

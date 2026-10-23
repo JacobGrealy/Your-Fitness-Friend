@@ -33,6 +33,7 @@ import { MemoryRouter } from 'react-router-dom'
 import DailyFood from '@/pages/Food/DailyFood'
 jest.mock('@/components/food/DiaryExerciseSection', () => () => null)
 jest.mock('@/components/food/DiaryHealthSections', () => () => null)
+jest.mock('@/components/food/DiaryHydrationSection', () => () => null)
 
 const navigate = jest.fn()
 
