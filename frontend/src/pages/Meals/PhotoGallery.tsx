@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import ThumbnailImage from '@/components/common/ThumbnailImage'
+import { foodLogPhotoUrl } from '@/utils/photoUrl'
 import { useNavigate } from 'react-router-dom'
 import { useMealsStore } from '@/store/mealsStore'
 import Button from '@/components/common/Button'
@@ -62,8 +64,8 @@ export default function PhotoGallery() {
                   onClick={() => setExpandedPhoto(photo)}
                   className="w-full cursor-pointer"
                 >
-                  <img
-                    src={photo.photo_path}
+                  <ThumbnailImage
+                    src={foodLogPhotoUrl(photo.photo_path)}
                     alt={`Meal from ${formatDate(photo.date)}`}
                     className="w-full h-32 sm:h-40 object-cover rounded-t-lg"
                   />
@@ -118,7 +120,7 @@ export default function PhotoGallery() {
         {expandedPhoto && (
           <div className="space-y-3">
             <img
-              src={expandedPhoto.photo_path}
+              src={foodLogPhotoUrl(expandedPhoto.photo_path)}
               alt="Expanded meal photo"
               className="w-full max-h-[400px] object-contain rounded-lg bg-base-200"
             />

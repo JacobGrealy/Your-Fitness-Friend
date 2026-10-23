@@ -17,3 +17,13 @@ export function weightPhotoUrl(photoUrl: string): string {
 export function foodLogPhotoUrl(photoUrl: string): string {
   return `${window.location.origin}/api/food/uploads/${photoUrl}`
 }
+
+/** Derivatives only for our image endpoints, never external or temporary URLs. */
+export function thumbnailUrl(original: string): string {
+  try {
+    const url = new URL(original, window.location.origin)
+    if (url.origin !== window.location.origin || !/^\/api\/(?:food\/uploads\/|weight\/uploads\/|auth\/uploads\/|exercise\/log\/[^/]+\/photo$)/.test(url.pathname)) return original
+    url.searchParams.set('thumbnail', '1')
+    return /^https?:\/\//.test(original) ? url.toString() : `${url.pathname}${url.search}${url.hash}`
+  } catch { return original }
+}

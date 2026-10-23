@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import ThumbnailImage from '@/components/common/ThumbnailImage'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
@@ -309,7 +310,7 @@ function Profile() {
         <div className="flex items-center justify-center gap-4">
           <div className="relative group">
             {user?.profile_photo_path ? (
-              <img
+              <ThumbnailImage
                 src={`/api/auth/uploads/${user.profile_photo_path}`}
                 alt="Profile"
                 className="rounded-full object-cover"

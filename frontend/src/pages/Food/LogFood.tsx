@@ -1,4 +1,5 @@
 import { formatMacro } from '@/utils/formatters'
+import ThumbnailImage from '@/components/common/ThumbnailImage'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useFoodStore } from '@/store/foodStore'
@@ -306,7 +307,7 @@ export default function LogFood() {
                     (FF-0087). Hides itself when the file is gone rather than showing a
                     broken image. */}
                 {history.photo_url && (
-                  <img
+                  <ThumbnailImage
                     src={foodLogPhotoUrl(history.photo_url)}
                     alt=""
                     aria-hidden="true"

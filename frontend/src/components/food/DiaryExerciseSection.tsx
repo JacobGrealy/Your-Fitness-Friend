@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import ThumbnailImage from '@/components/common/ThumbnailImage'
 import { Link } from 'react-router-dom'
 import { exerciseApi } from '@/api/exercise'
 import { useAuthStore } from '@/store/authStore'
@@ -73,7 +74,7 @@ export default function DiaryExerciseSection({ date, onTotal }: {
           <span className="block text-xs text-[#757575] mt-0.5">{log.calories_burned == null ? 'Calories not estimated' : `${number(log.calories_burned)} cal · ${log.details ? 'Active · estimated' : 'Legacy estimate'}`}{log.details && 'arms_supported' in log.details && log.details.arms_supported && ' · Arms supported'}</span>
         </>
         return <div key={log.id} className="flex items-center justify-between hover:bg-[#fafafa] transition-colors">
-          {log.photo_endpoint && <button type="button" aria-label={`View photo for ${log.exercise_name}`} className="ml-4 shrink-0" onClick={() => setPhotoViewer(log.photo_endpoint!)}><img src={log.photo_endpoint} alt="" className="w-10 h-10 rounded object-cover" /></button>}
+          {log.photo_endpoint && <button type="button" aria-label={`View photo for ${log.exercise_name}`} className="ml-4 shrink-0" onClick={() => setPhotoViewer(log.photo_endpoint!)}><ThumbnailImage src={log.photo_endpoint} alt="" className="w-10 h-10 rounded object-cover" /></button>}
           {log.activity_id && log.details
             ? <Link className="flex-1 min-w-0 px-4 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#185ADB]" aria-label={`Edit ${log.exercise_name}`} to={`/exercise/log?activity=${encodeURIComponent(log.activity_id)}&edit=${log.id}`}>{content}</Link>
             : <div className="flex-1 min-w-0 px-4 py-3">{content}</div>}

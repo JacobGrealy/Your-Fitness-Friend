@@ -2349,3 +2349,13 @@ no destructive backfill/migration or live uploads touched. Initial test fixtures
 date/meal fields; corrected fixtures, focused tests green. Full gates green: 462 backend/499 frontend
 plus ancillary gates. FF-0128 split for thumbnail-only frontend usage; full viewers/AI keep originals.
 Next frontend wiring and isolated network/mobile proof, then hydration. Final backend restart pending.
+
+## FF-0128 — Thumbnail-only list image usage — code verified
+
+Added reusable lazy ThumbnailImage with one-shot original URL fallback and source-change reset.
+Food diary/recent list, exercise diary, avatar and meal grids request thumbnail=1 on same-origin
+supported image endpoints only. Full exercise viewer, form/edit previews, weight comparison/timelapse
+and AI input retain full-size images. Meal photo stored paths resolve through existing image endpoint.
+Full gates green: 462 backend/502 frontend plus ancillary gates. Next build/mobile network proof.
+Real avatar audit found legacy DB stores bare filenames; FF-0129 queued immediately after for
+ownership compatibility and manual-delete derivative cleanup, before hydration. No live uploads touched.
