@@ -80,6 +80,47 @@ def test_local_food_wins_and_skips_the_network(auth, app, monkeypatch):
     assert called == []
 
 
+@pytest.mark.parametrize('photo_code,duplicate_code', [
+    ('016000507920', '0016000507920'),
+    ('0016000507920', '016000507920'),
+])
+def test_own_photo_food_wins_across_all_equivalent_local_codes(auth, app, monkeypatch, photo_code, duplicate_code):
+    def no_network(*args, **kwargs):
+        raise AssertionError('Any equivalent local match must prevent remote lookup')
+    monkeypatch.setattr(openfoodfacts, 'lookup_barcode', no_network)
+    with app.app_context():
+        from app.models.user import User
+        user = User.query.filter_by(email='barcode@example.test').one()
+        # Insert the plain cached record first: neither insertion nor variant order
+        # may displace the owner's photo-bearing saved food (FF-0132).
+        db.session.add(Food(user_id=user.id, name='Remote cached duplicate', calories=70, barcode_id=duplicate_code))
+        preferred = Food(user_id=user.id, name='My Fiber One Bar', calories=70,
+                         barcode_id=photo_code, photo_url='food_log_photos/bar.jpg', serving_size='1 bar')
+        db.session.add(preferred); db.session.commit()
+        preferred_id = preferred.id
+    for scanned in ('016000507920', '0016000507920'):
+        response = auth.get('/api/food/barcode/' + scanned)
+        assert response.status_code == 200
+        assert response.json['source'] == 'local'
+        assert response.json['food']['id'] == preferred_id
+        assert response.json['food']['photo_url'] == 'food_log_photos/bar.jpg'
+        assert response.json['food']['serving_size'] == '1 bar'
+    with app.app_context():
+        assert Food.query.count() == 2
+
+
+def test_own_upc_food_wins_over_shared_canonical_photo(auth, app, monkeypatch):
+    monkeypatch.setattr(openfoodfacts, 'lookup_barcode', lambda *args: pytest.fail('Network must not run'))
+    with app.app_context():
+        from app.models.user import User
+        user = User.query.filter_by(email='barcode@example.test').one()
+        db.session.add(Food(name='Shared EAN food', calories=70, barcode_id='0016000507920', photo_url='public.jpg'))
+        own = Food(user_id=user.id, name='Own UPC food', calories=70, barcode_id='016000507920')
+        db.session.add(own); db.session.commit()
+        own_id = own.id
+    assert auth.get('/api/food/barcode/0016000507920').json['food']['id'] == own_id
+
+
 def test_remote_hit_is_saved_as_a_food(auth, app, monkeypatch):
     monkeypatch.setattr(openfoodfacts, 'lookup_barcode', lambda code, **kw: {
         'name': 'Nutella',

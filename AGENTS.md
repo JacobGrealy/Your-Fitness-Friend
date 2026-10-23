@@ -142,6 +142,12 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
   deletes derivatives only when the last original reference disappears. Existing images need no
   destructive backfill; generation failures fall back to the authorized full-size image.
 
+## Saved barcode identity
+- Barcode lookup ranks all equivalent UPC-A/EAN-13 forms together before any external lookup.
+  Prefer the owner's food over a shared record, then a photo-bearing saved food, then oldest id.
+  Preserve saved identity/photo/serving data. Do not merge duplicate foods or rewrite diary rows
+  as a side effect of a scan or a lookup fix; any live repair requires explicit owner approval.
+
 ## Diary copying
 - Exercise/medication/bowel copies require explicit source and destination dates, selected own
   log ids and confirmation. Health copies record actual events, not a schedule or automatic intake.

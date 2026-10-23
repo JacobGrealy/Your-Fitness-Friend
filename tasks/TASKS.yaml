@@ -1,9 +1,10 @@
 meta:
-  updated_at: 2026-10-23T10:24
+  updated_at: 2026-10-23T14:03
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0132
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -5002,4 +5003,33 @@ intake:
     create with mocked AI, 320px thumbnail vs 1600px viewer unchanged original bytes, hydration initial24/backdated/edit12/default12/total24/delete12/no
     overflow. All request tickets complete. Schema live c12700000001 backed up20261023-100538; backend
     awaiting owner sudo systemctl restart fitnessfriend then refresh. No APK required.'
+  comments: []
+- id: FF-0132
+  title: Barcode lookup reuses equivalent saved UPC/EAN food instead of creating duplicate without photo
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: in-progress
+  labels: []
+  created_at: 2026-10-23T14:02
+  updated_at: 2026-10-23T14:03
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: 'User-confirmed bug, ticket only requested. Read-only production inspection 2026-10-23: own saved
+    Food id18 "Fiber One Soft Baked Bar " barcode016000507920 has photo food_log_photos/ad625bf486fb4d86a1af20822b6fd32b.jpg.
+    Today lunch FoodLog id137 links Food id41 "Brownie Chocolate Chip Cookie", brand Fiber One, barcode0016000507920,70cal,photo_url
+    NULL. Codes are equivalent UPC-A12/EAN13-leading-zero forms, not different products. Existing lookup
+    app/routes/barcode_lookup.py canonical_code/code_variants nominally tries local variants before OpenFoodFacts,
+    but actual flow produced/reused separate id41. Root cause not established: inspect running backend
+    version, variant/owner/shared ordering, cached duplicates, and frontend BarcodeLookupModal -> LogFood
+    onFound -> FoodLogSelect createFood path. Preserve preferred own saved record identity/photo/serving
+    data; resolve all equivalent local variants before any remote lookup, and define deterministic preference
+    for own photo-bearing saved foods over auto-cached duplicates/shared records. Add tests for UPC/EAN
+    both directions, duplicates, ownership, no remote call on any local hit, photo retention and end-to-end
+    lunch log. Do not silently merge/delete foods or rewrite existing diary rows; any repair needs explicit
+    owner approval and backup. No production records changed during diagnosis. Implement inline without
+    subagents if authorized; normal branch/gates/isolated browser/publish protocol.'
   comments: []
