@@ -2394,3 +2394,18 @@ Full gates green: 483 backend/507 frontend plus ancillary gates. Next build/mobi
 Final audit found photo-review acceptance fallback/return still missing selected date; FF-0131 queued
 after this ticket to finish date-flow edge cases before final restart handoff. Hydration migration live
 c12700000001 after verified backup 20261023-100538; backend not yet restarted.
+
+## FF-0131 — Final photo review date and integrated release
+
+Photo acceptance passes selected local date to both existing-row updates and fallback-created entries,
+and returns to the selected diary date. Helper remains backward compatible without date context.
+Code a282501; full gates green: 483 backend, 508 frontend plus all ancillary gates. Build passed.
+Isolated mobile Chromium verified photo review with mocked AI response and real update/create
+persistence on selected day. Final build also re-verified historical Quick Add/return, actual 320px
+thumbnail vs 1600px full viewer with byte-identical original, and hydration initial24 oz/backdating/
+edit12 oz/default12/daily totals/confirmed delete/no overflow. Verification server stopped.
+All requested date, thumbnail and hydration work complete, published after green gates. Existing
+photo originals are not rewritten by thumbnail generation. Hydration schema at c12700000001 was
+backed up before migration (20261023-100538), with no existing diary rows modified by that migration.
+No APK update required. Backend activation remains explicitly pending owner command:
+`sudo systemctl restart fitnessfriend`, then refresh. Do not claim backend activated until restarted.
