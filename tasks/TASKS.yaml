@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-23T09:59
+  updated_at: 2026-10-23T10:06
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0127
 - FF-0130
 intake:
 - id: FF-0001
@@ -4862,14 +4861,14 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-23T09:21
-  updated_at: 2026-10-23T09:59
-  completed_at: null
+  updated_at: 2026-10-23T10:06
+  completed_at: 2026-10-23T10:06
   waiting_on: null
   parent_id: null
-  notes: User requests a new Hydration log category for water intake. Log positive finite fluid ounces
+  notes: 'User requests a new Hydration log category for water intake. Log positive finite fluid ounces
     and optional notes; default amount to last logged amount (owner commonly finishes 24-ounce bottles).
     Date/time consistent with health diary local-day semantics; add quick-menu action and food-style diary
     section with dated reads/edit/delete and daily ounces total. Initial no-history default 24 oz based
@@ -4877,6 +4876,11 @@ intake:
     defaults. No automatic entries, no medical intake targets. Split backend/frontend if needed, full
     gates, isolated mobile verification, serial merges/publish, restart handoff if required. Finish date
     bug and thumbnails first. Work inline without subagents.
+
+
+    Code a2b0dba merged/pushed, full gates green 483 backend/502 frontend. Verified backup 20261023-100538
+    before live migration c12200000001 -> c12700000001; head confirmed. Added hydration table/index only,
+    no existing records modified. Backend activation deferred to final restart. UI FF-0130 next.'
   comments: []
 - id: FF-0128
   title: Use generated thumbnail URLs in photo list and diary previews
@@ -4944,14 +4948,24 @@ intake:
   status: open
   labels: []
   created_at: 2026-10-23T09:59
-  updated_at: 2026-10-23T09:59
+  updated_at: 2026-10-23T10:06
   completed_at: null
   waiting_on: null
   parent_id: null
-  notes: Frontend slice of Hydration user request. Positive fluid ounces and optional notes, local date/time,
+  notes: 'Frontend slice of Hydration user request. Positive fluid ounces and optional notes, local date/time,
     initial 24 oz otherwise own last-logged amount from API; quick menu Log Hydration, protected entry/edit
     routes and food-style dated diary section with daily ounces total, row edit, separate X confirmation.
     Match app blue diary sections, no automatic food allowance change or health advice. Backend FF-0127
     /api/hydration options/logs API; no subagents. Per-ticket gates, isolated mobile CRUD/date/default/dose
     isolation verification, build/publish and one final backend restart handoff.
+
+
+    Backend contract: GET /api/hydration/options -> {unit:"US fl oz",default_amount_oz:number}, own last
+    inserted log amount else24. GET /logs?date=YYYY-MM-DD -> {date,total_oz,logs:[{id,amount_oz,logged_at:"YYYY-MM-DDTHH:MM",date,notes}]};
+    POST /logs JSON amount_oz positive finite number <=1000, logged_at local minute string, optional notes
+    max1000; GET/PUT/DELETE /logs/:id own only. PUT replaces amount/time/notes. Schema live c12700000001
+    backed up; backend not restarted. Need UI last-default fetch + edit-existing guard, quick menu, dated
+    diary total/edit/X, scoped auth/date async guards. Initial display24 while options loading must not
+    allow save stale cross-account. End mobile actual CRUD/default/backdate test. New API import mocks
+    needed for DailyFood Jest tests.'
   comments: []
