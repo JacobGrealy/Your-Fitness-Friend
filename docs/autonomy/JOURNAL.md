@@ -2371,3 +2371,14 @@ avatar upload endpoint (not synthetic full-path references), thumbnail GET, repl
 FoodLog references. Full gates green: 466 backend/502 frontend plus ancillary gates. No migration,
 no production upload changes; backend activation deferred to final handoff. Next hydration backend
 and frontend split. Existing full-size bytes remain unchanged except explicit user delete/replace.
+
+## FF-0127 — Hydration backend in fluid ounces
+
+Added separate owner-scoped HydrationLog table and /api/hydration options/logs CRUD with local clock,
+positive finite US fluid ounces, optional notes and selected-day totals. Last logged own amount is
+selected by insertion id; no-history default 24 oz matches owner bottle. No dose/medication coupling,
+automatic entries, food allowance change or prescribed target. New c12700000001 migration creates
+only hydration table/index. Full gates green: 483 backend/502 frontend, all ancillary gates; tests cover
+CRUD, defaults, backdating, midnight days, fractions, invalid values, ownership and fresh migration.
+Next merge + verified backup/live migration, then FF-0130 entry form/diary/quick-menu and mobile proof.
+Final backend restart handoff will activate photo date, thumbnails and hydration together.

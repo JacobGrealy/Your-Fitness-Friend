@@ -88,6 +88,8 @@ def create_app(config_name=None):
     app.register_blueprint(exercise_bp, url_prefix='/api/exercise')
     from app.routes.health import bp as health_bp
     app.register_blueprint(health_bp, url_prefix='/api/health')
+    from app.routes.hydration import bp as hydration_bp
+    app.register_blueprint(hydration_bp, url_prefix='/api/hydration')
     app.register_blueprint(food_bp, url_prefix='/api/food')
     # Nested under /api/food so the diary endpoints sit with the rest of the diary.
     app.register_blueprint(diary_bp, url_prefix='/api/food/diary')
