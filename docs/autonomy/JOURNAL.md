@@ -2356,6 +2356,8 @@ Added reusable lazy ThumbnailImage with one-shot original URL fallback and sourc
 Food diary/recent list, exercise diary, avatar and meal grids request thumbnail=1 on same-origin
 supported image endpoints only. Full exercise viewer, form/edit previews, weight comparison/timelapse
 and AI input retain full-size images. Meal photo stored paths resolve through existing image endpoint.
-Full gates green: 462 backend/502 frontend plus ancillary gates. Next build/mobile network proof.
+Full gates green: 462 backend/502 frontend plus ancillary gates. Code 3656c48; build passed.
+Isolated mobile Chromium verified real 320px lazy diary thumbnail, original 1600px image in viewer,
+and byte-identical full-size photo before/after thumbnail generation. Verification server stopped.
 Real avatar audit found legacy DB stores bare filenames; FF-0129 queued immediately after for
 ownership compatibility and manual-delete derivative cleanup, before hydration. No live uploads touched.
