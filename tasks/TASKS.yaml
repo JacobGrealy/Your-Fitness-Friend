@@ -4982,10 +4982,10 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: open
+  status: in-progress
   labels: []
   created_at: 2026-10-23T10:14
-  updated_at: 2026-10-23T10:14
+  updated_at: 2026-10-23T10:18
   completed_at: null
   waiting_on: null
   parent_id: null

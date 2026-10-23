@@ -21,6 +21,13 @@ const deps = () => ({
 })
 
 describe('saveAcceptedEntries', () => {
+  it('preserves selected diary date for both existing and fallback-created entries', async () => {
+    const d = deps()
+    await saveAcceptedEntries([entry(), entry({ id: null })], d, '2026-01-12')
+    expect(d.updateFoodLog).toHaveBeenCalledWith('7', expect.objectContaining({ date: '2026-01-12' }))
+    expect(d.logFood).toHaveBeenCalledWith(expect.objectContaining({ date: '2026-01-12' }))
+  })
+
   it('updates entries that already exist', async () => {
     const d = deps()
 

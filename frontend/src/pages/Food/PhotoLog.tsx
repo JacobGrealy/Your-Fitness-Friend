@@ -158,14 +158,14 @@ export default function PhotoLog() {
       await saveAcceptedEntries(logEntries, {
         updateFoodLog: (id, data) => foodStore.updateFoodLog(id, data),
         logFood: (data) => foodStore.logFood(data),
-      })
-      navigate('/food/daily')
+      }, logDate)
+      navigate(`/food/daily?date=${logDate}`)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save food logs')
       setStep('review')
       setAccepting(false)
     }
-  }, [logEntries, foodStore, navigate, accepting])
+  }, [logEntries, foodStore, navigate, accepting, logDate])
 
   const handleBack = useCallback(() => {
     navigate(-1)
