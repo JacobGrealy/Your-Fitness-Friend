@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-23T09:21
+  updated_at: 2026-10-23T09:27
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0124
 - FF-0126
 - FF-0125
 - FF-0127
@@ -4788,14 +4787,17 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-23T09:17
-  updated_at: 2026-10-23T09:18
-  completed_at: null
+  updated_at: 2026-10-23T09:27
+  completed_at: 2026-10-23T09:27
   waiting_on: null
   parent_id: null
-  notes: ''
+  notes: Code a040b72; full gates green, build passed. Isolated mobile browser verified historical diary
+    Add Food -> Quick Add selected date -> successful save -> same historical diary with row present.
+    Search/barcode/recent form routes carry query date; direct recent quick-log sends date. Photo upload
+    now sends date but backend correction next FF-0126. No backend restart needed for this frontend slice.
   comments: []
 - id: FF-0125
   title: Generate and serve small photo thumbnails while preserving full-size images
