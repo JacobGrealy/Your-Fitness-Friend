@@ -2327,3 +2327,13 @@ Photo upload now sends date; backend hardcoded-today correction separately scope
 Full gates green, with historical quick-log/navigation/form regressions. Next build/browser check.
 New owner requests queued: FF-0125 original-preserving thumbnails, FF-0127 hydration ounces/notes/
 last-amount default (24 oz initial). Work inline, no subagents. New active goal tracks all requests.
+
+## FF-0126 — Photo analysis respects historical diary date
+
+Initial photo analysis validates optional canonical local date before upload/model work and passes it
+to created FoodLog rows. Stateless chat requests carry the same date from PhotoLog through API,
+so concurrent tabs do not inherit each other’s dates. Missing date retains backwards-compatible today.
+Regression tests exposed preexisting single-item chat macro key mismatch (protein vs protein_g),
+which prevented follow-up creation entirely; mapped keys explicitly as prerequisite to date verification.
+Full gates green: 456 backend/499 frontend plus ancillary gates. No schema changes. Next merge/build,
+then thumbnails backend + frontend slices, then hydration. Backend activation awaits restart handoff.
