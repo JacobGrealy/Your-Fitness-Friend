@@ -103,8 +103,8 @@ def parse_ai_nutrition(content):
     return None
 
 
-def create_food_log(user_id, food_name, calories, protein_g, carbs_g, fat_g, meal_type):
-    today = datetime.now().date()
+def create_food_log(user_id, food_name, calories, protein_g, carbs_g, fat_g, meal_type, log_date=None):
+    log_date = log_date or datetime.now().date()
     food_log = FoodLog(
         user_id=user_id,
         food_name=food_name,
@@ -112,7 +112,7 @@ def create_food_log(user_id, food_name, calories, protein_g, carbs_g, fat_g, mea
         protein_g=protein_g,
         carbs_g=carbs_g,
         fat_g=fat_g,
-        date=today,
+        date=log_date,
         meal_type=meal_type,
     )
     db.session.add(food_log)
@@ -150,6 +150,16 @@ def ai_log():
     Returns:
         { logs: [...], conversation_history: [...], error?: string }
     """
+    # Validate before saving any upload or calling the model. Each conversation
+    # request carries its own date so concurrent tabs never share a session default.
+    from app.utils.exercise_calories import session_day
+    body = request.form if request.mimetype == 'multipart/form-data' else request.get_json(silent=True)
+    if not isinstance(body, dict) and request.mimetype != 'multipart/form-data':
+        return jsonify({'error': 'Invalid request'}), 400
+    try:
+        log_date = session_day(body.get('date', datetime.now().date().isoformat()))
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
     # Handle initial photo upload
     if 'photo' in request.files:
         file = request.files['photo']
@@ -187,6 +197,7 @@ def ai_log():
                 food_name=food_name,
                 **analysis_data,
                 meal_type=meal_type,
+                log_date=log_date,
             )
             db.session.commit()
             current_app.logger.info(f"AI log created: id={food_log.id} name={food_log.food_name} date={food_log.date}")
@@ -249,8 +260,9 @@ def ai_log():
             food_log = create_food_log(
                 user_id=current_user.id,
                 food_name='Additional item',
-                **parsed,
-                meal_type='snack',
+                calories=parsed['calories'],
+                protein_g=parsed['protein'], carbs_g=parsed['carbs'], fat_g=parsed['fat'],
+                meal_type='snack', log_date=log_date,
             )
             db.session.commit()
             logs.append(format_log_entry(food_log))
@@ -275,7 +287,7 @@ def ai_log():
                                 protein_g=float(item.get('protein', 0)),
                                 carbs_g=float(item.get('carbs', 0)),
                                 fat_g=float(item.get('fat', 0)),
-                                meal_type='snack',
+                                meal_type='snack', log_date=log_date,
                             )
                             logs.append(format_log_entry(food_log))
                     db.session.commit()

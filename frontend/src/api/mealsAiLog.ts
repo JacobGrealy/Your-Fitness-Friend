@@ -13,9 +13,10 @@ export const mealsAiLogApi = {
   /**
    * Follow-up AI conversation to update macros.
    */
-  sendMessage: (conversationHistory: FoodPhotoMessage[], userMessage: string) =>
+  sendMessage: (conversationHistory: FoodPhotoMessage[], userMessage: string, date?: string) =>
     api.post<AiLogResponse>('/meals/ai-log', {
       conversation_history: conversationHistory,
       user_message: userMessage,
+      ...(date ? { date } : {}),
     }).then(res => res.data),
 }

@@ -105,6 +105,7 @@ export default function PhotoLog() {
       const response = await mealsAiLogApi.sendMessage(
         newMessages.filter(m => m.role === 'ai'),
         userMessage,
+        logDate,
       )
 
       // Append new AI message
