@@ -202,16 +202,15 @@ def delete_meal_photo(photo_id):
         user_id=current_user.id
     ).first_or_404()
     
-    # Delete file from filesystem
-    if photo.photo_path:
-        file_path = stored_file_path(photo.photo_path)
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except Exception:
-                pass
-    
+    # Delete files only after the row commit, and only after its final reference.
+    previous = photo.photo_path
     db.session.delete(photo)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+    from app.utils.uploads import remove_if_unreferenced
+    remove_if_unreferenced(previous)
     
     return jsonify({'success': True}), 200

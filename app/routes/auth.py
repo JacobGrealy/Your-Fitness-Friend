@@ -345,12 +345,9 @@ def upload_profile_photo():
     # Only now is the old file unreferenced: deleting it earlier meant a failed upload
     # could wipe the avatar the user already had.
     if previous_photo and previous_photo != unique_filename:
-        old_path = stored_file_path(os.path.join('profile_photos', previous_photo))
-        if os.path.exists(old_path):
-            try:
-                os.remove(old_path)
-            except OSError:
-                pass
+        from app.utils.uploads import remove_if_unreferenced
+        stored = previous_photo if previous_photo.startswith('profile_photos/') else os.path.join('profile_photos', previous_photo)
+        remove_if_unreferenced(stored)
 
     return jsonify({
         'profile_photo_url': unique_filename
@@ -362,16 +359,16 @@ def upload_profile_photo():
 def delete_profile_photo():
     """Delete the user's profile photo."""
     if current_user.profile_photo_path:
-        file_path = stored_file_path(
-            os.path.join('profile_photos', current_user.profile_photo_path)
-        )
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except Exception:
-                pass
+        previous = current_user.profile_photo_path
         current_user.profile_photo_path = None
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
+        from app.utils.uploads import remove_if_unreferenced
+        stored = previous if previous.startswith('profile_photos/') else os.path.join('profile_photos', previous)
+        remove_if_unreferenced(stored)
 
     return jsonify({'success': True}), 200
 

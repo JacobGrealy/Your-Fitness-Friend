@@ -2361,3 +2361,13 @@ Isolated mobile Chromium verified real 320px lazy diary thumbnail, original 1600
 and byte-identical full-size photo before/after thumbnail generation. Verification server stopped.
 Real avatar audit found legacy DB stores bare filenames; FF-0129 queued immediately after for
 ownership compatibility and manual-delete derivative cleanup, before hydration. No live uploads touched.
+
+## FF-0129 — Actual avatar references and derivative lifecycle
+
+Normalized legacy bare avatar filenames alongside canonical stored paths for owner/reference checks.
+Avatar replacement/deletion and meal deletion use post-commit reference-aware original/derivative
+cleanup; shared photos survive and failed commits preserve original/cache. Regression tests call real
+avatar upload endpoint (not synthetic full-path references), thumbnail GET, replace/delete and shared
+FoodLog references. Full gates green: 466 backend/502 frontend plus ancillary gates. No migration,
+no production upload changes; backend activation deferred to final handoff. Next hydration backend
+and frontend split. Existing full-size bytes remain unchanged except explicit user delete/replace.
