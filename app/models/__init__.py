@@ -8,6 +8,7 @@ from app.models.meal_photo import MealPhoto
 from app.models.diary_completion import DiaryCompletion
 from app.models.health_log import HealthLog
 from app.models.diary_copy_operation import DiaryCopyOperation
+from app.models.hydration_log import HydrationLog
 
 __all__ = [
     'User',
@@ -20,4 +21,5 @@ __all__ = [
     'DiaryCompletion',
     'HealthLog',
     'DiaryCopyOperation',
+    'HydrationLog',
 ]

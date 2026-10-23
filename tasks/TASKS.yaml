@@ -5,6 +5,7 @@ meta:
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0127
+- FF-0130
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -4861,10 +4862,10 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: in-progress
   labels: []
   created_at: 2026-10-23T09:21
-  updated_at: 2026-10-23T09:21
+  updated_at: 2026-10-23T09:59
   completed_at: null
   waiting_on: null
   parent_id: null
@@ -4932,4 +4933,25 @@ intake:
     count fixed. Avatar and meal-photo explicit replace/delete use post-commit last-reference cleanup
     including derivative; shared images and failed-commit originals/caches preserved. No live photos modified.
     Final backend restart pending.'
+  comments: []
+- id: FF-0130
+  title: Hydration entry form quick-menu action and diary section
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-23T09:59
+  updated_at: 2026-10-23T09:59
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Frontend slice of Hydration user request. Positive fluid ounces and optional notes, local date/time,
+    initial 24 oz otherwise own last-logged amount from API; quick menu Log Hydration, protected entry/edit
+    routes and food-style dated diary section with daily ounces total, row edit, separate X confirmation.
+    Match app blue diary sections, no automatic food allowance change or health advice. Backend FF-0127
+    /api/hydration options/logs API; no subagents. Per-ticket gates, isolated mobile CRUD/date/default/dose
+    isolation verification, build/publish and one final backend restart handoff.
   comments: []
