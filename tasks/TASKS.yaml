@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-23T14:03
+  updated_at: 2026-10-23T14:10
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue:
-- FF-0132
+queue: []
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -5011,11 +5010,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 1
-  status: in-progress
+  status: done
   labels: []
   created_at: 2026-10-23T14:02
-  updated_at: 2026-10-23T14:03
-  completed_at: null
+  updated_at: 2026-10-23T14:10
+  completed_at: 2026-10-23T14:10
   waiting_on: null
   parent_id: null
   notes: 'User-confirmed bug, ticket only requested. Read-only production inspection 2026-10-23: own saved
@@ -5031,5 +5030,12 @@ intake:
     both directions, duplicates, ownership, no remote call on any local hit, photo retention and end-to-end
     lunch log. Do not silently merge/delete foods or rewrite existing diary rows; any repair needs explicit
     owner approval and backup. No production records changed during diagnosis. Implement inline without
-    subagents if authorized; normal branch/gates/isolated browser/publish protocol.'
+    subagents if authorized; normal branch/gates/isolated browser/publish protocol.
+
+
+    gates green:486 backend/508 frontend plus all ancillary gates; code 160ff83. Isolated mobile barcode->lunch
+    verified both UPC/EAN forms choose own photo-bearing saved food, original photo retained and no extra
+    Food created. All equivalent local variants ranked together before remote; own then photo then oldest.
+    No production diary/photo/food records modified. Backend activation requires owner sudo systemctl
+    restart fitnessfriend; no build/migration/APK.'
   comments: []
