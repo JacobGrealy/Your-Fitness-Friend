@@ -943,6 +943,21 @@ def serve_food_log_upload(filename):
     ``photo_url`` is stored relative to the uploads root (e.g.
     ``food_log_photos/<file>.jpg``), so resolve against that root.
     """
+    from app.utils.uploads import is_private_derivative
+    if is_private_derivative(filename):
+        return jsonify({'error': 'Photo not found'}), 404
+    if request.args.get('thumbnail') == '1':
+        from app.utils.uploads import has_photo_access
+        from app.utils.photo_thumbnails import image_file
+        from flask import send_file
+        if not has_photo_access(filename, current_user.id):
+            return jsonify({'error': 'Photo not found'}), 404
+        try:
+            response = send_file(image_file(filename, thumbnail=True), conditional=True)
+        except (FileNotFoundError, ValueError):
+            return jsonify({'error': 'Photo not found'}), 404
+        response.headers['Cache-Control'] = 'private, max-age=3600'
+        return response
     return send_from_directory(uploads_root(), filename)
 
 

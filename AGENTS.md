@@ -134,6 +134,14 @@ Procedure lives in the project skills, not here: `ff-work-ticket`, `ff-gates`,
   Read images through the ownership-checked `/api/exercise/log/:id/photo` endpoint. Repeating
   a session must not silently copy its photo. New file rollback must preserve the old image.
 
+## Photo thumbnails
+- List/diary image requests may append `thumbnail=1` to the existing photo URL. Generate derivative
+  JPEGs lazily with `app/utils/photo_thumbnails.py` only after ownership/reference authorization;
+  keep stored full-size originals unchanged. Cached files are internal and blocked on raw upload
+  routes. Full-screen viewers, editors and AI inputs retain original URLs. Reference-aware removal
+  deletes derivatives only when the last original reference disappears. Existing images need no
+  destructive backfill; generation failures fall back to the authorized full-size image.
+
 ## Diary copying
 - Exercise/medication/bowel copies require explicit source and destination dates, selected own
   log ids and confirmation. Health copies record actual events, not a schedule or automatic intake.

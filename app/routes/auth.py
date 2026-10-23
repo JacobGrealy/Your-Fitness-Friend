@@ -380,7 +380,19 @@ def delete_profile_photo():
 @login_required
 def serve_profile_photo(filename):
     """Serve an uploaded profile photo."""
+    from app.utils.uploads import is_private_derivative
+    if is_private_derivative(os.path.join('profile_photos', filename)):
+        return jsonify({'error': 'Photo not found'}), 404
     filepath = stored_file_path(os.path.join('profile_photos', filename))
     if os.path.exists(filepath):
+        if request.args.get('thumbnail') == '1':
+            from app.utils.uploads import has_photo_access
+            from app.utils.photo_thumbnails import image_file
+            stored = os.path.join('profile_photos', filename)
+            if not has_photo_access(stored, current_user.id):
+                return jsonify({'error': 'Photo not found'}), 404
+            response = send_file(image_file(stored, thumbnail=True), conditional=True)
+            response.headers['Cache-Control'] = 'private, max-age=3600'
+            return response
         return send_file(filepath)
     return jsonify({'error': 'File not found'}), 404

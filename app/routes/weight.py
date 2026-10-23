@@ -241,12 +241,24 @@ def serve_upload(filename):
     ``weight_photos/<file>.jpg``), so resolve there first. The weight_photos
     subfolder is tried second so a caller passing a bare filename still works.
     """
+    from app.utils.uploads import is_private_derivative
+    if is_private_derivative(filename):
+        return jsonify({'error': 'Photo not found'}), 404
     root = uploads_root()
     for candidate in (
         os.path.join(root, filename),
         os.path.join(root, 'weight_photos', filename),
     ):
         if os.path.isfile(candidate):
+            if request.args.get('thumbnail') == '1':
+                from app.utils.uploads import has_photo_access
+                from app.utils.photo_thumbnails import image_file
+                stored = os.path.relpath(candidate, root)
+                if not has_photo_access(stored, current_user.id):
+                    return jsonify({'error': 'Photo not found'}), 404
+                response = send_file(image_file(stored, thumbnail=True), conditional=True)
+                response.headers['Cache-Control'] = 'private, max-age=3600'
+                return response
             return send_file(candidate)
     return jsonify({'error': 'File not found'}), 404
 

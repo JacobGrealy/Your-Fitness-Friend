@@ -2337,3 +2337,15 @@ Regression tests exposed preexisting single-item chat macro key mismatch (protei
 which prevented follow-up creation entirely; mapped keys explicitly as prerequisite to date verification.
 Full gates green: 456 backend/499 frontend plus ancillary gates. No schema changes. Next merge/build,
 then thumbnails backend + frontend slices, then hydration. Backend activation awaits restart handoff.
+
+## FF-0125 — Original-preserving thumbnail backend
+
+Added lazy <=320px JPEG derivatives with EXIF orientation, white alpha compositing and atomic cache
+writes. Existing food/weight/profile/exercise photo endpoints support thumbnail=1 after reference/
+owner authorization; cached derivatives cannot be fetched through raw upload routes. Full-size URLs
+and stored file bytes remain unchanged. Generation failure falls back to authorized full-size image.
+Central reference-aware deletion cleans derivative only after final original reference disappears;
+no destructive backfill/migration or live uploads touched. Initial test fixtures omitted required food
+date/meal fields; corrected fixtures, focused tests green. Full gates green: 462 backend/499 frontend
+plus ancillary gates. FF-0128 split for thumbnail-only frontend usage; full viewers/AI keep originals.
+Next frontend wiring and isolated network/mobile proof, then hydration. Final backend restart pending.
