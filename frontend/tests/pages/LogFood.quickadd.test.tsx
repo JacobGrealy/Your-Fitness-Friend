@@ -76,6 +76,7 @@ describe('Recent food quick-add (FF-0018)', () => {
       barcode_id: undefined,
       serving_size: '170 g',
       meal_type: 'lunch',
+      date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
       number_of_servings: 1,
     })
     // the shortcut stays on the screen instead of opening the serving form
@@ -107,6 +108,14 @@ describe('meal handoff from the diary section (FF-0038)', () => {
   beforeEach(() => {
     logFood.mockReset().mockResolvedValue({})
     navigate.mockReset()
+  })
+
+  it('preserves historical diary date for quick logs and form navigation', async () => {
+    renderAt('/food/log?meal=lunch&date=2026-01-12')
+    fireEvent.click(screen.getByRole('button', { name: /add greek yogurt to lunch/i }))
+    await waitFor(() => expect(logFood).toHaveBeenCalledWith(expect.objectContaining({ date: '2026-01-12' })))
+    fireEvent.click(screen.getByRole('button', { name: /^quick add$/i }))
+    expect(String(navigate.mock.calls[0][0])).toBe('/food/log/select?meal=lunch&date=2026-01-12')
   })
 
   it('passes the meal to Quick Add', () => {

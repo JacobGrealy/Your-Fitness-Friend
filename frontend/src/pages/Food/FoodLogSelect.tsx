@@ -13,7 +13,7 @@ import { quickAddFoodSchema } from '@/utils/schemas'
 import { isMealType } from '@/utils/meal'
 import Loading from '@/components/common/Loading'
 import { resolveReturnTo } from '@/utils/returnTo'
-import { todayLocal } from '@/utils/localDate'
+import { todayLocal, requestedLocalDate } from '@/utils/localDate'
 import QuantityFields from '@/components/food/QuantityFields'
 import { servingCount } from '@/utils/quantities'
 import { scalePerServing, formatNumber } from '@/utils/serving'
@@ -80,7 +80,7 @@ export default function FoodLogSelect() {
       serving_size: '',
       brand: '',
       barcode_id: '',
-      date: todayLocal(),
+      date: requestedLocalDate(searchParams.get('date')),
       meal_type: initialMealType,
     },
   })
@@ -552,8 +552,9 @@ export default function FoodLogSelect() {
 
         {/* Date */}
         <div className="bg-white rounded-lg p-4">
-          <label className="block text-sm font-medium text-mfp-text mb-2">Date</label>
+          <label htmlFor="food-log-date" className="block text-sm font-medium text-mfp-text mb-2">Date</label>
           <input
+            id="food-log-date"
             type="date"
             {...register('date')}
             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-mfp-text focus:border-mfp-blue focus:ring-1 focus:ring-mfp-blue outline-none bg-[#fafafa]"

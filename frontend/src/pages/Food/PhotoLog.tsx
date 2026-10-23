@@ -7,6 +7,7 @@ import Loading from '@/components/common/Loading'
 import type { FoodPhotoLogEntry, FoodPhotoMessage } from '@/types/foodPhotoLog'
 import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
 import { isMealType } from '@/utils/meal'
+import { requestedLocalDate } from '@/utils/localDate'
 import { saveAcceptedEntries } from '@/utils/photoLogEntries'
 import { useFoodStore } from '@/store/foodStore'
 
@@ -37,6 +38,7 @@ export default function PhotoLog() {
   // the photo's analysis is filed under that meal rather than a default (FF-0038).
   const [searchParams] = useSearchParams()
   const mealFromUrl = searchParams.get('meal')
+  const logDate = requestedLocalDate(searchParams.get('date'))
   const [mealType, setMealType] = useState<string>(isMealType(mealFromUrl) ? mealFromUrl : 'lunch')
   const [logEntries, setLogEntries] = useState<FoodPhotoLogEntry[]>([])
   const [messages, setMessages] = useState<FoodPhotoMessage[]>([])
@@ -74,6 +76,7 @@ export default function PhotoLog() {
     const formData = new FormData()
     formData.append('photo', selectedFile)
     formData.append('meal_type', mealType)
+    formData.append('date', logDate)
 
     try {
       const response = await mealsAiLogApi.analyzePhoto(formData)
@@ -86,7 +89,7 @@ export default function PhotoLog() {
       setStep('capture')
       setIsSubmitting(false)
     }
-  }, [selectedFile, mealType, isSubmitting])
+  }, [selectedFile, mealType, logDate, isSubmitting])
 
   const handleSendMessage = useCallback(async () => {
     if (!userMessage.trim() || isSubmitting) return

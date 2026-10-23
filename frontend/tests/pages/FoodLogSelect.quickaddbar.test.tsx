@@ -47,6 +47,13 @@ const renderQuickAdd = (entry: any = '/food/log/select') =>
   )
 
 describe('Quick Add bar (FF-0020)', () => {
+  it('defaults to the selected diary day and still allows changing it', () => {
+    renderQuickAdd('/food/log/select?meal=lunch&date=2026-01-12')
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-01-12')
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-01-13' } })
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-01-13')
+  })
+
   it('presents itself as Quick Add', () => {
     renderQuickAdd()
     expect(screen.getByRole('heading', { name: 'Quick Add' })).toBeInTheDocument()
