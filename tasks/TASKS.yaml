@@ -1,10 +1,11 @@
 meta:
-  updated_at: 2026-10-23T10:06
+  updated_at: 2026-10-23T10:14
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
 - FF-0130
+- FF-0131
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -4945,7 +4946,7 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: in-progress
   labels: []
   created_at: 2026-10-23T09:59
   updated_at: 2026-10-23T10:06
@@ -4968,4 +4969,26 @@ intake:
     diary total/edit/X, scoped auth/date async guards. Initial display24 while options loading must not
     allow save stale cross-account. End mobile actual CRUD/default/backdate test. New API import mocks
     needed for DailyFood Jest tests.'
+  comments: []
+- id: FF-0131
+  title: Keep selected photo-log date through review acceptance and diary return
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-23T10:14
+  updated_at: 2026-10-23T10:14
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: 'Final flow audit while FF-0130 gates run found PhotoLog handleAccept returns /food/daily without
+    selected date, and saveAcceptedEntries fallback records without id have no date so default today.
+    Complete FF-0124/0126 date objective: carry selected date into reviewed save payloads (updates and
+    fallback creates), preserve default backward compatibility for other helper callers, return to /food/daily?date=selectedday.
+    Add regression tests for update/create dates and route return; isolated photo review browser with
+    mocked AI network to avoid nondeterminism. Current backend initial analysis and followup already honor
+    selected date after final restart. Work inline; full gates before merge.'
   comments: []

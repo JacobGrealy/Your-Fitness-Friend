@@ -2382,3 +2382,15 @@ only hydration table/index. Full gates green: 483 backend/502 frontend, all anci
 CRUD, defaults, backdating, midnight days, fractions, invalid values, ownership and fresh migration.
 Next merge + verified backup/live migration, then FF-0130 entry form/diary/quick-menu and mobile proof.
 Final backend restart handoff will activate photo date, thumbnails and hydration together.
+
+## FF-0130 — Hydration entry form, quick menu and dated diary — code verified
+
+Added protected hydration new/edit forms, API boundary and quick-menu action. New entry fetches own
+last amount (24 oz initial) before allowing save; edits restore original amount/time/notes, not latest
+default. Selected diary date and local time persist. Diary hydration section shows total fluid ounces,
+individual entries/notes, row edit and X deletion with confirmation. Loading/error are not empty days;
+request scopes reset on account/date changes and save failures retain drafts. No food calorie changes.
+Full gates green: 483 backend/507 frontend plus ancillary gates. Next build/mobile CRUD/default proof.
+Final audit found photo-review acceptance fallback/return still missing selected date; FF-0131 queued
+after this ticket to finish date-flow edge cases before final restart handoff. Hydration migration live
+c12700000001 after verified backup 20261023-100538; backend not yet restarted.

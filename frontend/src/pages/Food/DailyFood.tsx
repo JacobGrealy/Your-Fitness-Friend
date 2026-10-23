@@ -19,6 +19,7 @@ import DiaryDateSelector from '@/components/food/DiaryDateSelector'
 import { returnState } from '@/utils/returnTo'
 import DiaryExerciseSection from '@/components/food/DiaryExerciseSection'
 import DiaryHealthSections from '@/components/food/DiaryHealthSections'
+import DiaryHydrationSection from '@/components/food/DiaryHydrationSection'
 
 function queryDiaryDate(value: string | null): Date {
   if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -389,6 +390,7 @@ export default function DailyFood() {
           })}
         </div>
         <DiaryExerciseSection date={format(currentDate, 'yyyy-MM-dd')} onTotal={setExerciseSummary} />
+        <DiaryHydrationSection date={format(currentDate, 'yyyy-MM-dd')} />
         <DiaryHealthSections date={format(currentDate, 'yyyy-MM-dd')} />
       </div>
 

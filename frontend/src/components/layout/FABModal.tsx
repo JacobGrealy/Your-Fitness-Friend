@@ -62,6 +62,11 @@ export default function FABModal({ isOpen, onClose }: FABModalProps) {
       ),
     },
     {
+      label: 'Log Hydration',
+      path: '/hydration/log',
+      icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3C9 7 5 11 5 15a7 7 0 0014 0c0-4-4-8-7-12z" /></svg>,
+    },
+    {
       label: 'Log Medication',
       path: '/health/log/medication',
       icon: <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16l8-8M6 18a5 5 0 010-7l5-5a5 5 0 017 7l-5 5a5 5 0 01-7 0z" /></svg>,
