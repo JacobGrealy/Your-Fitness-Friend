@@ -2409,3 +2409,18 @@ photo originals are not rewritten by thumbnail generation. Hydration schema at c
 backed up before migration (20261023-100538), with no existing diary rows modified by that migration.
 No APK update required. Backend activation remains explicitly pending owner command:
 `sudo systemctl restart fitnessfriend`, then refresh. Do not claim backend activated until restarted.
+
+## FF-0132 — Saved UPC/EAN food identity wins over duplicate
+
+Reproduced variant-order bug: canonical EAN cached food could beat own photographed UPC food;
+shared canonical food could also beat own UPC. One query now ranks all equivalent variants together:
+own before shared, photo-bearing before plain, oldest id as deterministic tie-break. Local hits never
+call OpenFoodFacts. No merges, normalization writes or existing diary repairs performed.
+Read-only live timestamps show duplicate41 created17:54:17 UTC, saved18 updated17:55:27; initial
+remote fetch may have preceded the saved barcode update. Confirmed current duplicate preference
+is independently reproducible; do not claim initial remote fetch incorrectly bypassed a then-existing match.
+Full gates green: 486 backend/508 frontend plus ancillary gates. Mobile isolated barcode->lunch
+verified both formats return same own photo identity, saved photo retained and no extra saved food.
+First browser probe queried totals-only /food/daily for rows; corrected to /food/log and passed.
+No migration/web build required. Production foods/lunch remain unchanged. Owner backend restart
+needed to activate: `sudo systemctl restart fitnessfriend`. Barcode policy documented in AGENTS.md.

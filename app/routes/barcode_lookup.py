@@ -10,7 +10,7 @@ and the app still works if the internet does not.
 
 from flask import Blueprint, current_app, jsonify
 from flask_login import current_user, login_required
-from sqlalchemy import or_
+from sqlalchemy import or_, case
 
 from app import db
 from app.models.food import Food
@@ -43,11 +43,20 @@ def code_variants(code):
 
 
 def _local_food(code):
-    """The user's own food for this barcode, or a shared (user-less) one."""
+    """Rank all equivalent saved matches together, not one spelling at a time.
+
+    Own foods win over shared foods; within that scope keep the photo-bearing
+    saved record, then the oldest identity. A cached EAN duplicate must not hide
+    the owner's photographed UPC food merely because EAN is tried first.
+    """
     return Food.query.filter(
-        Food.barcode_id == code,
+        Food.barcode_id.in_(code_variants(code)),
         or_(Food.user_id == current_user.id, Food.user_id.is_(None)),
-    ).order_by(Food.user_id.is_(None)).first()
+    ).order_by(
+        Food.user_id.is_(None),
+        case((Food.photo_url.is_not(None) & (Food.photo_url != ''), 0), else_=1),
+        Food.id.asc(),
+    ).first()
 
 
 @bp.route('/<code>', methods=['GET'])
@@ -59,10 +68,9 @@ def lookup(code):
 
     canonical = canonical_code(normalised)
 
-    for variant in code_variants(normalised):
-        food = _local_food(variant)
-        if food:
-            return jsonify({'food': food.to_dict(), 'source': 'local', 'barcode': variant})
+    food = _local_food(normalised)
+    if food:
+        return jsonify({'food': food.to_dict(), 'source': 'local', 'barcode': food.barcode_id})
 
     try:
         product = openfoodfacts.lookup_barcode(canonical)
