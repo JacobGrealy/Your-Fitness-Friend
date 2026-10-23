@@ -37,7 +37,8 @@ export interface SaveEntryResult {
 
 export async function saveAcceptedEntries(
   entries: ReviewEntry[],
-  deps: SaveEntryDeps
+  deps: SaveEntryDeps,
+  date?: string
 ): Promise<SaveEntryResult> {
   let updated = 0
   let created = 0
@@ -50,6 +51,7 @@ export async function saveAcceptedEntries(
       carbs_g: entry.carbs_g,
       fat_g: entry.fat_g,
       meal_type: entry.meal_type,
+      ...(date ? { date } : {}),
     }
 
     if (entry.id !== undefined && entry.id !== null && entry.id !== '') {
