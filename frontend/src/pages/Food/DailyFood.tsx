@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import ThumbnailImage from '@/components/common/ThumbnailImage'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { diaryApi, type DiaryCompletionSummary, type DiaryStreaks, type DiaryWeek } from '@/api/diary'
@@ -125,7 +126,7 @@ function MealSection({
                 aria-label={`Edit ${log.food_name}`}
               >
                 {log.photo_url && (
-                  <img
+                  <ThumbnailImage
                     src={`/api/food/uploads/${log.photo_url}`}
                     alt=""
                     className="w-10 h-10 rounded object-cover shrink-0 mr-3"

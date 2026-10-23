@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import ThumbnailImage from '@/components/common/ThumbnailImage'
+import { foodLogPhotoUrl } from '@/utils/photoUrl'
 import { useNavigate } from 'react-router-dom'
 import { useMealsStore } from '@/store/mealsStore'
 import Button from '@/components/common/Button'
@@ -97,8 +99,8 @@ export default function Meals() {
           {recentPhotos.map((photo) => (
             <Card key={photo.id} shadow>
               <figure>
-                <img
-                  src={photo.photo_path}
+                <ThumbnailImage
+                  src={foodLogPhotoUrl(photo.photo_path)}
                   alt={`Meal from ${formatDate(photo.date)}`}
                   className="w-full h-28 object-cover rounded-t-lg"
                 />
