@@ -1,9 +1,13 @@
 meta:
-  updated_at: 2026-10-22T16:21
+  updated_at: 2026-10-23T09:21
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
-queue: []
+queue:
+- FF-0124
+- FF-0126
+- FF-0125
+- FF-0127
 intake:
 - id: FF-0001
   title: 'Autonomy scaffold: ticket system, gates, docs, skills'
@@ -4776,4 +4780,87 @@ intake:
     explicit copying for all three sections, destination diary, originals retained, 9mg pill dose/local
     times preserved, no inherited exercise photos and no overflow. Final backend activation: sudo systemctl
     restart fitnessfriend (single owner handoff as agreed); refresh afterward. No APK required.'
+  comments: []
+- id: FF-0124
+  title: Preserve selected diary date when adding food
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: in-progress
+  labels: []
+  created_at: 2026-10-23T09:17
+  updated_at: 2026-10-23T09:18
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: ''
+  comments: []
+- id: FF-0125
+  title: Generate and serve small photo thumbnails while preserving full-size images
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-23T09:19
+  updated_at: 2026-10-23T09:19
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: User requests smaller generated thumbnails for uploaded photos so diary/list thumbnails load
+    faster, while retaining full-size/original stored images for non-thumbnail use. Audit food/meal/exercise/weight
+    photo paths and ownership serving/cleanup. Preserve existing full-size uploads; never overwrite or
+    downsample them to generate thumbnails. Add ownership-safe thumbnail endpoints/URLs, reference-aware
+    cleanup, fallback for existing uploads and safe lazy generation or explicit backed-up backfill. Test
+    image dimensions, access control, atomic upload failure, replacement/removal/shared references. Use
+    isolated upload fixtures, no destructive live-photo modifications. Complete current FF-0124 date fix
+    first; work inline, no subagents.
+  comments: []
+- id: FF-0126
+  title: Honor selected food diary date in photo AI logging backend
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 1
+  status: open
+  labels: []
+  created_at: 2026-10-23T09:19
+  updated_at: 2026-10-23T09:19
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: Backend slice split from historical Add Food date bug FF-0124. PhotoLog upload should send selected
+    local date; /api/meals/ai-log currently create_food_log hardcodes server today, including chat-created
+    records. Validate optional YYYY-MM-DD date, retain backward-compatible today fallback, persist target
+    date in photo conversation/session for followup chat-added entries. Test initial analysis and chat
+    followups, invalid date has no writes/uploads, and backward compatibility. Work inline; gates before
+    merge; backend activation handoff. Frontend FF-0124 wires query dates and PhotoLog formData date.
+  comments: []
+- id: FF-0127
+  title: Hydration logging in ounces with notes and last amount default
+  source: user
+  projects:
+  - awecraft
+  assignee: opencode
+  priority: 2
+  status: open
+  labels: []
+  created_at: 2026-10-23T09:21
+  updated_at: 2026-10-23T09:21
+  completed_at: null
+  waiting_on: null
+  parent_id: null
+  notes: User requests a new Hydration log category for water intake. Log positive finite fluid ounces
+    and optional notes; default amount to last logged amount (owner commonly finishes 24-ounce bottles).
+    Date/time consistent with health diary local-day semantics; add quick-menu action and food-style diary
+    section with dated reads/edit/delete and daily ounces total. Initial no-history default 24 oz based
+    on user-stated common bottle, clearly editable; thereafter own last logged amount, no cross-account
+    defaults. No automatic entries, no medical intake targets. Split backend/frontend if needed, full
+    gates, isolated mobile verification, serial merges/publish, restart handoff if required. Finish date
+    bug and thumbnails first. Work inline without subagents.
   comments: []

@@ -8,6 +8,7 @@ import type { Food, FoodRecent, ExternalFood } from '@/types'
 import ExternalFoodResults from '@/components/food/ExternalFoodResults'
 import { SEARCH_DEBOUNCE_MS } from '@/utils/constants'
 import { resolveMealType } from '@/utils/meal'
+import { requestedLocalDate } from '@/utils/localDate'
 import { resolveReturnTo, returnState } from '@/utils/returnTo'
 import Button from '@/components/common/Button'
 import Loading from '@/components/common/Loading'
@@ -23,6 +24,8 @@ export default function LogFood() {
   const originState = returnState(resolveReturnTo(location.state))
   // The diary passes ?meal=lunch when it opens this screen from a meal section.
   const mealType = resolveMealType(searchParams.get('meal'))
+  const logDate = requestedLocalDate(searchParams.get('date'))
+  const dateQuery = searchParams.has('date') ? `&date=${logDate}` : ''
   const [quickAdded, setQuickAdded] = useState<string | null>(null)
   const { foods, recentFoods, isLoading, error, fetchFoods, fetchRecentFoods, clearError, logFood } = useFoodStore()
 
@@ -33,7 +36,7 @@ export default function LogFood() {
     const query = searchTerm.trim()
     if (query.length >= 2 && query.length <= 100) setExternalSearch(previous => ({ query, id: (previous?.id || 0) + 1 }))
   }
-  const selectExternal = (food: ExternalFood) => navigate(`/food/log/select?meal=${mealType}`, {
+  const selectExternal = (food: ExternalFood) => navigate(`/food/log/select?meal=${mealType}${dateQuery}`, {
     state: { ...originState, externalFood: food },
   })
   const [searchResults, setSearchResults] = useState<Food[]>([])
@@ -94,7 +97,7 @@ export default function LogFood() {
   }
 
   const handleFoodTap = (food: Food) => {
-    navigate(`/food/log/select/${food.id}?meal=${mealType}`, { state: originState })
+    navigate(`/food/log/select/${food.id}?meal=${mealType}${dateQuery}`, { state: originState })
   }
 
   const handleHistoryTap = (history: FoodRecent) => {
@@ -105,13 +108,13 @@ export default function LogFood() {
       const lastAmount = history.amount && history.unit
         ? `&amount=${history.amount}&unit=${encodeURIComponent(history.unit)}`
         : ''
-      navigate(`/food/log/select?meal=${mealType}&foodId=${history.food_id}&mode=amount${lastAmount}`, { state: originState })
+      navigate(`/food/log/select?meal=${mealType}${dateQuery}&foodId=${history.food_id}&mode=amount${lastAmount}`, { state: originState })
       return
     }
     const foodIdParam = ''
     const quantityParams = history.amount && history.unit ? `&amount=${history.amount}&unit=${encodeURIComponent(history.unit)}` : ''
     navigate(
-      `/food/log/select?meal=${mealType}&name=${encodeURIComponent(history.food_name)}&calories=${history.calories}&protein=${formatMacro(history.protein_g)}&carbs=${formatMacro(history.carbs_g)}&fat=${formatMacro(history.fat_g)}&brand=${encodeURIComponent(history.brand || '')}&barcode_id=${encodeURIComponent(history.barcode_id || '')}&serving_size=${encodeURIComponent(history.serving_size || '')}${foodIdParam}${quantityParams}`,
+      `/food/log/select?meal=${mealType}${dateQuery}&name=${encodeURIComponent(history.food_name)}&calories=${history.calories}&protein=${formatMacro(history.protein_g)}&carbs=${formatMacro(history.carbs_g)}&fat=${formatMacro(history.fat_g)}&brand=${encodeURIComponent(history.brand || '')}&barcode_id=${encodeURIComponent(history.barcode_id || '')}&serving_size=${encodeURIComponent(history.serving_size || '')}${foodIdParam}${quantityParams}`,
       { state: originState }
     )
   }
@@ -140,6 +143,7 @@ export default function LogFood() {
         photo_url: history.photo_url ?? undefined,
         serving_size: history.serving_size ?? undefined,
         meal_type: mealType,
+        date: logDate,
         number_of_servings: history.number_of_servings || 1,
         ...(history.serving_amount && history.amount ? {
           serving_amount: history.serving_amount, serving_unit: history.serving_unit,
@@ -160,11 +164,11 @@ export default function LogFood() {
   // The meal the diary sent us here with follows every method: picking Quick Add
   // from under Snacks must not land on a form that says Breakfast (FF-0038).
   const handleQuickAdd = () => {
-    navigate(`/food/log/select?meal=${mealType}`, { state: originState })
+    navigate(`/food/log/select?meal=${mealType}${dateQuery}`, { state: originState })
   }
 
   const handleFoodPhoto = () => {
-    navigate(`/food/photo-log?meal=${mealType}`, { state: originState })
+    navigate(`/food/photo-log?meal=${mealType}${dateQuery}`, { state: originState })
   }
 
   if (isLoading && foods.length === 0 && recentFoods.length === 0) {
@@ -345,7 +349,7 @@ export default function LogFood() {
         onFound={(food) => {
           setBarcodeOpen(false)
           // Same destination as tapping a searched food: the serving/meal screen.
-          navigate(`/food/log/select/${food.id}?meal=${mealType}`, { state: originState })
+          navigate(`/food/log/select/${food.id}?meal=${mealType}${dateQuery}`, { state: originState })
         }}
       />
     </div>

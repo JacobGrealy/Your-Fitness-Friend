@@ -14,6 +14,15 @@ export function todayLocal(date: Date = new Date()): string {
   return `${year}-${month}-${day}`
 }
 
+/** Accept a canonical calendar date from navigation, never a UTC timestamp. */
+export function requestedLocalDate(value: string | null): string {
+  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const parsed = new Date(`${value}T12:00:00`)
+    if (!Number.isNaN(parsed.getTime()) && todayLocal(parsed) === value) return value
+  }
+  return todayLocal()
+}
+
 /** The local calendar date of a parsed timestamp, for display. */
 export function localDateOf(value: string | Date): string {
   return todayLocal(value instanceof Date ? value : new Date(value))

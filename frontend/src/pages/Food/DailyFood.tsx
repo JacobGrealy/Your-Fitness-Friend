@@ -380,7 +380,7 @@ export default function DailyFood() {
                 isCollapsed={isCollapsed}
                 onToggle={() => toggleMeal(meal)}
                 onDelete={(id) => setDeleteLogId(id)}
-                onAddFood={(m) => navigate(`/food/log?meal=${m}`, { state: returnState('/food/daily') })}
+                onAddFood={(m) => navigate(`/food/log?meal=${m}&date=${format(currentDate, 'yyyy-MM-dd')}`, { state: returnState(`/food/daily?date=${format(currentDate, 'yyyy-MM-dd')}`) })}
                 onEditLog={(id) => navigate(`/food/log/${id}/edit`)}
                 onCopy={setCopyFrom}
               />

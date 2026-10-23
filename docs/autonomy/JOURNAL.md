@@ -2317,3 +2317,13 @@ mobile flows verified in their tickets. Backup/migration already verified at c12
 No APK required. Backend activation intentionally awaits one owner command:
 `sudo systemctl restart fitnessfriend`. Refresh afterward. All requested implementation complete;
 production backend functionality is not claimed activated before that restart.
+
+## FF-0124 — Historical diary food dates — code verified
+
+Diary Add Food now passes selected local date and dated return origin. Search/saved/recent/barcode/
+Quick Add/photo navigation preserves date, and recent one-tap logging explicitly submits it.
+FoodLogSelect uses canonical requested local date rather than today; date remains editable.
+Photo upload now sends date; backend hardcoded-today correction separately scoped to FF-0126.
+Full gates green, with historical quick-log/navigation/form regressions. Next build/browser check.
+New owner requests queued: FF-0125 original-preserving thumbnails, FF-0127 hydration ounces/notes/
+last-amount default (24 oz initial). Work inline, no subagents. New active goal tracks all requests.
