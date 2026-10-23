@@ -96,8 +96,9 @@ def references_to(stored, exclude=None):
 
     total = 0
     for table, column in _referenceable_columns():
-        clause = f'SELECT COUNT(*) FROM {table} WHERE {column} = :stored'
-        params = {'stored': stored}
+        clause = f'SELECT COUNT(*) FROM {table} WHERE {column} IN (:stored, :legacy)'
+        legacy = stored.removeprefix('profile_photos/') if table == 'users' else stored
+        params = {'stored': stored, 'legacy': legacy}
         if exclude and exclude[0] == table:
             clause += ' AND id != :row_id'
             params['row_id'] = exclude[1]
@@ -123,7 +124,8 @@ def has_photo_access(stored, user_id):
         clause = f'{owner} = :user_id'
         if table == 'foods':
             clause = f'({clause} OR user_id IS NULL)'
-        found = db.session.execute(text(f'SELECT 1 FROM {table} WHERE {column} = :stored AND {clause} LIMIT 1'), {'stored': stored, 'user_id': user_id}).first()
+        legacy = stored.removeprefix('profile_photos/') if table == 'users' else stored
+        found = db.session.execute(text(f'SELECT 1 FROM {table} WHERE {column} IN (:stored, :legacy) AND {clause} LIMIT 1'), {'stored': stored, 'legacy': legacy, 'user_id': user_id}).first()
         if found:
             return True
     return False

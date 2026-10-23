@@ -1,10 +1,9 @@
 meta:
-  updated_at: 2026-10-23T09:53
+  updated_at: 2026-10-23T09:59
   schema: FitnessFriend / AweFit ticket registry. Written ONLY through tasks/scripts/tasks.py (single-writer,
     flock + atomic replace). Hand edits are forbidden.
   id_format: FF-NNNN (zero-padded); per-ticket folder tasks/<id>/ holds spec.md + evidence
 queue:
-- FF-0129
 - FF-0127
 intake:
 - id: FF-0001
@@ -4912,11 +4911,11 @@ intake:
   - awecraft
   assignee: opencode
   priority: 2
-  status: open
+  status: done
   labels: []
   created_at: 2026-10-23T09:44
-  updated_at: 2026-10-23T09:44
-  completed_at: null
+  updated_at: 2026-10-23T09:59
+  completed_at: 2026-10-23T09:59
   waiting_on: null
   parent_id: null
   notes: 'Follow-up discovered during FF-0128 real photo URL audit: auth stores profile_photo_path as
@@ -4926,5 +4925,11 @@ intake:
     Audit meal-photo deletion and other manual remove paths for derived cleanup. Preserve full-size source
     bytes except explicit existing user replacement/delete semantics. Add regression tests through actual
     avatar upload endpoint and thumbnails, not only seeded model. Full gates. Complete before hydration.
-    Work inline/no subagents.'
+    Work inline/no subagents.
+
+
+    Full gates green 466 backend/502 frontend. Real avatar upload bare filename authorization/reference
+    count fixed. Avatar and meal-photo explicit replace/delete use post-commit last-reference cleanup
+    including derivative; shared images and failed-commit originals/caches preserved. No live photos modified.
+    Final backend restart pending.'
   comments: []
