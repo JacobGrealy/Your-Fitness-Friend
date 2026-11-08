@@ -27,10 +27,45 @@ def test_reference_requires_macros_not_fake_zero():
     assert food_search.parse_reference(PRODUCT)['serving_amount'] == 100
     incomplete = {**PRODUCT, 'nutriments': {'energy-kcal_100g': 52, 'proteins_100g': .3}}
     assert food_search.parse_reference(incomplete) is None
-    liquid = {**PRODUCT, 'serving_size': '250 ml'}
-    assert food_search.parse_reference(liquid)['serving_unit'] == 'ml'
     bad = {**PRODUCT, 'nutriments': {**PRODUCT['nutriments'], 'proteins_100g': float('nan')}}
     assert food_search.parse_reference(bad) is None
+
+
+def test_a_declared_basis_wins_over_a_volume_serving_label():
+    """`_100g` covers 100 ml products, so the declared basis decides the label."""
+    liquid = {**PRODUCT, 'nutrition_data_per': '100ml', 'serving_size': '1 glass (250 ml)'}
+    assert food_search.parse_reference(liquid)['serving_unit'] == 'ml'
+
+    conflicting = {**PRODUCT, 'serving_size': '250 ml'}
+    reference = food_search.parse_reference(conflicting)
+    assert reference['serving_unit'] == 'g'
+    assert reference['serving_size'] == '100 g'
+
+
+def test_a_gram_serving_is_scaled_once_and_kept():
+    """FF-0134: the search path prefills the package serving, not 100 g."""
+    bar = {**PRODUCT, 'serving_size': '1 bar (40 g)'}
+    reference = food_search.parse_reference(bar)
+
+    assert reference['serving_amount'] == 40
+    assert reference['serving_unit'] == 'g'
+    assert reference['serving_size'] == '1 bar (40 g)'
+    assert reference['calories'] == 21  # 52 * 0.4
+    assert reference['carbs_g'] == pytest.approx(5.6)  # 14 * 0.4, scaled once
+
+
+def test_a_volume_serving_on_a_mass_basis_is_not_weighed():
+    juice = {**PRODUCT, 'serving_size': '1 glass (250 ml)'}
+    reference = food_search.parse_reference(juice)
+
+    assert reference['serving_unit'] == 'g'
+    assert reference['serving_amount'] == 100
+    assert reference['calories'] == 52
+
+
+def test_a_bare_serving_quantity_is_not_a_gram_serving():
+    product = {**PRODUCT, 'serving_size': '1 bar', 'serving_quantity': 50}
+    assert food_search.parse_reference(product)['serving_amount'] == 100
 
 
 def test_cache_throttle_and_validation(search_client, monkeypatch):
@@ -72,6 +107,82 @@ def test_import_only_when_logging_and_dedup(search_client):
     assert second.json['calories'] == 104
     assert len(client.get('/api/food').json) == 1
     assert client.get('/api/food').json[0]['calories'] == 52
+
+
+def test_a_detected_gram_serving_is_imported_once_and_logs_weighed_portions(search_client, app, monkeypatch):
+    """FF-0134 end to end: the imported food carries the 40 g reference it was saved for."""
+    bar = {**PRODUCT, 'product_name': 'Review Bar', 'serving_size': '1 bar (40 g)',
+           'nutriments': {'energy-kcal_100g': 400, 'proteins_100g': 10,
+                          'carbohydrates_100g': 40, 'fat_100g': 20}}
+    monkeypatch.setattr(food_search, 'fetch_products', lambda q, p: {'products': [bar]})
+    client = search_client
+    token = client.get('/api/food/search/openfoodfacts?q=bar').json['results'][0]['token']
+    result = client.post('/api/food/log', json={'external_food_token': token,
+        'food_name': 'Review Bar', 'calories': 160, 'amount': 20, 'unit': 'g',
+        'date': '2026-10-19', 'meal_type': 'lunch'})
+
+    assert result.status_code == 201, result.json
+    # Half of the 40 g serving, on that serving's own numbers.
+    assert result.json['calories'] == 80
+    assert result.json['carbs_g'] == pytest.approx(8)
+    assert result.json['serving_amount'] == pytest.approx(40)
+    assert result.json['serving_unit'] == 'g'
+    with app.app_context():
+        saved = Food.query.filter_by(user_id=Food.query.first().user_id).one()
+        assert saved.serving_amount == pytest.approx(40)
+        assert saved.serving_unit == 'g'
+        assert saved.calories == 160
+
+
+def test_a_legacy_token_without_a_structured_reference_still_logs(search_client, app):
+    """Tokens signed before FF-0134 carry no serving_amount; they must not 500."""
+    from app.utils import food_search as module
+
+    snapshot = {key: value for key, value in module.parse_reference(PRODUCT).items()
+                if key not in ('serving_amount', 'serving_unit')}
+    token = module.signer().dumps(snapshot)
+    response = search_client.post('/api/food/log', json={'external_food_token': token,
+        'food_name': 'Apple', 'calories': 52, 'amount': 182, 'unit': 'g',
+        'date': '2026-10-19', 'meal_type': 'lunch'})
+
+    assert response.status_code == 201, response.json
+    assert response.json['calories'] == 95
+
+
+def test_reusing_a_saved_food_keeps_the_saved_reference_not_the_provider_snapshot(search_client, app, monkeypatch):
+    """A stale external snapshot must not rewrite the portion basis of a saved food."""
+    bar = {**PRODUCT, 'product_name': 'Review Bar', 'serving_size': '1 bar (40 g)',
+           'nutriments': {'energy-kcal_100g': 400, 'proteins_100g': 10,
+                          'carbohydrates_100g': 40, 'fat_100g': 20}}
+    client = search_client
+    with app.app_context():
+        # The owner already saved this product with a per-100g reference of their own.
+        from app.models.food import Food as Model
+        from app.models.user import User
+        owner = User.query.filter_by(email='search@test.local').one()
+        saved = Model(user_id=owner.id, name='Review Bar', calories=400, protein_g=10,
+                      carbs_g=40, fat_g=20, serving_amount=100, serving_unit='g',
+                      serving_size='100 g', barcode_id=bar['code'])
+        app.extensions['sqlalchemy'].session.add(saved)
+        app.extensions['sqlalchemy'].session.commit()
+        saved_id = saved.id
+
+    monkeypatch.setattr(food_search, 'fetch_products', lambda q, p: {'products': [bar]})
+    token = client.get('/api/food/search/openfoodfacts?q=bar').json['results'][0]['token']
+    result = client.post('/api/food/log', json={'external_food_token': token,
+        'food_name': 'Review Bar', 'calories': 400, 'amount': 50, 'unit': 'g',
+        'date': '2026-10-19', 'meal_type': 'lunch'})
+
+    assert result.status_code == 201, result.json
+    assert result.json['food_id'] == saved_id
+    # 50 g of a 100 g reference: the saved basis wins, not the snapshot's 40 g bar.
+    assert result.json['serving_amount'] == pytest.approx(100)
+    assert result.json['calories'] == 200
+    with app.app_context():
+        from app.models.food import Food as Model
+        stored = app.extensions['sqlalchemy'].session.get(Model, saved_id)
+        assert stored.serving_amount == pytest.approx(100)
+        assert stored.calories == 400
 
 
 def test_invalid_log_does_not_leave_import(search_client):

@@ -102,7 +102,16 @@ def lookup(code):
         barcode_id=canonical,
     )
     from app.utils.quantities import apply_reference
-    apply_reference(food, {'serving_size': product['serving_size']})
+    # Prefer the reference the nutrition was computed for. Re-parsing the human
+    # label cannot read a compound serving ("1 bar (40 g)") and would leave the
+    # saved food claiming 100 g (FF-0134).
+    if product.get('serving_amount') and product.get('serving_unit'):
+        apply_reference(food, {
+            'serving_amount': product['serving_amount'],
+            'serving_unit': product['serving_unit'],
+        })
+    else:
+        apply_reference(food, {'serving_size': product['serving_size']})
     db.session.add(food)
     db.session.commit()
 

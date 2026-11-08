@@ -206,6 +206,9 @@ def test_parse_product_maps_macros_and_brand():
         'carbs_g': 8.6,
         'fat_g': 4.6,
         'serving_size': '15 g',
+        # The reference those numbers describe, so the form prefills 15 g (FF-0134).
+        'serving_amount': 15.0,
+        'serving_unit': 'g',
     }
 
 
@@ -345,17 +348,107 @@ def test_quarter_serving_is_not_four_times_the_calories():
     assert parsed['serving_size'] == '25 g'
 
 
-def test_serving_quantity_is_preferred_over_the_label():
+def test_serving_quantity_with_a_mass_unit_is_preferred_over_the_label():
     parsed = openfoodfacts.parse_product(
-        _product(serving_size='1 bar', serving_quantity=50)
+        _product(serving_size='1 bar', serving_quantity=50, serving_quantity_unit='g')
     )
     assert parsed['calories'] == 200
+    assert parsed['serving_amount'] == 50
+    assert parsed['serving_unit'] == 'g'
+
+
+def test_a_bare_serving_quantity_is_not_evidence_of_grams():
+    """FF-0134: OFF normalises `serving_quantity` to grams OR millilitres."""
+    product = _product(serving_size='1 bar', serving_quantity=50)
+
+    assert openfoodfacts.serving_mass_g(product['product']) is None
+    parsed = openfoodfacts.parse_product(product)
+    # Nothing here proves a mass, so the number stays on its per-100g basis.
+    assert parsed['calories'] == 400
+    assert parsed['serving_size'] == '100 g'
+    assert parsed['serving_amount'] == 100
+    assert parsed['serving_unit'] == 'g'
 
 
 def test_mass_units_are_understood():
     assert openfoodfacts.serving_mass_g({'serving_size': '1.5 oz'}) == pytest.approx(42.52, abs=0.01)
-    assert openfoodfacts.serving_mass_g({'serving_size': '250ml'}) == pytest.approx(250)
     assert openfoodfacts.serving_mass_g({'serving_size': ' 30G '}) == pytest.approx(30)
+    assert openfoodfacts.serving_mass_g({'serving_size': '0,25 kg'}) == pytest.approx(250)
+
+
+def test_volume_is_never_converted_to_grams():
+    """250 ml only becomes grams through a density nobody published."""
+    assert openfoodfacts.serving_mass_g({'serving_size': '250ml'}) is None
+    assert openfoodfacts.serving_mass_g({'serving_size': '250 ml'}) is None
+    assert openfoodfacts.serving_mass_g(
+        {'serving_quantity': 250, 'serving_quantity_unit': 'ml'}
+    ) is None
+
+
+def test_a_compound_label_yields_its_real_gram_serving():
+    """The reproduced bug: `1 bar (40 g)` was reported as 400 kcal for 100 g."""
+    parsed = openfoodfacts.parse_product(_product(serving_size='1 bar (40 g)'))
+
+    assert parsed['calories'] == 160
+    assert parsed['protein_g'] == 4.0
+    assert parsed['carbs_g'] == 16.0
+    assert parsed['fat_g'] == 8.0
+    assert parsed['serving_amount'] == 40
+    assert parsed['serving_unit'] == 'g'
+
+
+def test_decimal_gram_servings_keep_their_precision():
+    parsed = openfoodfacts.parse_product(_product(serving_size='1 portion (28.35 g)'))
+
+    assert parsed['serving_amount'] == pytest.approx(28.35)
+    assert parsed['serving_unit'] == 'g'
+    assert parsed['calories'] == 113  # 400 * 0.2835
+
+
+def test_conflicting_masses_in_one_label_are_refused():
+    assert openfoodfacts.serving_mass_g({'serving_size': '40 g, 60 g'}) is None
+    # The same serving written twice is not a conflict.
+    assert openfoodfacts.serving_mass_g({'serving_size': '1 bar (40 g) · 40 g'}) == pytest.approx(40)
+
+
+def test_a_per_100ml_basis_is_labelled_and_never_weighed():
+    parsed = openfoodfacts.parse_product({
+        'status': 1,
+        'product': {
+            'product_name': 'Orange Juice',
+            'serving_size': '1 glass (250 ml)',
+            'nutrition_data_per': '100ml',
+            'nutriments': {'energy-kcal_100g': 45, 'proteins_100g': .7,
+                           'carbohydrates_100g': 10, 'fat_100g': .1},
+        },
+    })
+
+    assert parsed['calories'] == 45
+    assert parsed['serving_size'] == '100 ml'
+    assert parsed['serving_amount'] == 100
+    assert parsed['serving_unit'] == 'ml'
+
+
+def test_published_per_serving_energy_without_serving_macros_is_not_mixed():
+    """A per-serving calorie plus per-100g macros would describe two quantities."""
+    parsed = openfoodfacts.parse_product({
+        'status': 1,
+        'product': {
+            'product_name': 'Mixed Bar',
+            'serving_size': '1 bar (50 g)',
+            'nutriments': {
+                'energy-kcal_100g': 400, 'energy-kcal_serving': 200,
+                'proteins_100g': 10, 'carbohydrates_100g': 40, 'fat_100g': 20,
+            },
+        },
+    })
+
+    assert parsed['calories'] == 200
+    assert parsed['protein_g'] == 5.0
+    assert parsed['carbs_g'] == 20.0
+    assert parsed['fat_g'] == 10.0
+    assert parsed['serving_amount'] == 50
+    assert parsed['serving_unit'] == 'g'
 
 
 def test_immeasurable_serving_keeps_per_100g_numbers_and_says_so():

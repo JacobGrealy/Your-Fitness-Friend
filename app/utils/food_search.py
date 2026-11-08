@@ -7,7 +7,6 @@ OFF's ten-search/minute IP limit. Cache stores public product data only.
 import json
 import math
 import os
-import re
 import sqlite3
 import tempfile
 import time
@@ -17,7 +16,9 @@ import urllib.error
 
 from flask import current_app
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-from app.utils.openfoodfacts import USER_AGENT, normalise_code, _first_name
+from app.utils.openfoodfacts import (
+    USER_AGENT, normalise_code, _first_name, nutrition_basis, serving_mass_g,
+)
 
 SEARCH_URL = 'https://world.openfoodfacts.org/cgi/search.pl'
 TTL = 3600
@@ -43,7 +44,12 @@ class SearchLimited(Exception):
 
 
 def parse_reference(product):
-    """Require actual per-100-unit values, not inferred zeros or per-serving values."""
+    """Require actual per-100-unit values, not inferred zeros or per-serving values.
+
+    The returned nutrition and its reference always describe the same quantity: a
+    real package serving mass when one is published (scaled exactly once, FF-0134),
+    otherwise the per-100 basis with a label that says so.
+    """
     if not isinstance(product, dict):
         return None
     code = normalise_code(product.get('code'))
@@ -63,16 +69,24 @@ def parse_reference(product):
             return None
     except (KeyError, TypeError, ValueError, OverflowError):
         return None
-    # OFF uses _100g keys for 100ml too. Respect an explicit liquid label rather than
-    # declaring ml to weigh one gram. Never offer mass/volume cross-conversion.
-    declared = str(product.get('nutrition_data_per') or '')
-    label = str(product.get('serving_size') or '').lower()
-    liquid = declared == '100ml' or bool(re.search(r'\d\s*(ml|cl|l)\b', label))
-    unit = 'ml' if liquid else 'g'
+    # OFF uses _100g keys for 100ml too. A declared basis wins; an undeclared one
+    # falls back to a volume hint in the label. Never mass/volume cross-conversion.
+    unit = nutrition_basis(product)
+    grams = serving_mass_g(product)
+    label = str(product.get('serving_size') or '').strip()
+    if grams and unit == 'g':
+        # A real serving mass: scale the per-100 values exactly once so the saved food
+        # and the prefill describe the same portion.
+        factor = grams / 100.0
+        values = {key: value * factor for key, value in values.items()}
+        amount, serving_unit = grams, 'g'
+        serving_size = label or f'{grams:g} g'
+    else:
+        amount, serving_unit, serving_size = 100, unit, f'100 {unit}'
     return {
         'name': name[:120], 'brand': str(product.get('brands') or '').split(',')[0].strip()[:100] or None,
         **values, 'calories': max(1, round(values['calories'])),
-        'serving_amount': 100, 'serving_unit': unit, 'serving_size': f'100 {unit}',
+        'serving_amount': amount, 'serving_unit': serving_unit, 'serving_size': serving_size,
         'barcode_id': ('0' + code) if len(code) == 12 else code,
         'external_id': 'openfoodfacts:' + (('0' + code) if len(code) == 12 else code),
         'source': 'openfoodfacts',
@@ -83,7 +97,7 @@ def _query_once(query, page, timeout):
     """One attempt. Raises _Retryable for a transient failure, SearchUnavailable when permanent."""
     params = urllib.parse.urlencode({'search_terms': query, 'search_simple': 1,
         'action': 'process', 'json': 1, 'page_size': SEARCH_PAGE_SIZE, 'page': page,
-        'fields': 'code,product_name,product_name_en,generic_name,brands,nutriments,serving_size,nutrition_data_per'})
+        'fields': 'code,product_name,product_name_en,generic_name,brands,nutriments,serving_size,serving_quantity,serving_quantity_unit,nutrition_data_per'})
     request = urllib.request.Request(SEARCH_URL + '?' + params, headers={'User-Agent': USER_AGENT})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
