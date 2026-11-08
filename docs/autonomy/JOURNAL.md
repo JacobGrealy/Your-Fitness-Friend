@@ -2493,3 +2493,20 @@ independent by re-running the gate with this ticket's changes stashed: identical
 Commit: 1e322c3 (merge). Backend restart needed for activation.
 The already-saved Lucky Charms food (id89) still carries the wrong 1-serving reference; it was
 not rewritten, per the standing rule that live user food data needs explicit owner approval.
+
+## FF-0136 — Diary refresh no longer blanks the page or loses scroll
+
+Owner reported that deleting a food log threw the diary back to the top. FF-0133's date
+isolation gated the whole body on `!logsLoading && !totalsLoading`, so the totals refresh that
+follows a delete was treated like a date change: the meal sections unmounted, the document
+collapsed and the scroll position was lost.
+Readiness now separates "these rows are not this date's" (first load or a real date change —
+still replaced by the loading state) from "this date is refreshing" (sections stay mounted with
+a small "Updating diary…" notice). Completion keeps its own date, so a stale streak or
+closed-day panel is hidden across a date change without blanking rows that are already right.
+Gates: ./scripts/gates.sh green — 503 backend, 544 frontend across 89 suites, tsc, smoke,
+layout, uploads, tooling (the earlier tooling red cleared with the other lane's fix).
+Mobile browser probe (isolated server, mocked APIs): scroll 442px before and after a delete;
+the pre-fix build dropped it to 375px. Both new frontend tests fail against the old gating.
+Evidence: central FF-0136 browser-scroll-probe.cjs and after-delete-scroll-preserved.png.
+Commit: 30888f9 (merge), published build index-D_IEdJii.js. Static assets only — no restart.
