@@ -12,6 +12,7 @@ ever surface as a 500 to someone standing in a supermarket.
 """
 
 import json
+import math
 import re
 import urllib.error
 import urllib.parse
@@ -25,7 +26,8 @@ TIMEOUT_SECONDS = 6
 BARCODE_RE = re.compile(r'^\d{6,14}$')
 
 _FIELDS = ('fields=product_name,product_name_en,generic_name,brands,'
-           'serving_size,serving_quantity,nutriments')
+           'serving_size,serving_quantity,serving_quantity_unit,'
+           'nutrition_data_per,nutriments')
 
 
 class OpenFoodFactsUnavailable(Exception):
@@ -48,48 +50,123 @@ def _first_name(product):
     return None
 
 
-#: Grams per unit for the serving units OpenFoodFacts actually uses.
+#: Grams per unit for mass units OpenFoodFacts writes into serving text and
+#: `serving_quantity_unit`. Volume is deliberately absent: millilitres only become
+#: grams through a density nobody published, which is the guess FF-0134 removed.
 _UNIT_GRAMS = {
     'g': 1.0,
     'gr': 1.0,
     'gram': 1.0,
     'grams': 1.0,
+    'mg': 0.001,
     'kg': 1000.0,
-    'ml': 1.0,
-    'l': 1000.0,
-    'cl': 10.0,
-    'oz': 28.3495,
-    'lb': 453.592,
+    'kilogram': 1000.0,
+    'kilograms': 1000.0,
+    'oz': 28.349523125,
+    'ounce': 28.349523125,
+    'ounces': 28.349523125,
+    'lb': 453.59237,
+    'lbs': 453.59237,
+    'pound': 453.59237,
+    'pounds': 453.59237,
 }
+
+_VOLUME_UNITS = {'ml', 'millilitre', 'millilitres', 'milliliter', 'milliliters',
+                 'cl', 'l', 'litre', 'litres', 'liter', 'liters', 'dl'}
+
+#: Every explicit mass mentioned anywhere in a serving label, so a compound label
+#: like "1 bar (40 g)" or "1 portion (28.349 g)" yields its real mass.
+_MASS_TOKEN_RE = re.compile(
+    r'(\d+(?:[.,]\d+)?)\s*(g|gr|grams?|mg|kg|kilograms?|oz|ounces?|lbs?|pounds?)\b',
+    re.IGNORECASE,
+)
 
 _SERVING_RE = re.compile(r'^\s*([0-9]+(?:[.,][0-9]+)?)\s*([a-zA-Z]+)\s*$')
 
 
-def serving_mass_g(product):
-    """Grams in one serving, or None when the serving is not a mass.
-
-    OpenFoodFacts publishes both `serving_quantity` (a number, grams for solids) and
-    a human `serving_size` string. Either can name a mass; "1 cup" or "1 bar" cannot
-    be converted without inventing a density, and a guess is exactly the bug being
-    fixed here, so they return None.
-    """
-    quantity = product.get('serving_quantity')
+def _positive_number(value):
+    """A finite, strictly positive float, or None. Rejects bools and junk."""
+    if value is None or isinstance(value, bool):
+        return None
     try:
-        if quantity is not None:
-            grams = float(quantity)
-            if grams > 0:
-                return grams
+        number = float(str(value).replace(',', '.').strip())
     except (TypeError, ValueError):
-        pass
+        return None
+    if not math.isfinite(number) or number <= 0:
+        return None
+    return number
 
-    match = _SERVING_RE.match(str(product.get('serving_size') or ''))
-    if not match:
+
+def _unit_grams(unit):
+    return _UNIT_GRAMS.get(str(unit or '').strip().lower().rstrip('.'))
+
+
+def _normalise_unit(unit):
+    return str(unit or '').strip().lower().rstrip('.')
+
+
+def serving_mass_g(product):
+    """Grams in one serving, or None when no explicit mass is published.
+
+    Two independent sources are accepted, and nothing else:
+
+    * a structured `serving_quantity` **accompanied by** a mass
+      `serving_quantity_unit` — OpenFoodFacts normalises that quantity to grams
+      *or* millilitres, so an unqualified number is not evidence of mass;
+    * an explicit mass written into `serving_size`, including compound labels
+      such as "1 bar (40 g)".
+
+    Volume ("250 ml"), counts ("1 bar"), household measures and package quantity
+    are not mass. Conflicting masses in one label are ambiguous, so they are not
+    mass either. A guess here is exactly the bug being fixed: it silently
+    multiplies a whole package's nutrition into one serving.
+    """
+    quantity = _positive_number(product.get('serving_quantity'))
+    unit = _normalise_unit(product.get('serving_quantity_unit'))
+    if quantity is not None and unit:
+        factor = _unit_grams(unit)
+        if factor:
+            return quantity * factor
+        if unit in _VOLUME_UNITS:
+            return None  # a measured volume, not a mass — never converted
+
+    return _mass_from_label(str(product.get('serving_size') or ''))
+
+
+def _mass_from_label(text):
+    """Grams named explicitly in a serving label, or None."""
+    masses = []
+    for match in _MASS_TOKEN_RE.finditer(text):
+        number = _positive_number(match.group(1))
+        factor = _unit_grams(match.group(2))
+        if number is None or not factor:
+            continue
+        masses.append(number * factor)
+    if not masses:
         return None
-    number = float(match.group(1).replace(',', '.'))
-    unit_grams = _UNIT_GRAMS.get(match.group(2).strip().lower())
-    if not unit_grams or number <= 0:
-        return None
-    return number * unit_grams
+    # "40 g, 1.4 oz" would be two readings of one serving; pick the single value
+    # they agree on, otherwise refuse rather than average a contradiction.
+    first = masses[0]
+    if all(abs(mass - first) <= 0.01 for mass in masses):
+        return first
+    return None
+
+
+def nutrition_basis(product):
+    """The unit the per-100 nutriments are expressed in: 'g' or 'ml'.
+
+    `_100g` keys cover 100 ml products too, so a declared basis wins; only an
+    undeclared basis falls back to a volume hint in the serving label.
+    """
+    declared = _normalise_unit(product.get('nutrition_data_per')).replace(' ', '')
+    if declared in ('100ml', '100l'):
+        return 'ml'
+    if declared in ('100g', '100gr', '100gram', '100grams'):
+        return 'g'
+    if re.search(r'\d\s*(ml|cl|l)\b', str(product.get('serving_size') or ''), re.IGNORECASE):
+        return 'ml'
+    return 'g'
+
 
 
 def _serving_value(nutriments, key):
@@ -116,10 +193,12 @@ def _scale(value, factor):
 
 
 def _calories(nutriments):
-    """Prefer kcal; fall back to converting kJ (energy_100g)."""
+    """Per-100 kcal, falling back to converting per-100 kJ.
+
+    Deliberately ignores the unqualified `energy-kcal` key: it carries no basis,
+    and treating it as per-100 made a single serving read as a whole package.
+    """
     kcal = nutriments.get('energy-kcal_100g')
-    if kcal is None:
-        kcal = nutriments.get('energy-kcal')
     try:
         if kcal is not None:
             value = round(float(kcal))
@@ -169,22 +248,26 @@ def parse_product(payload):
 
     brand = (product.get('brands') or '').split(',')[0].strip() or None
 
-    # The nutriments above are all per 100 g. Presenting them as one serving made a
-    # 15 g serving of Nutella read as 539 kcal instead of 81 (FF-0063), so scale to
-    # the declared serving mass — or, when the serving is not a mass, keep the
-    # per-100g numbers and say so in the label. Number and label must agree.
-    # 1. OFF's own per-serving figures are authoritative when present.
+    # Every nutriment above is per 100 of the declared basis. Presenting those as one
+    # serving made a 15 g serving of Nutella read as 539 kcal instead of 81 (FF-0063),
+    # so the numbers are always tied to a named reference: OFF's own per-serving
+    # figures, a scaling of the per-100 values by a real serving mass, or the per-100
+    # values themselves. Number and reference must describe the same quantity.
+    basis = nutrition_basis(product)
+    grams = serving_mass_g(product)
     published_calories = _serving_value(nutriments, 'energy-kcal')
-    if published_calories and published_calories > 0:
-        calories = round(published_calories)
-        protein_g = _serving_value(nutriments, 'proteins')
-        carbs_g = _serving_value(nutriments, 'carbohydrates')
-        fat_g = _serving_value(nutriments, 'fat')
-        serving_size = (product.get('serving_size') or '').strip() or '1 serving'
-    else:
-        grams = serving_mass_g(product)
+    published_macros = [_serving_value(nutriments, key) for key in ('proteins', 'carbohydrates', 'fat')]
+    label = (product.get('serving_size') or '').strip()
 
-    if not published_calories and grams:
+    if published_calories and published_calories > 0 and None not in published_macros:
+        # OFF computed this serving itself: never rescale it, and never mix it with
+        # per-100 macros, which describe a different quantity.
+        calories = round(published_calories)
+        protein_g, carbs_g, fat_g = published_macros
+        serving_size = label or (f'{grams:g} g' if grams else '1 serving')
+        serving_amount, serving_unit = ((grams, 'g') if grams else (1.0, 'serving'))
+    elif grams and basis == 'g':
+        # A real serving mass on a per-100g basis: scale exactly once.
         factor = grams / 100.0
         calories = round(calories * factor)
         if calories <= 0:
@@ -192,12 +275,16 @@ def parse_product(payload):
         protein_g = _scale(_macro(nutriments, 'proteins_100g'), factor)
         carbs_g = _scale(_macro(nutriments, 'carbohydrates_100g'), factor)
         fat_g = _scale(_macro(nutriments, 'fat_100g'), factor)
-        serving_size = (product.get('serving_size') or '').strip() or f'{round(grams)} g'
-    elif not published_calories:
+        serving_size = label or f'{grams:g} g'
+        serving_amount, serving_unit = (grams, 'g')
+    else:
+        # No reliable package serving (or a per-100ml basis we cannot weigh): keep the
+        # per-100 numbers and say so, rather than inventing a serving.
         protein_g = _macro(nutriments, 'proteins_100g')
         carbs_g = _macro(nutriments, 'carbohydrates_100g')
         fat_g = _macro(nutriments, 'fat_100g')
-        serving_size = '100 g'
+        serving_size = f'100 {basis}'
+        serving_amount, serving_unit = (100.0, basis)
 
     return {
         'name': name[:120],
@@ -207,6 +294,10 @@ def parse_product(payload):
         'carbs_g': carbs_g,
         'fat_g': fat_g,
         'serving_size': serving_size[:255],
+        # The reference the nutrition actually describes, so the form prefills the
+        # real portion instead of re-parsing a human label (FF-0134).
+        'serving_amount': serving_amount,
+        'serving_unit': serving_unit,
     }
 
 

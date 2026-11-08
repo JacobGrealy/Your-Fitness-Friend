@@ -531,10 +531,28 @@ def create_food_log():
         try:
             imported, snapshot = import_reference(data['external_food_token'], current_user.id)
             data = {**data, 'food_id': imported.id}
+            # A food the owner already saved keeps its own portion basis: the provider
+            # snapshot only fills gaps, so a stale search hit cannot mix a per-100g
+            # record with a package-serving one (FF-0134). Foods saved before the
+            # reference was structured fall back to the snapshot unchanged.
+            saved = {}
+            if imported.serving_amount and imported.serving_unit:
+                saved = {
+                    'serving_amount': imported.serving_amount,
+                    'serving_unit': imported.serving_unit,
+                    'serving_size': imported.serving_size,
+                    'calories': imported.calories,
+                    'protein_g': imported.protein_g,
+                    'carbs_g': imported.carbs_g,
+                    'fat_g': imported.fat_g,
+                }
+            fallbacks = {**snapshot, **saved}
             for key in ('serving_amount', 'serving_unit', 'serving_size'):
-                data.setdefault(key, snapshot[key])
+                if key in fallbacks:
+                    data.setdefault(key, fallbacks[key])
             for macro, field in PER_SERVING_FIELDS.items():
-                data.setdefault(field, snapshot[macro])
+                if macro in fallbacks:
+                    data.setdefault(field, fallbacks[macro])
         except (TypeError, ValueError) as exc:
             db.session.rollback()
             return jsonify({'error': str(exc)}), 400
