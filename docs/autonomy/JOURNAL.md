@@ -2448,3 +2448,28 @@ mocked APIs passed all four checks; screenshot and probe stored in the central F
 Commit: 715ee0a (code), 255113d (merge), c445aaa (published build). Static assets need no
 backend restart; production serves index-CNCuDX4D.js and no migration was required.
 Next: FF-0134, Open Food Facts gram serving detection.
+
+## FF-0134 — Gram serving sizes detected from Open Food Facts
+
+Scanned and searched products now carry the portion their nutrition was written for, so the
+existing edible amount controls prefill a real package serving and a weighed portion scales
+from it. `serving_mass_g` accepts only explicit mass evidence — a `serving_quantity` with a
+mass `serving_quantity_unit`, or unambiguous mass text including compound labels such as
+`1 bar (40 g)` — and refuses volume, counts, household measures, package quantity, bare
+quantities and conflicting masses, with finite-positive validation. `nutrition_basis` treats a
+declared `nutrition_data_per` as authoritative because `_100g` keys also describe 100 ml.
+`parse_product` keeps number and reference on one basis: complete per-serving nutriments from
+OFF, else the per-100 values scaled exactly once by a real serving mass, else a truthful
+100 g/100 ml basis; unqualified `energy-kcal` is no longer trusted as per-100 energy. The
+barcode route persists that explicit reference instead of re-parsing a human label, the search
+path returns and imports the same reference, and a reused saved food keeps its own basis so a
+stale snapshot cannot mix per-100g and per-serving records. Legacy tokens without a structured
+reference still log through the label fallback.
+Reproduced before the fix: `1 bar (40 g)` with 400 kcal/100 g became 400 kcal per 100 g, and
+`250 ml` was read as 250 g. Both are now regression tests, along with owner-reuse coherence.
+Gates: ./scripts/gates.sh green — 500 backend, 542 frontend across 89 suites, tsc, smoke,
+layout, uploads, tooling. No migration, no frontend build and no schema change.
+Commit: a307b60 (code), 2948ec6 (merge). Frontend-only test added; production assets unchanged.
+Backend activation still pending the owner: `sudo systemctl restart fitnessfriend` (the
+passwordless sudoers drop-in is still not installed — `sudo -n` refused).
+Next: queue is empty; both requested tickets are done.
