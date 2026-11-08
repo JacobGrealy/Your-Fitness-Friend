@@ -411,6 +411,58 @@ def test_conflicting_masses_in_one_label_are_refused():
     assert openfoodfacts.serving_mass_g({'serving_size': '1 bar (40 g) · 40 g'}) == pytest.approx(40)
 
 
+def test_a_volume_qualified_quantity_still_uses_the_labels_grams():
+    """FF-0135: OFF publishes Lucky Charms as `1 taza (36 g)` with the unit "ml"."""
+    product = {
+        'serving_size': '1 taza (36 g)',
+        'serving_quantity': 36,
+        'serving_quantity_unit': 'ml',
+    }
+    assert openfoodfacts.serving_mass_g(product) == pytest.approx(36)
+
+    parsed = openfoodfacts.parse_product({
+        'status': 1,
+        'product': {
+            'product_name': 'Lucky Charms',
+            'brands': 'General Mills',
+            'nutrition_data_per': '100g',
+            **product,
+            'nutriments': {
+                'energy-kcal_100g': 389, 'proteins_100g': 8.3,
+                'carbohydrates_100g': 83.3, 'fat_100g': 4.2,
+                'energy-kcal_serving': 140, 'proteins_serving': 3,
+                'carbohydrates_serving': 30, 'fat_serving': 1.5,
+            },
+        },
+    })
+
+    # The published per-serving figures keep their own basis, with the real serving.
+    assert parsed['calories'] == 140
+    assert parsed['serving_amount'] == pytest.approx(36)
+    assert parsed['serving_unit'] == 'g'
+    assert parsed['serving_size'] == '1 taza (36 g)'
+
+
+def test_a_volume_only_serving_still_has_no_mass():
+    assert openfoodfacts.serving_mass_g({
+        'serving_size': '1 cup (240 ml)',
+        'serving_quantity': 240,
+        'serving_quantity_unit': 'ml',
+    }) is None
+
+
+def test_a_mass_quantity_that_disagrees_with_the_label_is_ambiguous():
+    assert openfoodfacts.serving_mass_g({
+        'serving_size': '1 bar (60 g)', 'serving_quantity': 30,
+        'serving_quantity_unit': 'g',
+    }) is None
+    # Agreement is not a conflict.
+    assert openfoodfacts.serving_mass_g({
+        'serving_size': '1 bar (30 g)', 'serving_quantity': 30,
+        'serving_quantity_unit': 'g',
+    }) == pytest.approx(30)
+
+
 def test_a_per_100ml_basis_is_labelled_and_never_weighed():
     parsed = openfoodfacts.parse_product({
         'status': 1,

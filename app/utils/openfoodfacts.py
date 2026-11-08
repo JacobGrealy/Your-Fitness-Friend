@@ -117,20 +117,33 @@ def serving_mass_g(product):
       such as "1 bar (40 g)".
 
     Volume ("250 ml"), counts ("1 bar"), household measures and package quantity
-    are not mass. Conflicting masses in one label are ambiguous, so they are not
-    mass either. A guess here is exactly the bug being fixed: it silently
-    multiplies a whole package's nutrition into one serving.
+    are not mass. Conflicting masses are ambiguous, so they are not mass either. A
+    guess here is exactly the bug being fixed: it silently multiplies a whole
+    package's nutrition into one serving.
+
+    The label is still consulted when the structured quantity is qualified as a
+    volume: a cereal box reads `serving_size` "1 taza (36 g)" while OFF publishes
+    `serving_quantity_unit` "ml", and that printed gram figure is real evidence —
+    reading it is not a volume-to-mass conversion (FF-0135).
     """
     quantity = _positive_number(product.get('serving_quantity'))
     unit = _normalise_unit(product.get('serving_quantity_unit'))
+    structured = None
     if quantity is not None and unit:
         factor = _unit_grams(unit)
         if factor:
-            return quantity * factor
-        if unit in _VOLUME_UNITS:
-            return None  # a measured volume, not a mass — never converted
+            structured = quantity * factor
 
-    return _mass_from_label(str(product.get('serving_size') or ''))
+    labelled = _mass_from_label(str(product.get('serving_size') or ''))
+    if structured is None:
+        return labelled
+    if labelled is None:
+        return structured
+    # Both name a mass for the same serving, so a material disagreement means one
+    # of them is not describing the serving.
+    if abs(structured - labelled) > max(0.5, structured * 0.01):
+        return None
+    return structured
 
 
 def _mass_from_label(text):
