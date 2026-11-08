@@ -14,6 +14,7 @@ import { formatCalories, formatMacro, formatServing } from '@/utils/formatters'
 import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
 import CalorieSummaryBar from '@/components/dashboard/CalorieSummaryBar'
 import Loading from '@/components/common/Loading'
+import PendingStatus from '@/components/common/PendingStatus'
 import Modal from '@/components/common/Modal'
 import DiaryDateSelector from '@/components/food/DiaryDateSelector'
 import { returnState } from '@/utils/returnTo'
@@ -239,8 +240,18 @@ export default function DailyFood() {
   }, [dateStr, attempt, fetchDailyTotals, fetchFoodLogs])
 
   const diaryError = logsError || totalsError || completionError
-  const diaryReady = logsDate === dateStr && totalsDate === dateStr && completionDate === dateStr
-    && !logsLoading && !totalsLoading && !diaryError
+  // The rows and totals this screen is showing belong to the selected date. Until they
+  // do — a first load, or a real date change — the body must not pretend to be this
+  // day's diary. A same-date refresh is a different thing: it must NOT tear the body
+  // down, because replacing it collapses the document and throws away the scroll
+  // position (FF-0136).
+  const showingSelectedDate = logsDate === dateStr && totalsDate === dateStr
+  const refreshing = showingSelectedDate && (logsLoading || totalsLoading)
+  // Completion carries its own date: a stale streak/closed panel is hidden across a
+  // date change without blanking rows that are already correct.
+  const completionForDate = completionDate === dateStr
+  const diaryReady = showingSelectedDate && !diaryError
+  const actionsReady = diaryReady && completionForDate && !completionError
 
   useEffect(() => {
     setCenterContent(
@@ -250,7 +261,7 @@ export default function DailyFood() {
   }, [currentDate, setCenterContent])
 
   const completeDiary = useCallback(async () => {
-    if (actionBusy.current || !diaryReady) return
+    if (actionBusy.current || !actionsReady) return
     const startedVisit = visit.current
     actionBusy.current = true
     setCompleting(true)
@@ -268,7 +279,7 @@ export default function DailyFood() {
       actionBusy.current = false
       setCompleting(false)
     }
-  }, [dateStr, diaryReady])
+  }, [dateStr, actionsReady])
 
   const handleCopyMeal = useCallback(
     async (toDate: string, toMeal: MealType) => {
@@ -305,7 +316,7 @@ export default function DailyFood() {
       actionBusy.current = false
       setUndoing(false)
     }
-  }, [dateStr, diaryReady])
+  }, [dateStr, actionsReady])
 
   const groupedLogs = MEAL_TYPES.reduce((acc, meal) => {
     acc[meal] = foodLogs.filter(log => log.meal_type === meal)
@@ -364,6 +375,9 @@ export default function DailyFood() {
       <div className="px-4 pt-4 space-y-4">
         {!diaryReady && (diaryError ? <div className="bg-white rounded-lg p-4"><p role="alert">{diaryError}</p><button className="mt-2 text-mfp-blue underline" onClick={() => setAttempt(value => value + 1)}>Retry diary</button></div> : <div role="status" aria-busy="true" className="py-8"><Loading text="Loading diary…" /></div>)}
         {diaryReady && <>
+        {/* A same-date refresh keeps every section mounted, so the document height and
+            the scroll position survive a delete or a totals reload (FF-0136). */}
+        {refreshing && <PendingStatus text="Updating diary…" />}
         {dailyTotals && (
           <CalorieSummaryBar
             calories={{
@@ -375,11 +389,11 @@ export default function DailyFood() {
           />
         )}
 
-        {completedToday && closedSummary && (
+        {completionForDate && completedToday && closedSummary && (
           <ClosedDayPanel summary={closedSummary} onReopen={reopenDiary} reopening={undoing} />
         )}
 
-        {!completedToday && streaks && week && <StreakStrip streaks={streaks} week={week} />}
+        {completionForDate && !completedToday && streaks && week && <StreakStrip streaks={streaks} week={week} />}
 
         <div className="space-y-4">
           {MEAL_TYPES.map(meal => {
@@ -424,7 +438,7 @@ export default function DailyFood() {
         />
       )}
 
-      {diaryReady && !completedToday && (
+      {actionsReady && !completedToday && (
         <div className="px-4 pt-2 pb-2">
           <button
             type="button"
