@@ -12,7 +12,9 @@ import { resolveMealType } from '@/utils/meal'
 import { requestedLocalDate } from '@/utils/localDate'
 import { resolveReturnTo, returnState } from '@/utils/returnTo'
 import Button from '@/components/common/Button'
+import PendingStatus from '@/components/common/PendingStatus'
 import Loading from '@/components/common/Loading'
+import Spinner from '@/components/common/Spinner'
 import EmptyState from '@/components/common/EmptyState'
 import BarcodeLookupModal from '@/components/food/BarcodeLookupModal'
 
@@ -27,7 +29,10 @@ export default function LogFood() {
   const mealType = resolveMealType(searchParams.get('meal'))
   const logDate = requestedLocalDate(searchParams.get('date'))
   const dateQuery = searchParams.has('date') ? `&date=${logDate}` : ''
-  const [quickAdded, setQuickAdded] = useState<string | null>(null)
+  const [quickAdded, setQuickAdded] = useState<Set<string>>(new Set())
+  const [quickPending, setQuickPending] = useState<Set<string>>(new Set())
+  const quickInFlight = useRef(new Set<string>())
+  const recentKey = (food: FoodRecent) => String(food.food_id || food.food_name)
   const { foods, recentFoods, isLoading, error, fetchFoods, fetchRecentFoods, clearError, logFood } = useFoodStore()
 
   const [barcodeOpen, setBarcodeOpen] = useState(searchParams.get('method') === 'barcode')
@@ -130,6 +135,11 @@ export default function LogFood() {
    * diary row can be edited when a different amount is wanted.
    */
   const handleQuickLog = async (history: FoodRecent) => {
+    const key = recentKey(history)
+    if (quickInFlight.current.has(key)) return
+    quickInFlight.current.add(key)
+    setQuickPending(new Set(quickInFlight.current))
+    setQuickAdded(previous => { const next = new Set(previous); next.delete(key); return next })
     try {
       await logFood({
         food_id: history.food_id ?? undefined,
@@ -155,10 +165,13 @@ export default function LogFood() {
           fat_per_serving: history.fat_per_serving,
         } : {}),
       })
-      setQuickAdded(history.food_name)
-      window.setTimeout(() => setQuickAdded(null), 1500)
+      setQuickAdded(previous => new Set(previous).add(key))
+      window.setTimeout(() => setQuickAdded(previous => { const next = new Set(previous); next.delete(key); return next }), 1500)
     } catch {
-      // logFood surfaces its own error through the store
+      // logFood surfaces its own error through the store; the row is retryable.
+    } finally {
+      quickInFlight.current.delete(key)
+      setQuickPending(new Set(quickInFlight.current))
     }
   }
 
@@ -243,6 +256,7 @@ export default function LogFood() {
 
       {/* Scrollable Results/History Zone */}
       <div className="px-4 py-3 space-y-2">
+        {isLoading && quickPending.size === 0 && <PendingStatus />}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3">
             <p className="text-sm text-[#E53935]">{error}</p>
@@ -293,7 +307,8 @@ export default function LogFood() {
           }
 
           const history = item as FoodRecent & { _type: 'history' }
-          const added = quickAdded === history.food_name
+          const added = quickAdded.has(recentKey(history))
+          const pending = quickPending.has(recentKey(history))
           return (
             <div
               key={history.food_id || history.food_name}
@@ -325,11 +340,13 @@ export default function LogFood() {
               <button
                 type="button"
                 onClick={() => void handleQuickLog(history)}
-                aria-label={`Add ${history.food_name} to ${mealType}`}
-                className="px-4 flex items-center justify-center rounded-r-lg border-l border-gray-100"
+                aria-label={pending ? `Adding ${history.food_name}` : `Add ${history.food_name} to ${mealType}`}
+                aria-busy={pending}
+                disabled={pending}
+                className="min-w-[72px] px-4 flex items-center justify-center rounded-r-lg border-l border-gray-100"
                 style={{ color: added ? '#1a7f37' : '#185ADB' }}
               >
-                {added ? (
+                {pending ? <span role="status" aria-label={`Adding ${history.food_name}`}><Spinner /></span> : added ? (
                   <span className="text-xs font-semibold">Added</span>
                 ) : (
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

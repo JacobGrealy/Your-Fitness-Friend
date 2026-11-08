@@ -1,3 +1,4 @@
+import PendingStatus from '@/components/common/PendingStatus'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { ActivityId, ActivityEstimate, ActivitySessionCreate } from '@/types'
@@ -126,11 +127,11 @@ export default function ActivitySessionForm({ activityId, userId }: { activityId
       <ExercisePhotoField value={photo} onChange={setPhoto} initialUrl={initialPhoto} />
     </fieldset>
     <section className="bg-[#eef4ff] border border-[#cbdcf7] rounded-xl p-4 space-y-2" aria-label="Activity calorie preview"><p className="text-xs uppercase tracking-widest text-mfp-blue">Estimated activity energy</p>
-      {estimating && <p role="status">Calculating…</p>}{previewError && <p role="alert" className="text-mfp-error">{previewError}</p>}
+      {estimating && <PendingStatus text="Calculating…" />}{previewError && <p role="alert" className="text-mfp-error">{previewError}</p>}
       {!payload && <p className="text-sm">Enter session time and required activity details to calculate.</p>}
       {preview && <><p className="text-2xl font-bold tabular-nums">{n(preview.calories_burned)} <span className="text-sm font-normal">active kcal{preview.calorie_override != null ? ' · manual' : ''}</span></p>{preview.distance_miles != null && <p className="text-sm">{n(preview.distance_miles)} mi · {n(preview.distance_km!)} km</p>}<p className="text-xs">Using {n(preview.weight_lbs)} lb · {preview.weight_source === 'profile' ? 'profile weight fallback' : preview.weight_date}</p><details className="text-xs"><summary>Calculation details & limitations</summary><p className="mt-2">{preview.method} · Total session {n(preview.gross_calories)} kcal</p>{preview.warnings.map(w => <p key={w} className="mt-1">{w}</p>)}</details></>}
       <p className="text-xs text-mfp-textSecondary">Exercise calories do not increase your food allowance.</p>
     </section>
-    <button type="submit" disabled={!payload || saving} className="w-full bg-mfp-blue text-white rounded-lg py-3 font-semibold disabled:opacity-50">{saving ? 'Saving session…' : editId ? 'Save activity changes' : 'Log activity'}</button>
+    <button type="submit" disabled={!payload || saving} className="w-full bg-mfp-blue text-white rounded-lg py-3 font-semibold disabled:opacity-50">{saving ? <PendingStatus text="Saving session…" /> : editId ? 'Save activity changes' : 'Log activity'}</button>
   </form>
 }

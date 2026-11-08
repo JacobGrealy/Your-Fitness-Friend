@@ -1,3 +1,4 @@
+import PendingStatus from '@/components/common/PendingStatus'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
@@ -90,7 +91,7 @@ function LoginForm() {
             className="btn btn-primary w-full"
             disabled={isLoading}
           >
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? <PendingStatus text="Signing in…" /> : 'Sign In'}
           </button>
 
           <div className="text-center">

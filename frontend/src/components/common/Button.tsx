@@ -44,6 +44,7 @@ export default function Button({
         loading && 'disabled:opacity-50',
         className
       )}
+      aria-busy={loading}
       disabled={disabled || loading}
       {...props}
     >

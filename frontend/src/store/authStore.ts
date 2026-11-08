@@ -22,12 +22,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   checkAuth: async () => {
     if (get().isLoading) return
-    set({ isLoading: true })
+    // Refreshing an established session must not unmount protected routes/drafts.
+    // Initial verification remains blocking, and an expired session still signs out.
+    const authenticated = get().isAuthenticated
+    if (!authenticated) set({ isLoading: true })
     try {
       const user = await authApi.getProfile()
-      set({ user, isAuthenticated: true, isLoading: false })
-    } catch {
-      set({ user: null, isAuthenticated: false, isLoading: false })
+      set({ user, isAuthenticated: true, isLoading: false, error: null })
+    } catch (cause: any) {
+      if (!authenticated || cause.response?.status === 401 || cause.response?.status === 403) {
+        set({ user: null, isAuthenticated: false, isLoading: false })
+      } else {
+        set({ error: 'Profile saved, but the refreshed profile is unavailable. Please refresh the page.', isLoading: false })
+      }
     }
   },
 

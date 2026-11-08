@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,6 +12,7 @@ import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
 import { quickAddFoodSchema } from '@/utils/schemas'
 import { isMealType } from '@/utils/meal'
 import Loading from '@/components/common/Loading'
+import Spinner from '@/components/common/Spinner'
 import { resolveReturnTo } from '@/utils/returnTo'
 import { todayLocal, requestedLocalDate } from '@/utils/localDate'
 import QuantityFields from '@/components/food/QuantityFields'
@@ -55,6 +56,11 @@ export default function FoodLogSelect() {
   const mealFromUrl = searchParams.get('meal')
   const initialMealType: MealType = isMealType(mealFromUrl) ? mealFromUrl : 'breakfast'
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const submitting = useRef(false)
+  // Keep successful stages on a failed attachment retry: never log the meal twice.
+  const savedLogId = useRef<string | null>(null)
+  const [attachmentFailed, setAttachmentFailed] = useState(false)
+  const savedFoodId = useRef<string | undefined>(undefined)
   // Photo at creation time (FF-0087): either a freshly picked file, or the picture from the
   // last time this food was logged, which the server will copy.
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -206,8 +212,15 @@ export default function FoodLogSelect() {
   }, [])
 
   const onSubmit = async (data: any) => {
+    if (submitting.current) return
+    submitting.current = true
     setIsSubmitting(true)
     try {
+      if (savedLogId.current && photoFile) {
+        await uploadFoodLogPhoto(savedLogId.current, photoFile)
+        navigate(resolveReturnTo(location.state), { replace: true })
+        return
+      }
       const quantityNum = structured ? servingCount(Number(amount), unit, reference) : parseFloat(data.number_of_servings) || 1
       if (quantityNum <= 0 || !Number.isFinite(quantityNum) ||
           (structured && (!Number.isFinite(Number(referenceAmount)) || Number(referenceAmount) <= 0))) {
@@ -218,10 +231,10 @@ export default function FoodLogSelect() {
       const servingFields = structured ? {
         ...reference, serving_size: `${referenceAmount} ${referenceUnit}`,
       } : { serving_size: data.serving_size || '' }
-      let createdFoodId: string | undefined
+      let createdFoodId = savedFoodId.current
 
       // A repeat log must not rewrite the saved food: this screen only says how much.
-      if (data.food_name && !externalFood && !amountOnly) {
+      if (!savedLogId.current && !createdFoodId && data.food_name && !externalFood && !amountOnly) {
         const foodCreate: any = {
           name: data.food_name,
           calories: data.calories,
@@ -238,6 +251,7 @@ export default function FoodLogSelect() {
         const response = await createFood(foodCreate)
         if (response && response.id) {
           createdFoodId = String(response.id)
+          savedFoodId.current = createdFoodId
           setSelectedFood({ ...response } as Food)
         }
       }
@@ -266,7 +280,8 @@ export default function FoodLogSelect() {
         photo_url: !photoFile && carriedPhoto ? carriedPhoto : undefined,
       }
 
-      const created = await logFood(logData)
+      const created = savedLogId.current ? { id: savedLogId.current } : await logFood(logData)
+      if (created?.id) savedLogId.current = String(created.id)
 
       // A freshly picked photo needs the new log's id, so it is uploaded straight after
       // creation - one action for the user, two requests, and a failure is reported rather
@@ -279,8 +294,10 @@ export default function FoodLogSelect() {
       // back into the add flow itself (FF-0021).
       navigate(resolveReturnTo(location.state), { replace: true })
     } catch {
+      if (savedLogId.current) setAttachmentFailed(true)
       // Error handled by store
     } finally {
+      submitting.current = false
       setIsSubmitting(false)
     }
   }
@@ -307,14 +324,15 @@ export default function FoodLogSelect() {
         </button>
         <h1 className="font-bold text-[#212121]">{isQuickAdd ? 'Quick Add' : displayName}</h1>
         <button
-          onClick={handleSubmit(onSubmit)}
+          onClick={attachmentFailed ? () => void onSubmit({}) : handleSubmit(onSubmit)}
           disabled={isSubmitting || !calories}
-          className="text-[#185ADB] disabled:opacity-30"
-          aria-label="Submit"
+          className="min-w-[84px] flex items-center justify-end gap-2 text-[#185ADB] disabled:opacity-50"
+          aria-label={isSubmitting ? 'Saving food' : attachmentFailed ? 'Retry photo' : 'Submit'}
+          aria-busy={isSubmitting}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {isSubmitting ? <span role="status" className="flex items-center gap-2 text-sm"><Spinner />Saving…</span> : attachmentFailed ? <span className="text-sm">Retry photo</span> : <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+          </svg>}
         </button>
       </div>
 
@@ -325,7 +343,9 @@ export default function FoodLogSelect() {
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-4">
+      {attachmentFailed && <p role="alert" className="mx-4 mt-4 p-3 bg-amber-50 text-amber-900 rounded-lg">Food logged; photo attachment failed. Your saved food fields are locked. Retry photo to attach it without logging again.</p>}
+      <form onSubmit={handleSubmit(onSubmit)} className="p-4">
+        <fieldset disabled={isSubmitting || attachmentFailed} className="space-y-4">
         {/* Meal Type */}
         <div className="bg-white rounded-lg p-4">
           <label className="block text-sm font-medium text-mfp-text mb-2">
@@ -586,6 +606,7 @@ export default function FoodLogSelect() {
             <p className="text-sm text-[#212121]">{selectedFood.id}</p>
           </div>
         )}
+        </fieldset>
       </form>
     </div>
   )

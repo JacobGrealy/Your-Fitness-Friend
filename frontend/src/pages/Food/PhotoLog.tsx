@@ -30,6 +30,7 @@ export default function PhotoLog() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const foodStore = useFoodStore()
   const [accepting, setAccepting] = useState(false)
+  const acceptBusy = useRef(false)
 
   const [step, setStep] = useState<Step>('capture')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -148,7 +149,8 @@ export default function PhotoLog() {
   }, [])
 
   const handleAccept = useCallback(async () => {
-    if (logEntries.length === 0 || accepting) return
+    if (logEntries.length === 0 || acceptBusy.current) return
+    acceptBusy.current = true
     setAccepting(true)
     setStep('loading')
 
@@ -163,6 +165,7 @@ export default function PhotoLog() {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save food logs')
       setStep('review')
+      acceptBusy.current = false
       setAccepting(false)
     }
   }, [logEntries, foodStore, navigate, accepting, logDate])
@@ -238,7 +241,7 @@ export default function PhotoLog() {
       {/* Loading Step */}
       {step === 'loading' && (
         <div className="flex flex-col items-center justify-center py-20">
-          <Loading text={messages.length > 0 ? 'Updating macros...' : 'Analyzing food...'} />
+          <Loading text={accepting ? 'Saving food logs…' : messages.length > 0 ? 'Updating macros...' : 'Analyzing food...'} />
         </div>
       )}
 

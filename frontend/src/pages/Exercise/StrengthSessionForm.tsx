@@ -4,6 +4,7 @@ import { exerciseApi } from '@/api/exercise'
 import type { ExerciseLog, StrengthEquipment, StrengthExercise, StrengthLibraryItem, StrengthSessionCreate, StrengthEstimate } from '@/types'
 import { todayLocal } from '@/utils/localDate'
 import ExercisePhotoField, { emptyExercisePhoto, type ExercisePhotoDraft } from '@/components/exercise/ExercisePhotoField'
+import PendingStatus from '@/components/common/PendingStatus'
 import { exerciseError } from './exercisePreferences'
 
 interface DraftExercise { exercise_id: string | null; name: string; equipment: StrengthEquipment; sets: { reps: string; weight: string }[] }
@@ -37,6 +38,7 @@ export default function StrengthSessionForm() {
   const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState<StrengthEstimate | null>(null)
   const [previewError, setPreviewError] = useState('')
+  const [estimating, setEstimating] = useState(false)
   const alive = useRef(true)
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
   useEffect(() => {
@@ -83,10 +85,10 @@ export default function StrengthSessionForm() {
   }, [exercises, date, duration, effort, notes, override])
   useEffect(() => {
     let active = true
-    setPreview(null); setPreviewError('')
+    setPreview(null); setPreviewError(''); setEstimating(!!payload && !loading)
     if (!payload || loading) return
     const timer = setTimeout(() => {
-      exerciseApi.estimateStrength(payload, editId).then(value => { if (active) setPreview(value) }).catch(e => { if (active) setPreviewError(exerciseError(e)) })
+      exerciseApi.estimateStrength(payload, editId).then(value => { if (active) setPreview(value) }).catch(e => { if (active) setPreviewError(exerciseError(e)) }).finally(() => { if (active) setEstimating(false) })
     }, 300)
     return () => { active = false; clearTimeout(timer) }
   }, [payload, loading, editId])
@@ -135,11 +137,12 @@ export default function StrengthSessionForm() {
       <ExercisePhotoField value={photo} onChange={setPhoto} initialUrl={initialPhoto} />
     </fieldset>
     <section className="bg-[#eef4ff] border border-[#cbdcf7] rounded-xl p-4 space-y-2" aria-label="Strength calorie preview"><p className="text-xs uppercase tracking-widest text-mfp-blue">Session energy</p>
+      {estimating && <PendingStatus text="Calculating…" />}
       {previewError && <p role="alert" className="text-mfp-error">{previewError}</p>}
       {!payload && <p className="text-sm">Add exercises and complete their sets to save a workout.</p>}
       {preview && <><p className="font-bold text-xl">{preview.calories_burned == null ? 'Calories not estimated' : `${n(preview.calories_burned)} active kcal${preview.calorie_override != null ? ' · manual' : ''}`}</p>{preview.weight_lbs != null && <p className="text-xs">Using {n(preview.weight_lbs)} lb · {preview.weight_source === 'profile' ? 'profile weight fallback' : preview.weight_date}</p>}{preview.warnings.map(w => <p key={w} className="text-xs text-mfp-textSecondary">{w}</p>)}</>}
       <p className="text-xs text-mfp-textSecondary">Exercise calories do not increase your food allowance.</p>
     </section>
-    <button type="submit" disabled={!payload || saving} className="w-full rounded-lg bg-mfp-blue text-white py-3 font-semibold disabled:opacity-50">{saving ? 'Saving workout…' : editId ? 'Save workout changes' : 'Log strength workout'}</button>
+    <button type="submit" disabled={!payload || saving} className="w-full rounded-lg bg-mfp-blue text-white py-3 font-semibold disabled:opacity-50">{saving ? <PendingStatus text="Saving workout…" /> : editId ? 'Save workout changes' : 'Log strength workout'}</button>
   </form>
 }

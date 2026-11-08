@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import FoodLogSelect from '@/pages/Food/FoodLogSelect'
 
@@ -7,6 +7,7 @@ import FoodLogSelect from '@/pages/Food/FoodLogSelect'
 const getLatestPhoto = jest.fn()
 const uploadFoodLogPhoto = jest.fn()
 const logFood = jest.fn()
+const createFood = jest.fn()
 
 jest.mock('@/api/food', () => ({
   foodApi: {
@@ -20,7 +21,7 @@ jest.mock('@/store/foodStore', () => ({
     isLoading: false,
     logFood: (...args: unknown[]) => logFood(...args),
     uploadFoodLogPhoto: (...args: unknown[]) => uploadFoodLogPhoto(...args),
-    createFood: jest.fn(async () => ({ id: '42' })),
+    createFood: (...args: unknown[]) => createFood(...args),
     fetchFoods: jest.fn(),
     error: null,
     clearError: jest.fn(),
@@ -49,8 +50,55 @@ describe('FoodLogSelect photo at creation (FF-0087)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    createFood.mockResolvedValue({ id: '42' })
     logFood.mockResolvedValue({ id: '99' })
     uploadFoodLogPhoto.mockResolvedValue({ photo_url: 'food_log_photos/new.jpg' })
+  })
+
+  it('keeps Saving visible through creation, logging and photo attachment, without duplicate writes', async () => {
+    let finishFood!: (value: unknown) => void
+    let finishLog!: (value: unknown) => void
+    let finishPhoto!: (value: unknown) => void
+    createFood.mockReturnValueOnce(new Promise(done => { finishFood = done }))
+    logFood.mockReturnValueOnce(new Promise(done => { finishLog = done }))
+    uploadFoodLogPhoto.mockReturnValueOnce(new Promise(done => { finishPhoto = done }))
+    getLatestPhoto.mockResolvedValue({ photo_url: null })
+    renderPage()
+    await screen.findByRole('button', { name: 'Add photo' })
+    const file = new File(['x'], 'lunch.jpg', { type: 'image/jpeg' })
+    fireEvent.change(document.querySelector('[data-testid="photo-input-gallery"]')!, { target: { files: [file] } })
+    const submit = screen.getByRole('button', { name: 'Submit' })
+    fireEvent.click(submit); fireEvent.click(submit)
+    await screen.findByRole('button', { name: 'Saving food' })
+    expect(createFood).toHaveBeenCalledTimes(1)
+    expect(logFood).not.toHaveBeenCalled()
+    await act(async () => finishFood({ id: '42' }))
+    expect(submit).toBeDisabled()
+    expect(logFood).toHaveBeenCalledTimes(1)
+    await act(async () => finishLog({ id: '99' }))
+    expect(submit).toBeDisabled()
+    expect(screen.getByText('Saving…')).toBeInTheDocument()
+    expect(uploadFoodLogPhoto).toHaveBeenCalledTimes(1)
+    await act(async () => finishPhoto('new.jpg'))
+  })
+
+  it('retries a failed attachment on the saved log instead of creating another log', async () => {
+    getLatestPhoto.mockResolvedValue({ photo_url: null })
+    uploadFoodLogPhoto.mockRejectedValueOnce(new Error('Offline'))
+    renderPage()
+    await screen.findByRole('button', { name: 'Add photo' })
+    fireEvent.change(document.querySelector('[data-testid="photo-input-gallery"]')!, { target: { files: [new File(['x'], 'lunch.jpg', { type: 'image/jpeg' })] } })
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    await waitFor(() => expect(uploadFoodLogPhoto).toHaveBeenCalledTimes(1))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Food logged; photo attachment failed')
+    expect(screen.getByPlaceholderText('e.g. Banana')).toBeDisabled()
+    expect(screen.getByLabelText('Date')).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Lunch', exact: true })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry photo' }))
+    await waitFor(() => expect(uploadFoodLogPhoto).toHaveBeenCalledTimes(2))
+    expect(uploadFoodLogPhoto).toHaveBeenLastCalledWith('99', expect.any(File))
+    expect(logFood).toHaveBeenCalledTimes(1)
+    expect(createFood).toHaveBeenCalledTimes(1)
   })
 
   it('offers the photo from the last log', async () => {

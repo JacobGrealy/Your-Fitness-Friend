@@ -88,6 +88,7 @@ export default function BarcodeLookupModal({ isOpen, onClose, onFound }: Barcode
       onSubmit={handleSubmit}
       submitDisabled={busy || (!found && code.trim().length === 0)}
       submitLoading={busy}
+      submitPendingLabel="Looking up barcode…"
     >
       <div className="space-y-3">
         {scanning && !found ? (

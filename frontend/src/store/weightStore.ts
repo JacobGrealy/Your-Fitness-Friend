@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { withPendingRequests } from './pendingRequests'
 import { weightApi } from '@/api/weight'
 import type { WeightLog, WeightStatistics, WeightTrend, WeightLogCreate, WeightFilter } from '@/types'
 import { useUIStore } from './uiStore'
@@ -15,7 +16,7 @@ interface WeightState {
   fetchLogs: (filters?: WeightFilter) => Promise<void>
   fetchLog: (id: string) => Promise<WeightLog | null>
   updateLog: (id: string, data: WeightLogCreate) => Promise<void>
-  fetchStatistics: () => Promise<void>
+  fetchStatistics: (preserveError?: boolean) => Promise<void>
   fetchTrend: () => Promise<void>
   logWeight: (data: WeightLogCreate) => Promise<void>
   deleteLog: (id: string) => Promise<void>
@@ -32,7 +33,7 @@ const initialFetch = () => {
   store.fetchStatistics()
 }
 
-export const useWeightStore = create<WeightState>((set, get) => ({
+export const useWeightStore = create<WeightState>(withPendingRequests<WeightState>((set, get) => ({
   logs: [],
   statistics: null,
   trend: null,
@@ -42,14 +43,13 @@ export const useWeightStore = create<WeightState>((set, get) => ({
   duplicateEntry: null,
 
   fetchLogs: async (filters?: WeightFilter) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       const logs = await weightApi.getLogs(filters)
-      set({ logs, isLoading: false })
+      set({ logs })
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to fetch weight logs',
-        isLoading: false,
       })
     }
   },
@@ -63,70 +63,73 @@ export const useWeightStore = create<WeightState>((set, get) => ({
     }
   },
 
-  fetchStatistics: async () => {
-    set({ isLoading: true, error: null })
+  fetchStatistics: async (preserveError = false) => {
+    if (!preserveError) set({ error: null })
     try {
       const statistics = await weightApi.getStatistics()
-      set({ statistics, isLoading: false })
+      set({ statistics })
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to fetch weight statistics',
-        isLoading: false,
       })
     }
   },
 
   fetchTrend: async () => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       const trend = await weightApi.getTrend()
-      set({ trend, isLoading: false })
+      set({ trend })
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to fetch weight trend',
-        isLoading: false,
       })
     }
   },
 
   logWeight: async (data: WeightLogCreate) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       const dateStr = data.date || todayLocal()
       const duplicate = await get().checkDuplicate(dateStr)
 
       if (duplicate) {
-        set({ isLoading: false })
+        set({})
         return
       }
 
       const payload = { weight: data.weight, date: data.date, notes: data.notes, photo_url: data.photo_url }
       await weightApi.logWeight(payload)
-      get().fetchLogs()
-      get().fetchStatistics()
+      await get().fetchLogs()
+      const logsError = get().error
+      await get().fetchStatistics(true)
+      const refreshError = logsError || get().error
+      if (refreshError) {
+        const warning = `Weight saved, but refresh failed: ${refreshError}. Refresh the list; do not submit again.`
+        set({ error: warning })
+        useUIStore.getState().showToast(warning, 'error')
+      }
       set({ uploadedPhotoUrl: null, duplicateEntry: null })
-      useUIStore.getState().showToast('Weight logged successfully', 'success')
-      set({ isLoading: false })
+      if (!refreshError) useUIStore.getState().showToast('Weight logged successfully', 'success')
+      set({})
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to log weight',
-        isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to log weight', 'error')
     }
   },
   uploadPhoto: async (file: File) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       const formData = new FormData()
       formData.append('photo', file)
       const result = await weightApi.uploadPhoto(formData)
-      set({ uploadedPhotoUrl: result.photo_url, isLoading: false })
+      set({ uploadedPhotoUrl: result.photo_url })
       return result.photo_url
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to upload photo',
-        isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to upload photo', 'error')
       throw error
@@ -134,23 +137,22 @@ export const useWeightStore = create<WeightState>((set, get) => ({
   },
 
   deleteLog: async (id: string) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       await weightApi.deleteLog(id)
       const logs = get().logs.filter(log => log.id !== id)
-      set({ logs, isLoading: false })
+      set({ logs })
       useUIStore.getState().showToast('Weight log deleted', 'success')
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to delete weight log',
-        isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to delete weight log', 'error')
     }
   },
 
   updateLog: async (id: string, data: WeightLogCreate) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       // The key is built conditionally on purpose: the backend treats `'photo_url' in
       // data` as "change the photo", so an untouched photo must not send the key at all.
@@ -165,14 +167,20 @@ export const useWeightStore = create<WeightState>((set, get) => ({
         payload.photo_url = data.photo_url
       }
       await weightApi.updateLog(id, payload as Omit<WeightLogCreate, 'photo'>)
-      get().fetchLogs()
-      get().fetchStatistics()
-      set({ isLoading: false })
-      useUIStore.getState().showToast('Weight log updated', 'success')
+      await get().fetchLogs()
+      const logsError = get().error
+      await get().fetchStatistics(true)
+      const refreshError = logsError || get().error
+      if (refreshError) {
+        const warning = `Weight saved, but refresh failed: ${refreshError}. Refresh the list; do not submit again.`
+        set({ error: warning })
+        useUIStore.getState().showToast(warning, 'error')
+      }
+      set({})
+      if (!refreshError) useUIStore.getState().showToast('Weight log updated', 'success')
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to update weight log',
-        isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to update weight log', 'error')
     }
@@ -196,23 +204,29 @@ export const useWeightStore = create<WeightState>((set, get) => ({
   },
 
   replaceEntry: async (oldLogId: string, newEntry: WeightLogCreate) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       await weightApi.deleteLog(oldLogId)
       const payload = { weight: newEntry.weight, date: newEntry.date, notes: newEntry.notes, photo_url: newEntry.photo_url }
       await weightApi.logWeight(payload)
-      get().fetchLogs()
-      get().fetchStatistics()
-      set({ uploadedPhotoUrl: null, duplicateEntry: null, isLoading: false })
-      useUIStore.getState().showToast('Weight entry replaced successfully', 'success')
+      await get().fetchLogs()
+      const logsError = get().error
+      await get().fetchStatistics(true)
+      const refreshError = logsError || get().error
+      if (refreshError) {
+        const warning = `Weight saved, but refresh failed: ${refreshError}. Refresh the list; do not submit again.`
+        set({ error: warning })
+        useUIStore.getState().showToast(warning, 'error')
+      }
+      set({ uploadedPhotoUrl: null, duplicateEntry: null })
+      if (!refreshError) useUIStore.getState().showToast('Weight entry replaced successfully', 'success')
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to replace weight entry',
-        isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to replace weight entry', 'error')
     }
   },
-}))
+}), ['fetchLogs', 'fetchStatistics', 'fetchTrend', 'logWeight', 'uploadPhoto', 'deleteLog', 'updateLog', 'replaceEntry']))
 
 initialFetch()

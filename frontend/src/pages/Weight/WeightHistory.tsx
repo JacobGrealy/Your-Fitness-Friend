@@ -6,6 +6,7 @@ import { useWeightStore } from '@/store/weightStore'
 import { useAuthStore } from '@/store/authStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { formatDate, formatWeight } from '@/utils/formatters'
+import PendingStatus from '@/components/common/PendingStatus'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
 import Modal from '@/components/common/Modal'
@@ -248,6 +249,7 @@ export default function WeightHistory() {
       </div>
 
       {/* Loading / Empty State */}
+      {isLoading && logs.length > 0 && <PendingStatus />}
       {isLoading && logs.length === 0 ? (
         <div className="flex justify-center py-12">
           <Loading text="Loading weight history..." />

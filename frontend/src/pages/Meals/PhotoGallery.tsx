@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ThumbnailImage from '@/components/common/ThumbnailImage'
 import { foodLogPhotoUrl } from '@/utils/photoUrl'
 import { useNavigate } from 'react-router-dom'
 import { useMealsStore } from '@/store/mealsStore'
 import Button from '@/components/common/Button'
 import Card from '@/components/common/Card'
+import PendingStatus from '@/components/common/PendingStatus'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
 import Modal from '@/components/common/Modal'
@@ -27,16 +28,27 @@ export default function PhotoGallery() {
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
 
+  const deleteBusy = useRef(false)
+  const [deleteError, setDeleteError] = useState('')
   const handleDelete = async () => {
-    if (!deleteTarget) return
+    if (!deleteTarget || deleteBusy.current) return
+    deleteBusy.current = true
     setIsDeleting(true)
-    await deletePhoto(deleteTarget.id)
-    setIsDeleting(false)
-    setDeleteTarget(null)
+    setDeleteError('')
+    try {
+      await deletePhoto(deleteTarget.id)
+      setDeleteTarget(null)
+    } catch {
+      setDeleteError('Failed to delete photo. Please retry.')
+    } finally {
+      deleteBusy.current = false
+      setIsDeleting(false)
+    }
   }
 
   return (
     <div className="p-4 space-y-4">
+      {isLoading && photos.length > 0 && <PendingStatus />}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Photo Gallery</h1>
         <Button variant="ghost" size="sm" onClick={() => navigate('/meals')}>
@@ -88,7 +100,7 @@ export default function PhotoGallery() {
                     variant="ghost"
                     size="xs"
                     className="text-error"
-                    onClick={() => setDeleteTarget(photo)}
+                    onClick={() => { setDeleteError(''); setDeleteTarget(photo) }}
                   >
                     Delete
                   </Button>
@@ -101,7 +113,7 @@ export default function PhotoGallery() {
 
       <Modal
         isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
+        onClose={() => { if (!deleteBusy.current) setDeleteTarget(null) }}
         title="Delete Photo"
         submitLabel="Delete"
         submitLoading={isDeleting}
@@ -110,6 +122,7 @@ export default function PhotoGallery() {
         <p className="text-base-content/70">
           Are you sure you want to delete this meal photo? This action cannot be undone.
         </p>
+        {deleteError && <p role="alert">{deleteError}</p>}
       </Modal>
 
       <Modal

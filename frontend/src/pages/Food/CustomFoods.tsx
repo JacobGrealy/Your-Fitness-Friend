@@ -8,13 +8,17 @@ import { customFoodSchema } from '@/utils/schemas'
 import Button from '@/components/common/Button'
 import Card from '@/components/common/Card'
 import Modal from '@/components/common/Modal'
+import PendingStatus from '@/components/common/PendingStatus'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
+import { usePendingAction } from '@/hooks/usePendingAction'
 import QuantityFields from '@/components/food/QuantityFields'
 
 export default function CustomFoods() {
   const { foods, isLoading, fetchFoods, createFood, deleteFood } = useFoodStore()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const adding = usePendingAction()
+  const deleting = usePendingAction()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [servingAmount, setServingAmount] = useState('1')
   const [servingUnit, setServingUnit] = useState('serving')
@@ -40,7 +44,7 @@ export default function CustomFoods() {
     },
   })
 
-  const onAddSubmit = async (data: FoodCreate) => {
+  const onAddSubmit = (data: FoodCreate) => adding.run(async () => {
     await createFood({ ...data, serving_amount: Number(servingAmount), serving_unit: servingUnit,
       serving_size: `${servingAmount} ${servingUnit}` })
     setServingAmount('1')
@@ -54,14 +58,14 @@ export default function CustomFoods() {
       serving_size: '',
     })
     setIsAddModalOpen(false)
-  }
+  })
 
-  const handleDelete = () => {
+  const handleDelete = () => deleting.run(async () => {
     if (deleteId) {
-      deleteFood(deleteId)
+      await deleteFood(deleteId)
       setDeleteId(null)
     }
-  }
+  })
 
   return (
     <div className="p-4 space-y-4">
@@ -72,6 +76,7 @@ export default function CustomFoods() {
         </Button>
       </div>
 
+      {isLoading && foods.length > 0 && !adding.pending && !deleting.pending && <PendingStatus />}
       {isLoading && foods.length === 0 ? (
         <div className="flex justify-center py-12">
           <Loading text="Loading foods..." />
@@ -110,6 +115,7 @@ export default function CustomFoods() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setDeleteId(food.id)}
+                    aria-label={`Delete ${food.name}`}
                     className="text-mfp-error hover:text-mfp-error shrink-0"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -129,7 +135,10 @@ export default function CustomFoods() {
         title="Add Custom Food"
         submitLabel="Add Food"
         onSubmit={handleSubmit(onAddSubmit)}
+        submitLoading={adding.pending}
+        submitDisabled={adding.pending}
       >
+        {adding.error && <p role="alert" className="text-red-700">{adding.error}</p>}
         <form className="space-y-4" onSubmit={handleSubmit(onAddSubmit)}>
           <div>
             <label className="block text-sm font-medium text-mfp-text mb-2">Name</label>
@@ -219,9 +228,10 @@ export default function CustomFoods() {
         title="Delete Food"
         submitLabel="Delete"
         onSubmit={handleDelete}
-        submitDisabled={isLoading}
-        submitLoading={isLoading}
+        submitDisabled={deleting.pending}
+        submitLoading={deleting.pending}
       >
+        {deleting.error && <p role="alert" className="text-red-700">{deleting.error}</p>}
         <p className="text-mfp-textSecondary">
           Are you sure you want to delete this food? This action cannot be undone.
         </p>

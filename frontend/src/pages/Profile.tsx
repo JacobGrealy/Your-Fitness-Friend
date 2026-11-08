@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import ThumbnailImage from '@/components/common/ThumbnailImage'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { authApi } from '@/api/auth'
 import { weightApi } from '@/api/weight'
+import PendingStatus from '@/components/common/PendingStatus'
+import { usePendingAction } from '@/hooks/usePendingAction'
 import Loading from '@/components/common/Loading'
 import Modal from '@/components/common/Modal'
 import CropModal from '@/components/common/CropModal'
@@ -71,7 +73,8 @@ function Profile() {
   const updateAvailable = isUpdateAvailable(runningBuild, release?.versionCode)
   const [updateMessage, setUpdateMessage] = useState<string | null>(null)
 
-  const handleInstallUpdate = async () => {
+  const download = usePendingAction()
+  const handleInstallUpdate = () => download.run(async () => {
     if (!release) return
     setUpdateMessage(null)
     const outcome = await installApkUpdate(`${window.location.origin}${release.downloadPath}`)
@@ -80,11 +83,13 @@ function Profile() {
     } else if (outcome === 'browser') {
       setUpdateMessage('Opened the download in your browser.')
     }
-  }
-  const { user, isLoading, checkAuth, logout } = useAuthStore()
+  })
+  const { user, isLoading, checkAuth, logout, error: authError } = useAuthStore()
   const [goalModalOpen, setGoalModalOpen] = useState(false)
   const [goalValue, setGoalValue] = useState('')
   const [saving, setSaving] = useState(false)
+  const saveBusy = useRef(false)
+  const photoBusy = useRef(false)
   // Camera or gallery for the avatar, which then goes through the crop step (FF-0078).
   const [showPhotoSources, setShowPhotoSources] = useState(false)
   const [cropModalOpen, setCropModalOpen] = useState(false)
@@ -138,18 +143,21 @@ function Profile() {
   const handleCropComplete = async (croppedFile: File) => {
     // A second confirm while the first upload is in flight would write a second file and
     // leave the first unreferenced (FF-0080).
-    if (uploadingPhoto) return
+    if (photoBusy.current) return
+    photoBusy.current = true
     setCropModalOpen(false)
-    setCropFile(null)
     setUploadingPhoto(true)
     try {
       const formData = new FormData()
       formData.set('photo', croppedFile)
       await authApi.uploadProfilePhoto(formData)
       await checkAuth()
+      setCropFile(null)
     } catch {
       alert('Failed to upload photo. Please try again.')
+      setCropModalOpen(true)
     } finally {
+      photoBusy.current = false
       setUploadingPhoto(false)
     }
   }
@@ -157,6 +165,8 @@ function Profile() {
   const handleSaveGoal = async () => {
     const goal = parseFloat(goalValue)
     if (isNaN(goal) || goal <= 0) return
+    if (saveBusy.current) return
+    saveBusy.current = true
     setSaving(true)
     try {
       const updated = await authApi.updateProfile({ weight_goal_lbs: goal })
@@ -168,6 +178,7 @@ function Profile() {
     } catch (err) {
       alert('Failed to save weight goal. Please try again.')
     } finally {
+      saveBusy.current = false
       setSaving(false)
     }
   }
@@ -180,6 +191,8 @@ function Profile() {
   const handleSaveCalorieGoal = async () => {
     const goal = parseInt(calorieGoalValue, 10)
     if (isNaN(goal) || goal < 500 || goal > 10000) return
+    if (saveBusy.current) return
+    saveBusy.current = true
     setSaving(true)
     try {
       await authApi.updateProfile({ daily_calorie_goal: goal })
@@ -188,11 +201,14 @@ function Profile() {
     } catch {
       alert('Failed to save calorie goal. Please try again.')
     } finally {
+      saveBusy.current = false
       setSaving(false)
     }
   }
 
   const handleUseCalculatedGoal = async () => {
+    if (saveBusy.current) return
+    saveBusy.current = true
     setSaving(true)
     try {
       // Clearing the flag hands control back to BMR/TDEE; the PUT recalculates.
@@ -202,6 +218,7 @@ function Profile() {
     } catch {
       alert('Failed to reset the calorie goal. Please try again.')
     } finally {
+      saveBusy.current = false
       setSaving(false)
     }
   }
@@ -224,6 +241,8 @@ function Profile() {
   }
 
   const handleSaveProfile = async () => {
+    if (saveBusy.current) return
+    saveBusy.current = true
     setSaving(true)
     try {
       const heightCm = ftInToCm(
@@ -245,6 +264,7 @@ function Profile() {
     } catch {
       alert('Failed to save profile. Please try again.')
     } finally {
+      saveBusy.current = false
       setSaving(false)
     }
   }
@@ -260,6 +280,8 @@ function Profile() {
 
   const handleSaveWeeklyGoal = async () => {
     if (!selectedWeeklyGoal) return
+    if (saveBusy.current) return
+    saveBusy.current = true
     setSaving(true)
     try {
       const updated = await authApi.updateProfile({ weekly_goal: selectedWeeklyGoal })
@@ -270,12 +292,15 @@ function Profile() {
     } catch {
       alert('Failed to save weekly goal. Please try again.')
     } finally {
+      saveBusy.current = false
       setSaving(false)
     }
   }
 
   const handleSaveBirthDate = async () => {
     if (!birthDate) return
+    if (saveBusy.current) return
+    saveBusy.current = true
     setSaving(true)
     try {
       const updated = await authApi.updateProfile({ birthdate: birthDate })
@@ -287,11 +312,12 @@ function Profile() {
     } catch {
       alert('Failed to save birthdate. Please try again.')
     } finally {
+      saveBusy.current = false
       setSaving(false)
     }
   }
 
-  if (isLoading) {
+  if (isLoading && !user) {
     return (
       <div className="bg-[#f2f2f2]">
         <div className="flex justify-center py-12">
@@ -305,6 +331,7 @@ function Profile() {
 
   return (
     <div className="bg-[#f2f2f2]">
+      {authError && <p role="alert" className="m-4 p-3 bg-amber-50 text-amber-900 rounded-lg">{authError}</p>}
       {/* White user info section */}
       <div className="bg-white px-4 py-4 mx-4 mt-4 rounded-lg">
         <div className="flex items-center justify-center gap-4">
@@ -350,7 +377,7 @@ function Profile() {
               </button>
             )}
             {uploadingPhoto && (
-              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
+              <div role="status" aria-label="Uploading profile photo" className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               </div>
             )}
@@ -533,6 +560,7 @@ function Profile() {
                 <p className="text-xs mt-0.5" style={{ color: '#757575' }}>
                   Installed build {runningBuild} · newest {release.versionCode}
                 </p>
+                {download.error && <p role="alert" className="text-red-700 text-xs">{download.error}</p>}
                 {updateMessage && (
                   <p className="text-xs mt-1" style={{ color: '#212121' }} role="status">
                     {updateMessage}
@@ -544,8 +572,10 @@ function Profile() {
                 className="px-3 py-2 rounded-lg text-sm font-semibold text-white flex-shrink-0"
                 style={{ background: '#185ADB' }}
                 onClick={() => void handleInstallUpdate()}
+                disabled={download.pending}
+                aria-busy={download.pending}
               >
-                Get it
+                {download.pending ? <PendingStatus text="Downloading update…" /> : 'Get it'}
               </button>
             </div>
           </div>
