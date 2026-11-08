@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMealsStore } from '@/store/mealsStore'
 import Button from '@/components/common/Button'
 import Card from '@/components/common/Card'
+import PendingStatus from '@/components/common/PendingStatus'
 import Loading from '@/components/common/Loading'
 import EmptyState from '@/components/common/EmptyState'
 import { formatDate } from '@/utils/formatters'
@@ -50,6 +51,7 @@ export default function Meals() {
 
   return (
     <div className="p-4 space-y-4">
+      {isLoading && <PendingStatus />}
       <h1 className="text-2xl font-bold">Meal Photos</h1>
 
       <div className="grid grid-cols-2 gap-3">

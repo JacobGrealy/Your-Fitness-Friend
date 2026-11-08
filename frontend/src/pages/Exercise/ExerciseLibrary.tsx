@@ -9,6 +9,7 @@ import Button from '@/components/common/Button'
 import Card from '@/components/common/Card'
 import Modal from '@/components/common/Modal'
 import Loading from '@/components/common/Loading'
+import { usePendingAction } from '@/hooks/usePendingAction'
 import EmptyState from '@/components/common/EmptyState'
 
 const muscleGroupOptions = MUSCLE_GROUPS.map(g => ({
@@ -24,6 +25,8 @@ const exerciseTypeOptions = EXERCISE_TYPES.map(t => ({
 export default function ExerciseLibrary() {
   const { savedExercises, isLoading, error, fetchSavedExercises, saveExercise, deleteSavedExercise } = useExerciseStore()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const adding = usePendingAction()
+  const deleting = usePendingAction()
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -46,7 +49,7 @@ export default function ExerciseLibrary() {
     },
   })
 
-  const onAddSubmit = async (data: SavedExerciseCreate) => {
+  const onAddSubmit = (data: SavedExerciseCreate) => adding.run(async () => {
     if (!await saveExercise(data)) return
     reset({
       name: '',
@@ -56,11 +59,11 @@ export default function ExerciseLibrary() {
       instructions: '',
     })
     setIsAddModalOpen(false)
-  }
+  })
 
-  const handleDelete = async () => {
+  const handleDelete = () => deleting.run(async () => {
     if (deleteId && await deleteSavedExercise(deleteId)) setDeleteId(null)
-  }
+  })
 
   return (
     <div className="p-4 space-y-4">
@@ -124,7 +127,10 @@ export default function ExerciseLibrary() {
         title="Add Exercise"
         submitLabel="Save Exercise"
         onSubmit={handleSubmit(onAddSubmit)}
+        submitLoading={adding.pending}
+        submitDisabled={adding.pending}
       >
+        {(adding.error || error) && <p role="alert">{adding.error || error}</p>}
         <form className="space-y-4" onSubmit={handleSubmit(onAddSubmit)}>
           <div>
             <label className="block text-sm font-medium text-mfp-text mb-2">Name</label>
@@ -206,9 +212,10 @@ export default function ExerciseLibrary() {
         title="Delete Exercise"
         submitLabel="Delete"
         onSubmit={handleDelete}
-        submitDisabled={isLoading}
-        submitLoading={isLoading}
+        submitDisabled={deleting.pending}
+        submitLoading={deleting.pending}
       >
+        {(deleting.error || error) && <p role="alert">{deleting.error || error}</p>}
         <p className="text-mfp-textSecondary">
           Are you sure you want to delete this exercise? This action cannot be undone.
         </p>

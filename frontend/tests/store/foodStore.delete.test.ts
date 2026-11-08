@@ -83,7 +83,7 @@ describe('deleteFood (FF-0065)', () => {
   it('reports the API error instead of failing silently', async () => {
     deleteFood.mockRejectedValue({ response: { data: { error: 'Food not found' } } })
 
-    await useFoodStore.getState().deleteFood('99')
+    await expect(useFoodStore.getState().deleteFood('99')).rejects.toEqual({ response: { data: { error: 'Food not found' } } })
 
     expect(showToast).toHaveBeenCalledWith('Food not found', 'error')
     expect(useFoodStore.getState().error).toBe('Food not found')

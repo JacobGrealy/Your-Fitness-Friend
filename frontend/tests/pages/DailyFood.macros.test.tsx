@@ -41,14 +41,17 @@ const noisyLog = {
   photo_url: null,
 }
 
+const fetchFoodLogs = jest.fn(), fetchDailyTotals = jest.fn()
 jest.mock('@/store/foodStore', () => ({
   useFoodStore: () => ({
     foodLogs: [noisyLog],
     dailyTotals: null,
     isLoading: false,
+    logsDate: '2026-10-19', totalsDate: '2026-10-19',
+    logsLoading: false, totalsLoading: false,
     error: null,
-    fetchFoodLogs: jest.fn(),
-    fetchDailyTotals: jest.fn(),
+    fetchFoodLogs,
+    fetchDailyTotals,
     deleteFoodLog: jest.fn(),
     copyMeal: jest.fn(),
   }),
@@ -66,7 +69,7 @@ jest.mock('@/api/diary', () => ({
 describe('Diary macro display (FF-0092)', () => {
   it('shows at most 2 decimals for a stored noisy value', async () => {
     render(
-      <MemoryRouter initialEntries={['/food/daily']}>
+      <MemoryRouter initialEntries={['/food/daily?date=2026-10-19']}>
         <DailyFood />
       </MemoryRouter>
     )

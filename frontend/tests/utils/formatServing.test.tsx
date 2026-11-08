@@ -39,6 +39,8 @@ const navigate = jest.fn()
 
 // DailyFood now reaches the diary-completion API (FF-0054), which imports the
 // axios client and its import.meta.env - unparseable under jest unless stubbed.
+jest.mock('@/api/diary', () => ({ diaryApi: { getCompletion: jest.fn(async () => ({ completed: false })) } }))
+
 jest.mock('@/api/client', () => ({
   __esModule: true,
   default: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn(),
@@ -53,6 +55,7 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => navigate,
 }))
 
+const fetchDailyTotals = jest.fn(), fetchFoodLogs = jest.fn()
 jest.mock('@/store/foodStore', () => ({
   useFoodStore: () => ({
     foodLogs: [
@@ -73,8 +76,10 @@ jest.mock('@/store/foodStore', () => ({
     dailyTotals: { total_calories: 170, calorie_goal: 2000, calories_remaining: 1830 },
     isLoading: false,
     error: null,
-    fetchDailyTotals: jest.fn(),
-    fetchFoodLogs: jest.fn(),
+    logsDate: '2026-10-17', totalsDate: '2026-10-17',
+    logsLoading: false, totalsLoading: false, logsError: null, totalsError: null,
+    fetchDailyTotals,
+    fetchFoodLogs,
     deleteFoodLog: jest.fn(),
   }),
 }))
@@ -84,24 +89,24 @@ jest.mock('@/components/layout/PageTitleContext', () => ({
 }))
 
 describe('serving amounts on diary rows (FF-0029)', () => {
-  it('shows how much was eaten when the log recorded it', () => {
+  it('shows how much was eaten when the log recorded it', async () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/food/daily?date=2026-10-17']}>
         <DailyFood />
       </MemoryRouter>
     )
 
-    expect(screen.getByText(/2 × 170 g/)).toBeInTheDocument()
+    expect(await screen.findByText(/2 × 170 g/)).toBeInTheDocument()
   })
 
-  it('omits the serving entirely when the log has none', () => {
+  it('omits the serving entirely when the log has none', async () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/food/daily?date=2026-10-17']}>
         <DailyFood />
       </MemoryRouter>
     )
 
-    const row = screen.getByText('Mystery Bite').closest('[role="button"]') as HTMLElement
+    const row = (await screen.findByText('Mystery Bite')).closest('[role="button"]') as HTMLElement
     expect(row.textContent).not.toMatch(/×/)
     expect(row.textContent).toMatch(/50 cal/)
   })

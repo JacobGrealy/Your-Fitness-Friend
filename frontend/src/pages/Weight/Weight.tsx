@@ -6,6 +6,7 @@ import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { formatWeight } from '@/utils/formatters'
 import Button from '@/components/common/Button'
 import Card from '@/components/common/Card'
+import PendingStatus from '@/components/common/PendingStatus'
 import Loading from '@/components/common/Loading'
 import { WeightChart } from '@/components/charts'
 
@@ -37,6 +38,7 @@ export default function Weight() {
 
   return (
     <div className="p-4 space-y-4">
+      {isLoading && <PendingStatus />}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Weight Tracking</h1>
       </div>

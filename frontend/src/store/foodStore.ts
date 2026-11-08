@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { withPendingRequests } from './pendingRequests'
 import { foodApi } from '@/api/food'
 import type { Food, FoodLog, DailyTotals, FoodCreate, FoodLogCreate, FoodSearch, MacroGoals, FoodRecent, MealType } from '@/types'
 import { useUIStore } from './uiStore'
@@ -11,6 +12,13 @@ interface FoodState {
   foodLogs: FoodLog[]
   dailyTotals: DailyTotals | null
   macroGoals: MacroGoals | null
+  diaryDate: string | null
+  logsDate: string | null
+  totalsDate: string | null
+  logsLoading: boolean
+  totalsLoading: boolean
+  logsError: string | null
+  totalsError: string | null
   isLoading: boolean
   error: string | null
   fetchFoods: (params?: FoodSearch) => Promise<void>
@@ -40,7 +48,11 @@ const initialFetch = () => {
   store.fetchDailyTotals()
 }
 
-export const useFoodStore = create<FoodState>((set, get) => ({
+let logsRequest = 0
+let totalsRequest = 0
+let foodsRequest = 0
+
+export const useFoodStore = create<FoodState>(withPendingRequests<FoodState>((set, get) => ({
   foods: [],
   recentFoods: [],
   foodLogs: [],
@@ -49,85 +61,86 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   isLoading: false,
   error: null,
   uploadedPhotoUrl: null,
+  diaryDate: null, logsDate: null, totalsDate: null,
+  logsLoading: false, totalsLoading: false, logsError: null, totalsError: null,
 
   fetchFoods: async (params?: FoodSearch) => {
-    set({ isLoading: true, error: null })
+    const request = ++foodsRequest
+    set({ error: null, ...(params ? { foods: [] } : {}) })
     try {
       const foods = await foodApi.getFoods(params)
-      set({ foods, isLoading: false })
+      if (request === foodsRequest) set({ foods })
     } catch (error: any) {
+      if (request !== foodsRequest) return
       set({
         error: error.response?.data?.message || 'Failed to fetch foods',
-        isLoading: false,
       })
     }
   },
 
   fetchRecentFoods: async (days?: number) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       const daysParam = days ?? RECENT_FOODS_DAYS
       const recentFoods = await foodApi.getRecentFoods(daysParam)
-      set({ recentFoods, isLoading: false })
+      set({ recentFoods })
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to fetch recent foods',
-        isLoading: false,
       })
     }
   },
 
   fetchFoodLogs: async (date?: string) => {
-    set({ isLoading: true, error: null })
+    const selected = date || get().diaryDate || todayLocal()
+    const request = ++logsRequest
+    set({ diaryDate: selected, logsLoading: true, logsError: null })
     try {
-      const foodLogs = await foodApi.getFoodLogs({ date })
-      set({ foodLogs, isLoading: false })
+      const foodLogs = await foodApi.getFoodLogs({ date: selected })
+      if (request === logsRequest && get().diaryDate === selected) set({ foodLogs, logsDate: selected })
     } catch (error: any) {
-      set({
-        error: error.response?.data?.message || 'Failed to fetch food logs',
-        isLoading: false,
-      })
+      if (request === logsRequest && get().diaryDate === selected) set({ logsError: error.response?.data?.error || 'Failed to load diary foods.' })
+    } finally {
+      if (request === logsRequest) set({ logsLoading: false })
     }
   },
 
   fetchDailyTotals: async (date?: string) => {
-    set({ isLoading: true, error: null })
+    const selected = date || get().diaryDate || todayLocal()
+    const request = ++totalsRequest
+    set({ diaryDate: selected, totalsLoading: true, totalsError: null })
     try {
-      const dailyTotals = await foodApi.getDailyTotals(date)
-      set({ dailyTotals, isLoading: false })
+      const dailyTotals = await foodApi.getDailyTotals(selected)
+      if (request === totalsRequest && get().diaryDate === selected) set({ dailyTotals, totalsDate: selected })
     } catch (error: any) {
-      set({
-        error: error.response?.data?.message || 'Failed to fetch daily totals',
-        isLoading: false,
-      })
+      if (request === totalsRequest && get().diaryDate === selected) set({ totalsError: error.response?.data?.error || 'Failed to load diary totals.' })
+    } finally {
+      if (request === totalsRequest) set({ totalsLoading: false })
     }
   },
 
   fetchMacroGoals: async () => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       const macroGoals = await foodApi.getMacroGoals()
-      set({ macroGoals, isLoading: false })
+      set({ macroGoals })
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to fetch macro goals',
-        isLoading: false,
       })
     }
   },
 
   createFood: async (data: FoodCreate) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       const created = await foodApi.createFood(data)
-      get().fetchFoods()
+      await get().fetchFoods()
       useUIStore.getState().showToast('Food added successfully', 'success')
-      set({ isLoading: false })
       return created
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to add food',
-        isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to add food', 'error')
       throw error
@@ -135,7 +148,7 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   },
 
   copyMeal: async (from, to) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       const result = await foodApi.copyMeal({
         from_date: from.date,
@@ -143,9 +156,8 @@ export const useFoodStore = create<FoodState>((set, get) => ({
         to_date: to.date,
         to_meal_type: to.mealType,
       })
-      get().fetchFoodLogs()
-      get().fetchDailyTotals()
-      set({ isLoading: false })
+      await get().fetchFoodLogs()
+      await get().fetchDailyTotals()
       useUIStore.getState().showToast(
         `Copied ${result.copied} item${result.copied === 1 ? '' : 's'} to ${to.label}`,
         'success'
@@ -154,14 +166,14 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     } catch (error: any) {
       const message =
         error.response?.data?.error || error.response?.data?.message || 'Failed to copy meal'
-      set({ error: message, isLoading: false })
+      set({ error: message })
       useUIStore.getState().showToast(message, 'error')
       throw error
     }
   },
 
   logFood: async (data: FoodLogCreate) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       const today = todayLocal()
       const logDate = data.date || today
@@ -190,11 +202,10 @@ export const useFoodStore = create<FoodState>((set, get) => ({
             barcode_id: data.barcode_id,
             photo_url: data.photo_url,
           })
-          get().fetchFoodLogs()
-          get().fetchDailyTotals()
+          await get().fetchFoodLogs()
+          await get().fetchDailyTotals()
           useUIStore.getState().showToast('Food logged successfully', 'success')
-          set({ isLoading: false })
-          return result
+              return result
         } else {
           const result = await foodApi.logFood({
             ...data,
@@ -212,11 +223,10 @@ export const useFoodStore = create<FoodState>((set, get) => ({
             barcode_id: data.barcode_id,
             photo_url: data.photo_url,
           })
-          get().fetchFoodLogs()
-          get().fetchDailyTotals()
+          await get().fetchFoodLogs()
+          await get().fetchDailyTotals()
           useUIStore.getState().showToast('Food logged successfully', 'success')
-          set({ isLoading: false })
-          return result
+              return result
         }
       } else {
         const result = await foodApi.logFood({
@@ -235,54 +245,50 @@ export const useFoodStore = create<FoodState>((set, get) => ({
           barcode_id: data.barcode_id,
           photo_url: data.photo_url,
         })
-        get().fetchFoodLogs()
-        get().fetchDailyTotals()
+        await get().fetchFoodLogs()
+        await get().fetchDailyTotals()
         useUIStore.getState().showToast('Food logged successfully', 'success')
-        set({ isLoading: false })
-        return result
+          return result
       }
     } catch (error: any) {
       const message = error.response?.data?.error || error.response?.data?.message || 'Failed to log food'
-      set({ error: message, isLoading: false })
+      set({ error: message })
       useUIStore.getState().showToast(message, 'error')
       throw error
     }
   },
 
   updateFoodLog: async (id: string, data: Partial<FoodLogCreate>) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       const updated = await foodApi.updateFoodLog(id, data)
       set(state => ({
         foodLogs: state.foodLogs.map(log =>
           String(log.id) === String(id) ? { ...log, ...updated } : log
         ),
-        isLoading: false,
       }))
       // The date can change on edit, which moves the entry between diary days
-      get().fetchFoodLogs()
-      get().fetchDailyTotals()
+      await get().fetchFoodLogs()
+      await get().fetchDailyTotals()
       useUIStore.getState().showToast('Food log updated', 'success')
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to update food log',
-        isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to update food log', 'error')
     }
   },
 
   getFoodLogById: async (id: string) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       const log = await foodApi.getFoodLog(id)
-      set({ isLoading: false })
       return log
     } catch (error: any) {
       const message = error.response?.data?.error
         || error.response?.data?.message
         || 'Failed to load food log'
-      set({ error: message, isLoading: false })
+      set({ error: message })
       useUIStore.getState().showToast(message, 'error')
       return null
     }
@@ -331,11 +337,11 @@ export const useFoodStore = create<FoodState>((set, get) => ({
   },
 
   deleteFood: async (id: string) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       const result = await foodApi.deleteFood(id)
       const foods = get().foods.filter(food => String(food.id) !== String(id))
-      set({ foods, isLoading: false })
+      set({ foods })
 
       // Deleting a food never deletes diary entries (FF-0065): they are snapshots
       // and keep their own values, so say so rather than leaving it to be noticed.
@@ -349,45 +355,44 @@ export const useFoodStore = create<FoodState>((set, get) => ({
     } catch (error: any) {
       // The API answers {'error': ...}; reading only .message left this blank.
       const message = error.response?.data?.error || error.response?.data?.message || 'Failed to delete food'
-      set({ error: message, isLoading: false })
+      set({ error: message })
       useUIStore.getState().showToast(message, 'error')
+      throw error
     }
   },
 
   deleteFoodLog: async (id: string) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       await foodApi.deleteFoodLog(id)
       const foodLogs = get().foodLogs.filter(log => log.id !== id)
-      set({ foodLogs, isLoading: false })
-      get().fetchDailyTotals()
+      set({ foodLogs })
+      await get().fetchDailyTotals()
       useUIStore.getState().showToast('Food log deleted', 'success')
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to delete food log',
-        isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to delete food log', 'error')
+      throw error
     }
   },
 
   setMacroGoals: async (goals: MacroGoals) => {
-    set({ isLoading: true, error: null })
+    set({ error: null })
     try {
       await foodApi.setMacroGoals(goals)
-      get().fetchMacroGoals()
+      await get().fetchMacroGoals()
       useUIStore.getState().showToast('Macro goals updated successfully', 'success')
-      set({ isLoading: false })
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to update macro goals',
-        isLoading: false,
       })
       useUIStore.getState().showToast(error.response?.data?.message || 'Failed to update macro goals', 'error')
     }
   },
 
   clearError: () => set({ error: null }),
-}))
+}), ['fetchFoods', 'fetchRecentFoods', 'fetchFoodLogs', 'fetchDailyTotals', 'fetchMacroGoals', 'createFood', 'copyMeal', 'logFood', 'updateFoodLog', 'getFoodLogById', 'uploadFoodLogPhoto', 'deleteFoodLogPhoto', 'deleteFood', 'deleteFoodLog', 'setMacroGoals']))
 
 initialFetch()

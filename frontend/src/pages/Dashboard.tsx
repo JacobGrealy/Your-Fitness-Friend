@@ -14,6 +14,7 @@ import {
   weightYDomain,
 } from '@/utils/weightTrend'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
+import PendingStatus from '@/components/common/PendingStatus'
 import Loading from '@/components/common/Loading'
 import { MEAL_LABELS, MEAL_TYPES } from '@/utils/constants'
 import type { DailyMealItem } from '@/types'
@@ -162,6 +163,7 @@ function Dashboard() {
   return (
     <div className="" style={{ backgroundColor: '#f2f2f2' }}>
       <div className="p-4 space-y-4">
+        {isLoading && <PendingStatus />}
         {/* Calorie Summary */}
         <CalorieSummaryBar calories={dailySummary.calories} />
 

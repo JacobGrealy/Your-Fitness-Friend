@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import LogFood from '@/pages/Food/LogFood'
 
@@ -89,6 +89,37 @@ describe('Recent food quick-add (FF-0018)', () => {
     fireEvent.click(screen.getByRole('button', { name: /add greek yogurt to lunch/i }))
 
     await waitFor(() => expect(screen.getByText('Added')).toBeInTheDocument())
+  })
+
+  it('shows per-row pending, prevents double taps, and confirms only after success', async () => {
+    let resolve!: (value: unknown) => void
+    logFood.mockReturnValue(new Promise(done => { resolve = done }))
+    renderAt()
+    const button = screen.getByRole('button', { name: /add greek yogurt to lunch/i })
+    fireEvent.click(button)
+    fireEvent.click(button)
+    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getByRole('status', { name: 'Adding Greek Yogurt' })).toBeInTheDocument()
+    expect(screen.queryByText('Added')).not.toBeInTheDocument()
+    expect(logFood).toHaveBeenCalledTimes(1)
+    await act(async () => resolve({}))
+    expect(screen.getByText('Added')).toBeInTheDocument()
+    expect(button).not.toBeDisabled()
+  })
+
+  it('restores the plus for an explicit retry after failure, without Added', async () => {
+    let reject!: (reason: unknown) => void
+    logFood.mockReturnValueOnce(new Promise((_, fail) => { reject = fail }))
+    renderAt()
+    const button = screen.getByRole('button', { name: /add greek yogurt to lunch/i })
+    fireEvent.click(button)
+    await act(async () => reject(new Error('Offline')))
+    expect(button).not.toBeDisabled()
+    expect(screen.queryByText('Added')).not.toBeInTheDocument()
+    fireEvent.click(button)
+    await screen.findByText('Added')
+    expect(logFood).toHaveBeenCalledTimes(2)
   })
 
   it('still opens the serving form when the row itself is tapped', () => {

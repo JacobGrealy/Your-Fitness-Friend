@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import ThumbnailImage from '@/components/common/ThumbnailImage'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
@@ -183,7 +183,7 @@ function MealSection({
 export default function DailyFood() {
   const { setTitle, setCenterContent } = usePageTitle()
   const navigate = useNavigate()
-  const { foodLogs, dailyTotals, isLoading, fetchFoodLogs, fetchDailyTotals, deleteFoodLog, copyMeal, error } = useFoodStore()
+  const { foodLogs, dailyTotals, logsDate, totalsDate, logsLoading, totalsLoading, logsError, totalsError, fetchFoodLogs, fetchDailyTotals, deleteFoodLog, copyMeal } = useFoodStore()
   const [deleteLogId, setDeleteLogId] = useState<string | null>(null)
   const [collapsedMeals, setCollapsedMeals] = useState<Set<MealType>>(new Set())
   const [searchParams] = useSearchParams()
@@ -191,7 +191,19 @@ export default function DailyFood() {
   const [currentDate, setCurrentDate] = useState(() => queryDiaryDate(requestedDate))
   useEffect(() => { if (requestedDate) setCurrentDate(queryDiaryDate(requestedDate)) }, [requestedDate])
   const [exerciseSummary, setExerciseSummary] = useState({ date: '', total: 0 })
-  const [isNavigating, setIsNavigating] = useState(false)
+  const dateStr = format(currentDate, 'yyyy-MM-dd')
+  const selectedDate = useRef(dateStr)
+  const visit = useRef(0)
+  if (selectedDate.current !== dateStr) visit.current++
+  selectedDate.current = dateStr
+  const deleteDialog = useRef(0)
+  const [deleteError, setDeleteError] = useState('')
+  const [completionDate, setCompletionDate] = useState<string | null>(null)
+  const [completionError, setCompletionError] = useState('')
+  const [attempt, setAttempt] = useState(0)
+  const [deleting, setDeleting] = useState(false)
+  const deleteBusy = useRef(false)
+  const actionBusy = useRef(false)
   // `closedSummary` feeds the panel on load; `completion` drives the celebration and
   // is set only when the user closes the day, so revisiting a closed diary does not
   // re-pop the modal (FF-0068).
@@ -207,32 +219,28 @@ export default function DailyFood() {
   useEffect(() => { setTitle('Diary') }, [setTitle])
 
   useEffect(() => {
-    const dateStr = format(currentDate, 'yyyy-MM-dd')
-    setIsNavigating(true)
-    Promise.all([
-      fetchDailyTotals(dateStr),
-      fetchFoodLogs(dateStr),
-    ]).finally(() => setIsNavigating(false))
-    // Whether this day was already declared finished (FF-0054).
-    diaryApi.getCompletion(dateStr)
-      .then((state) => {
-        if (state.completed) {
-          setCompletedToday(true)
-          setClosedSummary(state)
-        } else {
-          setCompletedToday(false)
-          setClosedSummary(null)
-        }
-        setStreaks(state.streaks ?? null)
-        setWeek(state.week ?? null)
-      })
-      .catch(() => {
-        setCompletedToday(false)
-        setClosedSummary(null)
-        setStreaks(null)
-        setWeek(null)
-      })
-  }, [currentDate, fetchDailyTotals, fetchFoodLogs])
+    let active = true
+    setCompletionDate(null); setCompletionError(''); setCompletion(null)
+    deleteDialog.current++
+    setDeleteError(''); setDeleteLogId(null); setCopyFrom(null)
+    void fetchDailyTotals(dateStr)
+    void fetchFoodLogs(dateStr)
+    diaryApi.getCompletion(dateStr).then(state => {
+      if (!active || selectedDate.current !== dateStr) return
+      setCompletedToday(state.completed)
+      setClosedSummary(state.completed ? state : null)
+      setStreaks(state.streaks ?? null)
+      setWeek(state.week ?? null)
+      setCompletionDate(dateStr)
+    }).catch(() => {
+      if (active && selectedDate.current === dateStr) setCompletionError('Unable to load diary completion. Please retry.')
+    })
+    return () => { active = false }
+  }, [dateStr, attempt, fetchDailyTotals, fetchFoodLogs])
+
+  const diaryError = logsError || totalsError || completionError
+  const diaryReady = logsDate === dateStr && totalsDate === dateStr && completionDate === dateStr
+    && !logsLoading && !totalsLoading && !diaryError
 
   useEffect(() => {
     setCenterContent(
@@ -242,18 +250,25 @@ export default function DailyFood() {
   }, [currentDate, setCenterContent])
 
   const completeDiary = useCallback(async () => {
+    if (actionBusy.current || !diaryReady) return
+    const startedVisit = visit.current
+    actionBusy.current = true
     setCompleting(true)
     try {
-      const summary = await diaryApi.complete(format(currentDate, 'yyyy-MM-dd'))
+      const summary = await diaryApi.complete(dateStr)
+      if (selectedDate.current !== dateStr || visit.current !== startedVisit) return
       setClosedSummary(summary)
       setCompletion(summary)
       setCompletedToday(true)
       setStreaks(summary.streaks ?? null)
       setWeek(summary.week ?? null)
+    } catch {
+      if (selectedDate.current === dateStr && visit.current === startedVisit) setCompletionError('Unable to complete diary. Please retry.')
     } finally {
+      actionBusy.current = false
       setCompleting(false)
     }
-  }, [currentDate])
+  }, [dateStr, diaryReady])
 
   const handleCopyMeal = useCallback(
     async (toDate: string, toMeal: MealType) => {
@@ -271,19 +286,26 @@ export default function DailyFood() {
   )
 
   const reopenDiary = useCallback(async () => {
+    if (actionBusy.current || !diaryReady) return
+    const startedVisit = visit.current
+    actionBusy.current = true
     setUndoing(true)
     try {
-      const state = await diaryApi.undo(format(currentDate, 'yyyy-MM-dd'))
+      const state = await diaryApi.undo(dateStr)
+      if (selectedDate.current !== dateStr || visit.current !== startedVisit) return
       setCompletion(null)
       setClosedSummary(null)
       setCompletedToday(false)
       // Reopening keeps yesterday's run: the streak only breaks if the day stays open.
       if (state?.streaks) setStreaks(state.streaks)
       if (state?.week) setWeek(state.week)
+    } catch {
+      if (selectedDate.current === dateStr && visit.current === startedVisit) setCompletionError('Unable to reopen diary. Please retry.')
     } finally {
+      actionBusy.current = false
       setUndoing(false)
     }
-  }, [currentDate])
+  }, [dateStr, diaryReady])
 
   const groupedLogs = MEAL_TYPES.reduce((acc, meal) => {
     acc[meal] = foodLogs.filter(log => log.meal_type === meal)
@@ -302,11 +324,18 @@ export default function DailyFood() {
     })
   }
 
-  const handleDeleteLog = () => {
-    if (deleteLogId) {
-      deleteFoodLog(deleteLogId)
-      setDeleteLogId(null)
-    }
+  const handleDeleteLog = async () => {
+    if (!deleteLogId || deleteBusy.current || !diaryReady) return
+    const startedVisit = visit.current, dialog = deleteDialog.current
+    deleteBusy.current = true; setDeleting(true); setDeleteError('')
+    try {
+      await deleteFoodLog(deleteLogId)
+      if (visit.current === startedVisit && deleteDialog.current === dialog) setDeleteLogId(null)
+    } catch (cause: any) {
+      if (visit.current === startedVisit && deleteDialog.current === dialog) {
+        setDeleteError(cause.response?.data?.error || cause.response?.data?.message || 'Failed to delete food log. Please retry.')
+      }
+    } finally { deleteBusy.current = false; setDeleting(false) }
   }
 
   const getMealTotals = (logs: FoodLog[]) => {
@@ -321,25 +350,8 @@ export default function DailyFood() {
     )
   }
 
-  if ((isLoading || isNavigating) && foodLogs.length === 0 && !dailyTotals) {
-    return (
-      <div className="bg-[#f2f2f2]">
-        <div className="flex justify-center py-12">
-          <Loading text="Loading food data..." />
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="bg-[#f2f2f2] pb-4">
-      {error && (
-        <div className="px-4 pt-2">
-          <div className="bg-white rounded-lg p-3 text-red-600 text-sm">
-            {error}
-          </div>
-        </div>
-      )}
 
       {/* The mobile top bar carries the date control, and it is hidden at the
           width where the sidebar takes over — so landscape and desktop get it
@@ -350,6 +362,8 @@ export default function DailyFood() {
       </div>
 
       <div className="px-4 pt-4 space-y-4">
+        {!diaryReady && (diaryError ? <div className="bg-white rounded-lg p-4"><p role="alert">{diaryError}</p><button className="mt-2 text-mfp-blue underline" onClick={() => setAttempt(value => value + 1)}>Retry diary</button></div> : <div role="status" aria-busy="true" className="py-8"><Loading text="Loading diary…" /></div>)}
+        {diaryReady && <>
         {dailyTotals && (
           <CalorieSummaryBar
             calories={{
@@ -381,7 +395,7 @@ export default function DailyFood() {
                 totals={totals}
                 isCollapsed={isCollapsed}
                 onToggle={() => toggleMeal(meal)}
-                onDelete={(id) => setDeleteLogId(id)}
+                onDelete={(id) => { deleteDialog.current++; setDeleteError(''); setDeleteLogId(id) }}
                 onAddFood={(m) => navigate(`/food/log?meal=${m}&date=${format(currentDate, 'yyyy-MM-dd')}`, { state: returnState(`/food/daily?date=${format(currentDate, 'yyyy-MM-dd')}`) })}
                 onEditLog={(id) => navigate(`/food/log/${id}/edit`)}
                 onCopy={setCopyFrom}
@@ -389,7 +403,8 @@ export default function DailyFood() {
             )
           })}
         </div>
-        <DiaryExerciseSection date={format(currentDate, 'yyyy-MM-dd')} onTotal={setExerciseSummary} />
+        </>}
+        <DiaryExerciseSection key={dateStr} date={dateStr} onTotal={setExerciseSummary} />
         <DiaryHydrationSection date={format(currentDate, 'yyyy-MM-dd')} />
         <DiaryHealthSections date={format(currentDate, 'yyyy-MM-dd')} />
       </div>
@@ -398,7 +413,7 @@ export default function DailyFood() {
           this row disappears rather than offering a second way to undo (FF-0068).
           Kept inline rather than in a fixed bar: a floating element has to clear the
           bottom nav itself, and that mistake cost three rounds (FF-0051, FF-0053). */}
-      {copyFrom && (
+      {diaryReady && copyFrom && (
         <CopyMealSheet
           isOpen
           onClose={() => setCopyFrom(null)}
@@ -409,7 +424,7 @@ export default function DailyFood() {
         />
       )}
 
-      {!completedToday && (
+      {diaryReady && !completedToday && (
         <div className="px-4 pt-2 pb-2">
           <button
             type="button"
@@ -423,7 +438,7 @@ export default function DailyFood() {
         </div>
       )}
 
-      {completion && (
+      {diaryReady && completion && (
         <CompleteDiaryModal
           summary={completion}
           onClose={() => setCompletion(null)}
@@ -433,17 +448,18 @@ export default function DailyFood() {
       )}
 
       <Modal
-        isOpen={deleteLogId !== null}
-        onClose={() => setDeleteLogId(null)}
+        isOpen={deleteLogId !== null && (diaryReady || deleting)}
+        onClose={() => { if (!deleting) setDeleteLogId(null) }}
         title="Delete Food Log"
         submitLabel="Delete"
         onSubmit={handleDeleteLog}
-        submitDisabled={isLoading}
-        submitLoading={isLoading}
+        submitDisabled={deleting}
+        submitLoading={deleting}
       >
         <p className="text-sm" style={{ color: '#757575' }}>
           Are you sure you want to delete this food log? This action cannot be undone.
         </p>
+        {deleteError && <p role="alert" className="text-red-700 mt-2">{deleteError}</p>}
       </Modal>
     </div>
   )

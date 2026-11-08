@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import DiaryHealthSections from '@/components/food/DiaryHealthSections'
 import { healthApi } from '@/api/health'
@@ -27,6 +27,23 @@ test('confirmed deletion removes only the selected health entry', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Delete', exact: true }))
   await waitFor(() => expect(screen.queryByText('Wegovy pill · 4 mg')).not.toBeInTheDocument())
   expect(screen.getByText('Normal')).toBeInTheDocument()
+})
+
+test('populated health entries disappear immediately on navigation and old visit errors cannot return', async () => {
+  let reject!: (cause: any) => void
+  const view = render(show('2026-10-22'))
+  await screen.findByText('Morning pill')
+  api.list.mockReturnValueOnce(new Promise((_, fail) => { reject = fail })).mockResolvedValueOnce([])
+  view.rerender(show('2026-10-21'))
+  expect(screen.queryByText('Morning pill')).not.toBeInTheDocument()
+  expect(screen.queryByText('Normal')).not.toBeInTheDocument()
+  expect(screen.getByText('Loading medication…')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Copy Medication' })).toBeDisabled()
+  view.rerender(show('2026-10-22'))
+  await screen.findByText('No medication logged for this day.')
+  await act(async () => reject(new Error('old visit failed')))
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  expect(screen.queryByText('Morning pill')).not.toBeInTheDocument()
 })
 
 test('old-day results are discarded after date changes', async () => {

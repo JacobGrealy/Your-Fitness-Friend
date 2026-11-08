@@ -1,3 +1,4 @@
+import PendingStatus from '@/components/common/PendingStatus'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { hydrationApi, hydrationError } from '@/api/hydration'
@@ -65,6 +66,6 @@ function HydrationForm({ id }: { id?: string }) {
       <label className="block text-sm font-medium">Date and time<input className={input} type="datetime-local" required value={stamp} onChange={e => setStamp(e.target.value)} /></label>
       <label className="block text-sm font-medium">Notes (optional)<textarea className={input} rows={3} maxLength={1000} value={notes} onChange={e => setNotes(e.target.value)} /></label>
     </fieldset>
-    <button type="submit" disabled={saving || !valid} className="w-full bg-mfp-blue rounded-lg py-3 text-white font-semibold disabled:opacity-50">{saving ? 'Saving…' : id ? 'Save hydration changes' : 'Log hydration'}</button>
+    <button type="submit" disabled={saving || !valid} className="w-full bg-mfp-blue rounded-lg py-3 text-white font-semibold disabled:opacity-50">{saving ? <PendingStatus text="Saving hydration…" /> : id ? 'Save hydration changes' : 'Log hydration'}</button>
   </form>
 }

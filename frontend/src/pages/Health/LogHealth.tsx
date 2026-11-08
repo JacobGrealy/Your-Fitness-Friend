@@ -1,3 +1,4 @@
+import PendingStatus from '@/components/common/PendingStatus'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { healthApi, healthError, type HealthKind, type HealthPayload } from '@/api/health'
@@ -66,6 +67,6 @@ function HealthForm({ kind, id }: { kind: HealthKind; id?: string }) {
       {medication && <label className="block text-sm font-medium">Dose (mg)<select className={input} value={dose} onChange={e => setDose(Number(e.target.value))}>{doses.map(value => <option key={value} value={value}>{value} mg</option>)}</select><span className="block text-xs text-mfp-textSecondary mt-1">Defaults to your last logged selection, or 1.5 mg with no history. This is a record, not a dosing recommendation.</span></label>}
       <label className="block text-sm font-medium">Notes (optional)<textarea className={input} rows={3} maxLength={1000} value={notes} onChange={e => setNotes(e.target.value)} /></label>
     </fieldset>
-    <button type="submit" disabled={saving} className="w-full bg-mfp-blue text-white rounded-lg py-3 font-semibold disabled:opacity-50">{saving ? 'Saving…' : id ? 'Save changes' : medication ? 'Log medication' : 'Log bowel movement'}</button>
+    <button type="submit" disabled={saving} className="w-full bg-mfp-blue text-white rounded-lg py-3 font-semibold disabled:opacity-50">{saving ? <PendingStatus text="Saving log…" /> : id ? 'Save changes' : medication ? 'Log medication' : 'Log bowel movement'}</button>
   </form>
 }

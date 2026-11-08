@@ -1,3 +1,4 @@
+import PendingStatus from '@/components/common/PendingStatus'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
@@ -237,7 +238,7 @@ function RegisterForm() {
             className="btn btn-primary w-full"
             disabled={isLoading}
           >
-            {isLoading ? 'Creating account...' : 'Sign Up'}
+            {isLoading ? <PendingStatus text="Creating account…" /> : 'Sign Up'}
           </button>
 
           <div className="text-center">

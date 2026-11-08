@@ -1,3 +1,4 @@
+import PendingStatus from '@/components/common/PendingStatus'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { exerciseApi } from '@/api/exercise'
@@ -134,7 +135,7 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
     </fieldset>
     <section aria-label="Calorie preview" className="bg-[#eef4ff] border border-[#cbdcf7] rounded-xl p-5 space-y-2">
       <p className="text-xs uppercase tracking-widest text-mfp-blue">Estimated activity energy</p>
-      {estimating && <p role="status">Calculating…</p>}
+      {estimating && <PendingStatus text="Calculating…" />}
       {previewError && <p role="alert" className="text-mfp-error">{previewError}</p>}
       {!payload && <p className="text-sm">Enter time, speed or pace, and incline to calculate.</p>}
       {preview && <>
@@ -149,6 +150,6 @@ export default function TreadmillSessionForm({ userId }: { userId: string }) {
       </>}
       <p className="text-xs text-mfp-textSecondary">Exercise is tracked separately. Your food calorie allowance won’t increase.</p>
     </section>
-    <button className="w-full rounded-lg bg-mfp-blue text-white py-3 font-semibold disabled:opacity-50" type="submit" disabled={!payload || saving}>{saving ? 'Saving session…' : editId ? 'Save changes' : 'Log walking session'}</button>
+    <button className="w-full rounded-lg bg-mfp-blue text-white py-3 font-semibold disabled:opacity-50" type="submit" disabled={!payload || saving}>{saving ? <PendingStatus text="Saving session…" /> : editId ? 'Save changes' : 'Log walking session'}</button>
   </form>
 }
