@@ -127,3 +127,52 @@ test('delete confirmation remains pending, then retains error and allows explici
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   expect(foodApi.deleteFoodLog).toHaveBeenCalledTimes(2)
 })
+
+// --- FF-0136: a same-date refresh must not blank the page ----------------------
+//
+// Deleting one food awaits a totals refresh. The old readiness gate treated that
+// same-date refresh like a date change, so the whole body unmounted, the document
+// collapsed and the browser jumped back to the top.
+
+test('a same-date refresh keeps the diary mounted instead of tearing it down', async () => {
+  view()
+  await screen.findByText('Day A food')
+
+  const totals = deferred()
+  ;(foodApi.getDailyTotals as jest.Mock).mockReturnValueOnce(totals.promise)
+  let pending!: Promise<void>
+  await act(async () => { pending = useFoodStore.getState().fetchDailyTotals('2026-01-01') })
+
+  // The sections are still there; only a small updating notice is added.
+  expect(screen.getByText('Day A food')).toBeInTheDocument()
+  expect(screen.getByText('Selected calories: 100')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Delete Day A food' })).toBeInTheDocument()
+  expect(screen.queryByText('Loading diary…')).not.toBeInTheDocument()
+  expect(screen.getByText('Updating diary…')).toBeInTheDocument()
+
+  await act(async () => { totals.resolve({ total_calories: 100 }); await pending })
+  expect(screen.queryByText('Updating diary…')).not.toBeInTheDocument()
+  expect(screen.getByText('Day A food')).toBeInTheDocument()
+})
+
+test('deleting a food log leaves the rest of the diary in place', async () => {
+  ;(foodApi.getFoodLogs as jest.Mock).mockResolvedValue([log('Day A food'), log('Keeper food')])
+  ;(foodApi.deleteFoodLog as jest.Mock).mockResolvedValue({})
+  const totals = deferred()
+  ;(foodApi.getDailyTotals as jest.Mock).mockResolvedValue({ total_calories: 200 })
+  view()
+  await screen.findByText('Keeper food')
+
+  ;(foodApi.getDailyTotals as jest.Mock).mockReturnValueOnce(totals.promise)
+  fireEvent.click(screen.getByRole('button', { name: 'Delete Day A food' }))
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete', exact: true }))
+
+  await waitFor(() => expect(screen.queryByText('Day A food')).not.toBeInTheDocument())
+  // The delete's own totals refresh is in flight; the diary must not disappear.
+  expect(screen.getByText('Keeper food')).toBeInTheDocument()
+  expect(screen.queryByText('Loading diary…')).not.toBeInTheDocument()
+
+  await act(async () => totals.resolve({ total_calories: 100 }))
+  expect(screen.getByText('Keeper food')).toBeInTheDocument()
+  expect(screen.getByText('Selected calories: 100')).toBeInTheDocument()
+})
