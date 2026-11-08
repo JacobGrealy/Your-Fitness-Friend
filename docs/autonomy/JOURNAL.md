@@ -2473,3 +2473,23 @@ Commit: a307b60 (code), 2948ec6 (merge). Frontend-only test added; production as
 Backend activation still pending the owner: `sudo systemctl restart fitnessfriend` (the
 passwordless sudoers drop-in is still not installed — `sudo -n` refused).
 Next: queue is empty; both requested tickets are done.
+
+## FF-0135 — Serving label grams win over a volume-qualified quantity
+
+Owner scanned Lucky Charms after FF-0134 shipped and got "1 serving"; switching the amount
+to grams left it at 1. The saved row (id89, created 19:27:58 UTC, i.e. after the fix was live)
+and the live provider payload both show why: OFF publishes `serving_size` "1 taza (36 g)" with
+`serving_quantity` 36 but `serving_quantity_unit` "ml". FF-0134's resolver short-circuited on
+the volume unit and never read the printed "36 g".
+Now an explicit mass in the label is still accepted when the structured quantity is volume-
+qualified — reading a printed gram figure is not a volume-to-mass conversion. A label with no
+gram figure ("1 cup (240 ml)") still yields no mass, and a mass-qualified quantity that
+materially disagrees with the label is refused as ambiguous. Lucky Charms resolves to 36 g /
+140 kcal per serving.
+Gates: backend 503, jest 542 across 89 suites, tsc, smoke, layout, uploads — green. The
+`tooling` gate is RED for an unrelated reason: the shared `../AweDone` checkout is mid-edit by
+another lane (221 tests now vs 186 earlier) and its browser/export compat tests fail. Verified
+independent by re-running the gate with this ticket's changes stashed: identical 7 failures.
+Commit: 1e322c3 (merge). Backend restart needed for activation.
+The already-saved Lucky Charms food (id89) still carries the wrong 1-serving reference; it was
+not rewritten, per the standing rule that live user food data needs explicit owner approval.
