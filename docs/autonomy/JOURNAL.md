@@ -2424,3 +2424,27 @@ verified both formats return same own photo identity, saved photo retained and n
 First browser probe queried totals-only /food/daily for rows; corrected to /food/log and passed.
 No migration/web build required. Production foods/lunch remain unchanged. Owner backend restart
 needed to activate: `sudo systemctl restart fitnessfriend`. Barcode policy documented in AGENTS.md.
+
+## FF-0133 — Loading feedback and safe diary date transitions
+
+Every user-triggered backend call now shows scoped pending feedback, starting with the two
+the owner named: the recent-food plus becomes a disabled spinner on its own row (a same-task
+double tap produced one write in the browser probe) and a diary date change loads immediately
+instead of leaving the previous day on screen under the new date. Diary reads carry their own
+date/loading/error state, only the latest date may publish, and complete/reopen are guarded by
+date plus visit generation so A->B->A cannot be clobbered by an earlier response. Failures show
+Retry rather than an empty day; delete confirmations stay pending and recoverable.
+Shared `withPendingRequests` counting replaced racing `isLoading` booleans in the food, weight,
+meals and dashboard stores; a successful weight write keeps a refresh warning instead of losing
+it to a success toast. Food save feedback spans create/log/attach, a failed attachment is
+reported as partial success with an attachment-only retry, and authenticated profile refresh no
+longer trips the auth loader (initial verification stays blocking; 401/403 still signs out).
+Durable rule recorded in DECISIONS.md. AGENTS.md was already dirty from the unrelated AweDone
+tracker migration, so that file was deliberately not staged; fold the UI pending-feedback rule
+into its "UI layering" section when that lane lands.
+Gates: ./scripts/gates.sh green — 486 backend, 541 jest across 88 suites, tsc, smoke, layout,
+uploads, tooling (186 AweDone tests). Mobile 390x740 isolated-server probe with delayed and
+mocked APIs passed all four checks; screenshot and probe stored in the central FF-0133 evidence.
+Commit: 715ee0a (code), 255113d (merge), c445aaa (published build). Static assets need no
+backend restart; production serves index-CNCuDX4D.js and no migration was required.
+Next: FF-0134, Open Food Facts gram serving detection.

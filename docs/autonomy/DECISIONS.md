@@ -1198,3 +1198,25 @@ any manual calorie override by 0.75 once. Retain unadjusted calculated values an
 with arms_supported/support_multiplier in the immutable snapshot. This is a user-selected heuristic,
 not a coefficient in ACSM itself. Absent flags default false; new sessions default unchecked;
 edit/repeat restore the source session's flag. Existing saved sessions are not rewritten.
+
+## FF-0133 — Pending feedback is per action and never crosses a date
+
+Every user-triggered backend call shows scoped pending state on the control that
+started it: the tapped row's button becomes a disabled spinner, save buttons span
+the whole awaited sequence (create, log, attachment), and success text appears
+only after success. A shared `withPendingRequests` counter replaces per-store
+`isLoading` booleans so concurrent requests cannot clear an indicator early; a
+successful write whose refresh fails keeps a warning and never offers a
+duplicate-write retry.
+
+Diary reads are keyed by the date they were requested for (`logsDate`,
+`totalsDate`, completion date) rather than a bare loading flag. Only the latest
+selected date may publish rows, totals, completion or errors, and mutation
+responses are guarded by both date and visit generation so an A→B→A trip cannot
+be clobbered by an earlier visit. Failures show Retry; the diary never renders
+an empty day as if it were a successful read.
+
+Partial success is stated, not hidden: a food logged with a failed photo upload
+offers an attachment-only retry on the saved log. Authenticated profile refresh
+is non-blocking so a save keeps its modal and draft; initial authentication stays
+blocking and a 401/403 still ends the session.
