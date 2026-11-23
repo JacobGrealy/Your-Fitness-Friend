@@ -1230,3 +1230,13 @@ empty and error-with-Retry lines, one row per entry with its own edit link and a
 delete, and a `+ Log X` link carrying the selected date (`?date=`) so logging from a past day
 files on that day. Each section reads its own day and drops late responses per visit; the diary
 page owns none of that data, and a test pins the order because placement is a user request.
+
+## FF-0138 — Progress owes the owner a measurement, not a verdict
+
+This supersedes the "both screens state their window on screen ('last 7 days')" line in the
+2026-10-18 entry above, for the Progress page only. Progress shows the weight chart, the goal
+card and the projected goal date; it no longer carries the `last 7 days` caption or a
+`trending up` / `trending down` / `holding steady` badge, on the owner's explicit request.
+Home keeps its own 7-day trend line and window wording — do not "restore consistency" by
+deleting Home's, and do not bring the badge back to Progress. The projection under "On track
+for" is unaffected: it still discloses which source it used, "(your trend)" or "(your goal)".

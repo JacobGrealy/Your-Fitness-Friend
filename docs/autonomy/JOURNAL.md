@@ -2534,3 +2534,22 @@ hydration 953, medication 1106, bowel 1259, weight 1412 px; the day-scoped read 
 diary date; `+ Log Weight` came up prefilled with 2026-10-20; delete asked first, removed only
 id 42 and left the header reading 181.2 lbs.
 Static assets only — no restart.
+
+## FF-0138 — Progress states the weight, not a verdict
+
+Owner: "remove 'last seven days' and the 'trending up' (all of the trends) from the progress
+page." Both lived in one row above the chart in `frontend/src/pages/Weight/WeightHistory.tsx`:
+the `last {TREND_WINDOW_DAYS} days` caption and the badge reading `trending up`, `trending down`
+or `holding steady`. The row is gone, and with it the now-unused `direction` computation and its
+`TREND_WINDOW_DAYS` / `trendDirection` imports.
+Untouched, deliberately: the chart and its BMI toggles, the goal card ("Weight Goal", "Current
+Weight", "vs. Starting Weight", "Distance to Goal"), "Then and Now", "Timelapse", Recent Entries,
+and the "On track for" projection including its "(your trend)" / "(your goal)" rate source. The
+Home dashboard keeps its own trend line — this ticket was the Progress page only.
+`frontend/tests/pages/WeightHistory.trendLabels.test.tsx` renders rising, falling and flat
+histories and fails if the caption or any verdict returns (all three cases fail against the
+pre-change page).
+Gates: ./scripts/gates.sh green — 503 backend, 559 frontend across 93 suites, tsc, smoke,
+layout, uploads, tooling. Mobile browser probe on the Vite dev server: no "last N days", no
+"trending", no "holding steady" anywhere in the page text; the projection and since-start lines
+still render. Static assets only — no restart.
