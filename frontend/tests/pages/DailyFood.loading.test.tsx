@@ -10,6 +10,7 @@ jest.mock('@/api/diary', () => ({ diaryApi: { getCompletion: jest.fn(), complete
 jest.mock('@/components/food/DiaryExerciseSection', () => () => null)
 jest.mock('@/components/food/DiaryHealthSections', () => () => null)
 jest.mock('@/components/food/DiaryHydrationSection', () => () => null)
+jest.mock('@/components/food/DiaryWeightSection', () => () => null)
 jest.mock('@/components/dashboard/CalorieSummaryBar', () => ({ calories }: any) => <div>Selected calories: {calories.consumed}</div>)
 const setTitle = jest.fn(), setCenterContent = jest.fn()
 jest.mock('@/components/layout/PageTitleContext', () => ({ usePageTitle: () => ({ setTitle, setCenterContent }) }))

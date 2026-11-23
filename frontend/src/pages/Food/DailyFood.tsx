@@ -21,6 +21,7 @@ import { returnState } from '@/utils/returnTo'
 import DiaryExerciseSection from '@/components/food/DiaryExerciseSection'
 import DiaryHealthSections from '@/components/food/DiaryHealthSections'
 import DiaryHydrationSection from '@/components/food/DiaryHydrationSection'
+import DiaryWeightSection from '@/components/food/DiaryWeightSection'
 
 function queryDiaryDate(value: string | null): Date {
   if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -421,6 +422,8 @@ export default function DailyFood() {
         <DiaryExerciseSection key={dateStr} date={dateStr} onTotal={setExerciseSummary} />
         <DiaryHydrationSection date={format(currentDate, 'yyyy-MM-dd')} />
         <DiaryHealthSections date={format(currentDate, 'yyyy-MM-dd')} />
+        {/* Below the medication/bowel block, which is the last group before it (FF-0137). */}
+        <DiaryWeightSection date={format(currentDate, 'yyyy-MM-dd')} />
       </div>
 
       {/* Once the day is closed the panel above owns it — Reopen lives there, so

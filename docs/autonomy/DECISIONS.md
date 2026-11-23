@@ -1220,3 +1220,13 @@ Partial success is stated, not hidden: a food logged with a failed photo upload
 offers an attachment-only retry on the saved log. Authenticated profile refresh
 is non-blocking so a save keeps its modal and draft; initial authentication stays
 blocking and a 401/403 still ends the session.
+
+## FF-0137 — Diary day sections share one shape, and each owns its date
+
+Below the meal list the diary is a fixed stack: Exercise, Hydration, Medication, Bowel
+Movements, Weight. A new one copies `DiaryHydrationSection`: a `<section aria-label="Diary X">`
+with a blue collapsible header showing the day's summary, explicit loading (`role="status"`),
+empty and error-with-Retry lines, one row per entry with its own edit link and a confirmed
+delete, and a `+ Log X` link carrying the selected date (`?date=`) so logging from a past day
+files on that day. Each section reads its own day and drops late responses per visit; the diary
+page owns none of that data, and a test pins the order because placement is a user request.
