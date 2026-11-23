@@ -1,14 +1,14 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { logWeightSchema } from '@/utils/schemas'
 import type { WeightLogCreate } from '@/types'
 import { useWeightStore } from '@/store/weightStore'
 import PhotoSourceChooser from '@/components/common/PhotoSourceChooser'
 import { usePageTitle } from '@/components/layout/PageTitleContext'
 import { MAX_WEIGHT_LOG_NOTES } from '@/utils/constants'
-import { todayLocal } from '@/utils/localDate'
+import { requestedLocalDate } from '@/utils/localDate'
 
 export default function LogWeight() {
   const { setTitle } = usePageTitle()
@@ -33,7 +33,11 @@ export default function LogWeight() {
     }
   }, [previewUrl])
 
-  const getTodayDate = () => todayLocal()
+  // The diary links here with the day it is showing, so a weigh-in logged from a past
+  // day is filed on that day instead of silently landing on today (FF-0137).
+  const [searchParams] = useSearchParams()
+  const requestedDate = requestedLocalDate(searchParams.get('date'))
+  const getDefaultDate = () => requestedDate
 
   const {
     register,
@@ -45,7 +49,7 @@ export default function LogWeight() {
     resolver: zodResolver(logWeightSchema),
     defaultValues: {
       weight: undefined,
-      date: getTodayDate(),
+      date: getDefaultDate(),
       notes: '',
     },
   })
@@ -108,7 +112,7 @@ export default function LogWeight() {
     if (currentDuplicate) {
       setShowDuplicateWarning(true)
     } else {
-      reset({ weight: undefined, date: getTodayDate(), notes: '' })
+      reset({ weight: undefined, date: getDefaultDate(), notes: '' })
       setSelectedFile(null)
       setPreviewUrl(null)
       navigate(-1)
@@ -140,7 +144,7 @@ export default function LogWeight() {
       notes: formValues.notes || '',
       photo_url: photoUrl,
     })
-    reset({ weight: undefined, date: getTodayDate(), notes: '' })
+    reset({ weight: undefined, date: getDefaultDate(), notes: '' })
     setSelectedFile(null)
     setPreviewUrl(null)
     setShowDuplicateWarning(false)

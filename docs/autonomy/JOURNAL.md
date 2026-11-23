@@ -2510,3 +2510,27 @@ Mobile browser probe (isolated server, mocked APIs): scroll 442px before and aft
 the pre-fix build dropped it to 375px. Both new frontend tests fail against the old gating.
 Evidence: central FF-0136 browser-scroll-probe.cjs and after-delete-scroll-preserved.png.
 Commit: 30888f9 (merge), published build index-D_IEdJii.js. Static assets only — no restart.
+
+## FF-0137 — The diary can log and show a day's weigh-ins
+
+Owner asked for a Weight section on the diary below the medicine section, following the
+conventions of the other sections.
+`frontend/src/components/food/DiaryWeightSection.tsx` copies the Hydration section's shape:
+keyed by `${userId}:${date}` so a date or account change drops stale state, a blue collapsible
+header carrying the day's weight ("2 entries" when a day has several), explicit loading, empty
+and error-with-Retry lines, one row per weigh-in linking to `/weight/history/:id/edit` with its
+own confirmed delete, and a `+ Log Weight` link that carries the selected date. Rows show no
+clock time: weigh-ins are stored at midnight, so "00:00" on every line would be noise, and the
+notes carry the detail. No backend change — `GET /api/weight/logs?start_date&end_date` exists.
+The section renders after the whole health block, which is below Medication (Bowel Movements
+stays beside it), and `frontend/tests/pages/DailyFood.sections.test.tsx` renders the real
+sections and pins that order instead of leaving it to a comment.
+`LogWeight.tsx` now reads `?date=` through `requestedLocalDate`, so logging from a past diary
+day files on that day and the duplicate/Replace guard asks about that day.
+Gates: ./scripts/gates.sh green — 503 backend, 555 frontend across 92 suites, tsc, smoke,
+layout, uploads, tooling.
+Mobile browser probe (Vite dev server, every /api/** mocked): section tops at exercise 800,
+hydration 953, medication 1106, bowel 1259, weight 1412 px; the day-scoped read asked for the
+diary date; `+ Log Weight` came up prefilled with 2026-10-20; delete asked first, removed only
+id 42 and left the header reading 181.2 lbs.
+Static assets only — no restart.
