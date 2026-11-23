@@ -15,11 +15,9 @@ import BmiToggles, { type ChartToggleState } from '@/components/charts/BmiToggle
 import { bmiThresholds } from '@/utils/bmi'
 import { loadChartToggles, saveChartToggles } from '@/utils/bmiPreferences'
 import {
-  TREND_WINDOW_DAYS,
   buildWeightSeries,
   changeSinceStart,
   dayOf,
-  trendDirection,
 } from '@/utils/weightTrend'
 import { estimateGoalEta, formatEtaDate } from '@/utils/goalEta'
 import ThenAndNow from '@/components/weight/ThenAndNow'
@@ -53,12 +51,6 @@ export default function WeightHistory() {
   const series = buildWeightSeries(
     logs.map((log) => ({ weight: log.weight, recorded_at: log.recorded_at })),
     null
-  )
-  const direction = trendDirection(
-    buildWeightSeries(
-      logs.map((log) => ({ weight: log.weight, recorded_at: log.recorded_at })),
-      TREND_WINDOW_DAYS
-    )
   )
   const chartData = series.map((point) => ({
     // The chart wants a string date; the local day is already decided here, so this cannot
@@ -214,20 +206,6 @@ export default function WeightHistory() {
       {/* Chart */}
       {chartData.length > 0 && (
         <div className="mb-4">
-          <div className="flex items-baseline justify-between px-1 mb-1">
-            <span className="text-xs" style={{ color: '#757575' }}>
-              last {TREND_WINDOW_DAYS} days
-            </span>
-            <span
-              className="text-xs font-semibold"
-              style={{
-                color:
-                  direction === 'down' ? '#2E7D32' : direction === 'up' ? '#c62828' : '#757575',
-              }}
-            >
-              {direction === 'stable' ? 'holding steady' : `trending ${direction}`}
-            </span>
-          </div>
           <BmiToggles value={chartToggles} onChange={handleChartToggle} lines={bmiLines} />
           <WeightChartWithGoal
             data={chartData}
